@@ -95,10 +95,30 @@ function resolveDataDir() {
         `[dados] ${existing.length} bancos encontrados; usando ${chosen.dir} (${chosen.users} acessos, ${chosen.products} produtos)`
       );
     }
+    debugLogin("A", "server.js:resolveDataDir", "escolheu banco existente", {
+      dir: chosen.dir,
+      users: chosen.users,
+      products: chosen.products,
+      established: chosen.established,
+      ready: !!chosen.ready,
+      candidates: existing.length,
+    });
     return chosen.dir;
   }
-  if (envDir) return path.resolve(envDir);
-  if (volume) return path.resolve(volume);
+  if (envDir) {
+    debugLogin("A", "server.js:resolveDataDir", "sem db existente, usando DATA_DIR", {
+      dir: path.resolve(envDir),
+      volumeSet: Boolean(volume),
+    });
+    return path.resolve(envDir);
+  }
+  if (volume) {
+    debugLogin("A", "server.js:resolveDataDir", "sem db existente, usando volume Railway", {
+      dir: path.resolve(volume),
+    });
+    return path.resolve(volume);
+  }
+  debugLogin("A", "server.js:resolveDataDir", "sem db existente, usando ./data", { dir: local });
   return local;
 }
 
@@ -143,6 +163,31 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(UPLOADS, { recursive: true });
 fs.mkdirSync(PUBLIC_UPLOADS, { recursive: true });
 fs.mkdirSync(BACKUPS, { recursive: true });
+
+function debugLogin(hypothesisId, location, message, data) {
+  const payload = {
+    sessionId: "c9e7db",
+    runId: "run1",
+    hypothesisId,
+    location,
+    message,
+    data,
+    timestamp: Date.now(),
+  };
+  // #region agent log
+  fetch("http://127.0.0.1:7351/ingest/6cb06698-8d76-42fd-836c-7b3f0be1b80b", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c9e7db" },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+  try {
+    fs.appendFileSync(path.join(ROOT, "debug-c9e7db.log"), `${JSON.stringify(payload)}\n`);
+  } catch {
+    /* ignore */
+  }
+  console.log("[debug-c9e7db]", JSON.stringify(payload));
+  // #endregion
+}
 
 function resolveSessionSecret() {
   const secret = process.env.SESSION_SECRET;
@@ -606,18 +651,27 @@ function diffFields(before, after, fields) {
 
 /** Instalação nova: cria o banco a partir do seed com uma senha aleatória (nunca uma senha padrão). */
 function ensureDb() {
-  if (hasAdminReady() || dbHasEstablishedUser()) {
-    if (!fs.existsSync(DB_PATH)) {
+  const exists = fs.existsSync(DB_PATH);
+  const ready = hasAdminReady();
+  const established = dbHasEstablishedUser();
+  debugLogin("A", "server.js:ensureDb", "antes de criar/reusar banco", {
+    dbPath: DB_PATH,
+    exists,
+    ready,
+    established,
+  });
+  if (ready || established) {
+    if (!exists) {
       console.error(
         "[dados] senha do painel já foi definida neste volume, mas db.json não está no caminho " +
           `${DB_PATH}. Não crio um admin novo. Restaure o volume ou ajuste DATA_DIR.`
       );
-    } else if (!hasAdminReady()) {
+    } else if (!ready) {
       markAdminReady();
     }
     return false;
   }
-  if (fs.existsSync(DB_PATH)) return false;
+  if (exists) return false;
   const seedPath = path.join(ROOT, "db.seed.json");
   const db = normalizeDb(JSON.parse(fs.readFileSync(seedPath, "utf8")));
   const password = process.env.SETUP_ADMIN_PASSWORD || crypto.randomBytes(12).toString("base64url");
@@ -633,6 +687,10 @@ function ensureDb() {
     },
   ];
   saveDb(db);
+  debugLogin("A", "server.js:ensureDb", "banco novo criado (PRIMEIRO ACESSO)", {
+    dbPath: DB_PATH,
+    userCount: 1,
+  });
   console.log(
     "\n==================== PRIMEIRO ACESSO ====================\n" +
       `  Usuário: admin\n  Senha:   ${password}\n` +
@@ -1040,6 +1098,16 @@ function logDbBoot(created) {
         `usuários: ${(db.users || []).length} · produtos: ${(db.products || []).length}` +
         (created ? " · criado agora" : "")
     );
+    debugLogin("A", "server.js:logDbBoot", "estado do banco na partida", {
+      dbPath: DB_PATH,
+      ready: hasAdminReady(),
+      created: !!created,
+      userCount: (db.users || []).length,
+      usernames: (db.users || []).map((u) => String(u.username || "")),
+      productCount: (db.products || []).length,
+      volume: String(process.env.RAILWAY_VOLUME_MOUNT_PATH || ""),
+      dataDirEnv: String(process.env.DATA_DIR || ""),
+    });
   } catch (err) {
     console.error("[dados] não foi possível ler o banco:", err && err.message ? err.message : err);
   }
@@ -1976,19 +2044,30 @@ app.post("/api/login", loginLimiter, async (req, res, next) => {
     const locked = lockState(username);
     if (locked) {
       const mins = Math.ceil((locked.until - Date.now()) / 60000);
+      debugLogin("D", "server.js:login", "conta bloqueada", { mins, usernameLen: username.length });
       logAction(req, "auth.locked", { actor: { id: null, name: username, role: "guest" }, detail: `bloqueado por ${mins} min` });
       return res.status(429).json({ error: `Conta bloqueada por ${mins} minuto(s) após várias tentativas.` });
     }
 
     const db = getDb();
     const user = db.users.find((u) => String(u.username).toLowerCase() === username);
+    debugLogin("B", "server.js:login", "lookup do usuário", {
+      userFound: Boolean(user),
+      userCount: (db.users || []).length,
+      usernames: (db.users || []).map((u) => String(u.username || "")),
+      passwordLen: password.length,
+      dbPath: DB_PATH,
+      locked: Boolean(locked),
+    });
     let ok = false;
     try {
       ok = user ? await verifyPassword(password, user) : false;
     } catch (err) {
+      debugLogin("E", "server.js:login", "scrypt falhou", { err: String(err && err.message ? err.message : err) });
       console.error("[login] falha ao validar senha:", err && err.message ? err.message : err);
       return res.status(500).json({ error: "Falha ao validar senha. Tente de novo." });
     }
+    debugLogin("C", "server.js:login", "resultado da senha", { ok, userFound: Boolean(user) });
 
     if (!ok) {
       const rec = registerFail(username);
