@@ -40,17 +40,34 @@ const COUPON_TYPES = ["percent", "free_shipping", "gift"];
 
 const ROOT = __dirname;
 
-function uniqueDirs(dirs) {
-  const seen = new Set();
-  const out = [];
-  for (const d of dirs) {
-    if (!d) continue;
-    const resolved = path.resolve(String(d).trim());
-    if (seen.has(resolved)) continue;
-    seen.add(resolved);
-    out.push(resolved);
+function isRailwayHost() {
+  return Boolean(
+    process.env.RAILWAY_ENVIRONMENT ||
+      process.env.RAILWAY_VOLUME_MOUNT_PATH ||
+      process.env.RAILWAY_PROJECT_ID
+  );
+}
+
+function copyDbIfMissing(fromDir, toDir) {
+  if (!fromDir || !toDir) return false;
+  if (path.resolve(fromDir) === path.resolve(toDir)) return false;
+  const src = path.join(fromDir, "db.json");
+  const dest = path.join(toDir, "db.json");
+  try {
+    if (!fs.existsSync(src) || fs.existsSync(dest)) return false;
+    fs.mkdirSync(toDir, { recursive: true });
+    fs.copyFileSync(src, dest);
+    for (const extra of [".admin-ready", ".session-secret", "audit.jsonl"]) {
+      const a = path.join(fromDir, extra);
+      const b = path.join(toDir, extra);
+      if (fs.existsSync(a) && !fs.existsSync(b)) fs.copyFileSync(a, b);
+    }
+    console.log(`[dados] copiado banco de ${fromDir} para o volume ${toDir}`);
+    return true;
+  } catch (err) {
+    console.warn("[dados] não copiei o banco para o volume:", err && err.message ? err.message : err);
+    return false;
   }
-  return out;
 }
 
 function inspectDbFile(dir) {
@@ -74,52 +91,46 @@ function inspectDbFile(dir) {
   }
 }
 
-/** Pasta persistente: DATA_DIR, volume do Railway, ou ./data. Prefere um db.json já existente. */
+/** Pasta persistente: no Railway o volume ganha sempre de ./data (disco do container some no deploy). */
 function resolveDataDir() {
   const local = path.join(ROOT, "data");
   const envDir = String(process.env.DATA_DIR || "").trim();
   const volume = String(process.env.RAILWAY_VOLUME_MOUNT_PATH || "").trim();
-  const candidates = uniqueDirs([envDir, volume, local]);
-  const existing = candidates.map(inspectDbFile).filter(Boolean);
-  if (existing.length) {
-    existing.sort((a, b) => {
-      if (!!b.ready !== !!a.ready) return b.ready ? 1 : -1;
-      if (b.established !== a.established) return b.established - a.established;
-      if (b.users !== a.users) return b.users - a.users;
-      if (b.products !== a.products) return b.products - a.products;
-      return a.mtime - b.mtime;
-    });
-    const chosen = existing[0];
-    if (existing.length > 1) {
-      console.log(
-        `[dados] ${existing.length} bancos encontrados; usando ${chosen.dir} (${chosen.users} acessos, ${chosen.products} produtos)`
-      );
-    }
-    debugLogin("A", "server.js:resolveDataDir", "escolheu banco existente", {
-      dir: chosen.dir,
-      users: chosen.users,
-      products: chosen.products,
-      established: chosen.established,
-      ready: !!chosen.ready,
-      candidates: existing.length,
-    });
-    return chosen.dir;
-  }
-  if (envDir) {
-    debugLogin("A", "server.js:resolveDataDir", "sem db existente, usando DATA_DIR", {
-      dir: path.resolve(envDir),
-      volumeSet: Boolean(volume),
-    });
-    return path.resolve(envDir);
-  }
+  const railwayData = "/data";
+  let dir;
+  let reason;
   if (volume) {
-    debugLogin("A", "server.js:resolveDataDir", "sem db existente, usando volume Railway", {
-      dir: path.resolve(volume),
-    });
-    return path.resolve(volume);
+    dir = path.resolve(volume);
+    reason = "RAILWAY_VOLUME_MOUNT_PATH";
+    copyDbIfMissing(local, dir);
+    if (envDir) copyDbIfMissing(path.resolve(envDir), dir);
+  } else if (envDir) {
+    dir = path.resolve(envDir);
+    reason = "DATA_DIR";
+  } else if (isRailwayHost() && fs.existsSync(railwayData)) {
+    try {
+      if (fs.statSync(railwayData).isDirectory()) {
+        dir = path.resolve(railwayData);
+        reason = "/data";
+        copyDbIfMissing(local, dir);
+      }
+    } catch {
+      /* segue */
+    }
   }
-  debugLogin("A", "server.js:resolveDataDir", "sem db existente, usando ./data", { dir: local });
-  return local;
+  if (!dir) {
+    dir = local;
+    reason = "./data";
+  }
+  debugLogin("A", "server.js:resolveDataDir", "pasta de dados escolhida", {
+    dir,
+    reason,
+    volumeSet: Boolean(volume),
+    dataDirSet: Boolean(envDir),
+    railway: isRailwayHost(),
+    hasDb: fs.existsSync(path.join(dir, "db.json")),
+  });
+  return dir;
 }
 
 const DATA_DIR = resolveDataDir();
@@ -649,6 +660,19 @@ function diffFields(before, after, fields) {
    MIGRAÇÃO / SANEAMENTO NA PARTIDA
    ========================================================================= */
 
+function printFirstAccess(password, reason) {
+  console.log(
+    "\n==================== PRIMEIRO ACESSO ====================\n" +
+      `  Usuário: admin\n  Senha:   ${password}\n` +
+      `  Banco:   ${DB_PATH}\n` +
+      (reason ? `  Motivo:  ${reason}\n` : "") +
+      "\n  O painel vai pedir a troca dessa senha no primeiro login.\n" +
+      "  Depois da troca ela fica salva no volume e não muda no deploy.\n" +
+      "  Anote agora: ela não será mostrada de novo depois da troca.\n" +
+      "=========================================================\n"
+  );
+}
+
 /** Instalação nova: cria o banco a partir do seed com uma senha aleatória (nunca uma senha padrão). */
 function ensureDb() {
   const exists = fs.existsSync(DB_PATH);
@@ -691,15 +715,7 @@ function ensureDb() {
     dbPath: DB_PATH,
     userCount: 1,
   });
-  console.log(
-    "\n==================== PRIMEIRO ACESSO ====================\n" +
-      `  Usuário: admin\n  Senha:   ${password}\n` +
-      `  Banco:   ${DB_PATH}\n\n` +
-      "  O painel vai pedir a troca dessa senha no primeiro login.\n" +
-      "  Depois da troca ela fica salva no volume e não muda no deploy.\n" +
-      "  Anote agora: ela não será mostrada de novo.\n" +
-      "=========================================================\n"
-  );
+  printFirstAccess(password, "banco criado agora");
   return true;
 }
 const dbJustCreated = ensureDb();
@@ -876,6 +892,53 @@ function applyAdminPasswordReset() {
   fs.writeFileSync(markerPath, marker);
   clearAdminReady();
   console.log("[admin] senha do usuário admin redefinida por RESET_ADMIN_PASSWORD. Troque no próximo login.");
+}
+
+/** Se o painel nunca terminou a troca de senha neste banco, reemite uma senha e imprime no log. */
+function ensureAdminBootstrap(createdNow) {
+  if (String(process.env.RESET_ADMIN_PASSWORD || "").trim()) return;
+  if (createdNow) return;
+  if (hasAdminReady()) {
+    debugLogin("A", "server.js:ensureAdminBootstrap", "bootstrap já concluído", {
+      dbPath: DB_PATH,
+      railway: isRailwayHost(),
+    });
+    return;
+  }
+  const db = getDb();
+  const users = Array.isArray(db.users) ? db.users : [];
+  let admin = users.find((u) => String(u.username).toLowerCase() === "admin");
+  if (admin && admin.mustChangePassword === false) {
+    markAdminReady();
+    debugLogin("A", "server.js:ensureAdminBootstrap", "admin já tinha senha definitiva", {
+      dbPath: DB_PATH,
+    });
+    return;
+  }
+  if (!isRailwayHost() && admin) return;
+
+  const password = process.env.SETUP_ADMIN_PASSWORD || crypto.randomBytes(12).toString("base64url");
+  if (!admin) {
+    admin = {
+      id: "u-admin",
+      username: "admin",
+      name: "Administrador",
+      role: "admin",
+      mustChangePassword: true,
+      createdAt: new Date().toISOString(),
+    };
+    db.users = [admin, ...users];
+  }
+  Object.assign(admin, hashPasswordSync(password));
+  admin.mustChangePassword = true;
+  saveDb(db);
+  debugLogin("A", "server.js:ensureAdminBootstrap", "senha de bootstrap reemitida", {
+    dbPath: DB_PATH,
+    railway: isRailwayHost(),
+    createdAdmin: !users.some((u) => String(u.username).toLowerCase() === "admin"),
+    userCount: (db.users || []).length,
+  });
+  printFirstAccess(password, "senha reemitida para este banco — use esta, não a de um log antigo");
 }
 
 function importCatalogIfEmpty(db) {
@@ -1088,6 +1151,7 @@ function migrate() {
 }
 migrate();
 applyAdminPasswordReset();
+ensureAdminBootstrap(dbJustCreated);
 
 function logDbBoot(created) {
   try {
@@ -2067,7 +2131,15 @@ app.post("/api/login", loginLimiter, async (req, res, next) => {
       console.error("[login] falha ao validar senha:", err && err.message ? err.message : err);
       return res.status(500).json({ error: "Falha ao validar senha. Tente de novo." });
     }
-    debugLogin("C", "server.js:login", "resultado da senha", { ok, userFound: Boolean(user) });
+    debugLogin("C", "server.js:login", "resultado da senha", {
+      ok,
+      userFound: Boolean(user),
+      mustChange: Boolean(user && user.mustChangePassword),
+      hasSalt: Boolean(user && user.salt),
+      hasHash: Boolean(user && user.hash),
+      ready: hasAdminReady(),
+      dbPath: DB_PATH,
+    });
 
     if (!ok) {
       const rec = registerFail(username);
