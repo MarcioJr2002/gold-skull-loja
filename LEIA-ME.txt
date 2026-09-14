@@ -23,6 +23,8 @@ Senha:   goldskull
 A nova senha precisa ter 8 caracteres ou mais e não pode ser óbvia.
 Se você instalar a loja em outro computador/servidor do zero, o próprio
 programa cria uma senha aleatória e mostra ela no terminal na primeira vez.
+Depois que você troca essa senha no painel, ela fica salva no volume
+(.admin-ready) e o próximo deploy NÃO gera senha nova.
 
 ESQUECI A SENHA DO PAINEL
 -------------------------

@@ -62,7 +62,13 @@ function inspectDbFile(dir) {
     const users = Array.isArray(db.users) ? db.users : [];
     const products = Array.isArray(db.products) ? db.products : [];
     const established = users.filter((u) => u && u.mustChangePassword === false).length;
-    return { dir, users: users.length, products: products.length, established, mtime: st.mtimeMs };
+    let ready = false;
+    try {
+      ready = fs.existsSync(path.join(dir, ".admin-ready"));
+    } catch {
+      ready = false;
+    }
+    return { dir, users: users.length, products: products.length, established, ready, mtime: st.mtimeMs };
   } catch {
     return null;
   }
@@ -77,6 +83,7 @@ function resolveDataDir() {
   const existing = candidates.map(inspectDbFile).filter(Boolean);
   if (existing.length) {
     existing.sort((a, b) => {
+      if (!!b.ready !== !!a.ready) return b.ready ? 1 : -1;
       if (b.established !== a.established) return b.established - a.established;
       if (b.users !== a.users) return b.users - a.users;
       if (b.products !== a.products) return b.products - a.products;
@@ -97,10 +104,40 @@ function resolveDataDir() {
 
 const DATA_DIR = resolveDataDir();
 const DB_PATH = path.join(DATA_DIR, "db.json");
+const ADMIN_READY_PATH = path.join(DATA_DIR, ".admin-ready");
 const UPLOADS = path.join(DATA_DIR, "uploads");
 const PUBLIC_UPLOADS = path.join(ROOT, "public", "uploads");
 const BACKUPS = path.join(ROOT, "backups");
 const AUDIT_PATH = path.join(DATA_DIR, "audit.jsonl");
+
+function hasAdminReady() {
+  try {
+    return fs.existsSync(ADMIN_READY_PATH);
+  } catch {
+    return false;
+  }
+}
+
+function markAdminReady() {
+  try {
+    fs.writeFileSync(ADMIN_READY_PATH, `${new Date().toISOString()}\n`);
+  } catch (err) {
+    console.warn("[admin] não foi possível gravar .admin-ready:", err && err.message ? err.message : err);
+  }
+}
+
+function clearAdminReady() {
+  try {
+    fs.unlinkSync(ADMIN_READY_PATH);
+  } catch {
+    /* já não existe */
+  }
+}
+
+function dbHasEstablishedUser() {
+  const info = inspectDbFile(DATA_DIR);
+  return !!(info && info.established > 0);
+}
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(UPLOADS, { recursive: true });
@@ -569,6 +606,17 @@ function diffFields(before, after, fields) {
 
 /** Instalação nova: cria o banco a partir do seed com uma senha aleatória (nunca uma senha padrão). */
 function ensureDb() {
+  if (hasAdminReady() || dbHasEstablishedUser()) {
+    if (!fs.existsSync(DB_PATH)) {
+      console.error(
+        "[dados] senha do painel já foi definida neste volume, mas db.json não está no caminho " +
+          `${DB_PATH}. Não crio um admin novo. Restaure o volume ou ajuste DATA_DIR.`
+      );
+    } else if (!hasAdminReady()) {
+      markAdminReady();
+    }
+    return false;
+  }
   if (fs.existsSync(DB_PATH)) return false;
   const seedPath = path.join(ROOT, "db.seed.json");
   const db = normalizeDb(JSON.parse(fs.readFileSync(seedPath, "utf8")));
@@ -590,6 +638,7 @@ function ensureDb() {
       `  Usuário: admin\n  Senha:   ${password}\n` +
       `  Banco:   ${DB_PATH}\n\n` +
       "  O painel vai pedir a troca dessa senha no primeiro login.\n" +
+      "  Depois da troca ela fica salva no volume e não muda no deploy.\n" +
       "  Anote agora: ela não será mostrada de novo.\n" +
       "=========================================================\n"
   );
@@ -767,7 +816,8 @@ function applyAdminPasswordReset() {
   admin.totp = null;
   saveDb(db);
   fs.writeFileSync(markerPath, marker);
-  console.log("[admin] senha do usuário admin redefinida por RESET_ADMIN_PASSWORD.");
+  clearAdminReady();
+  console.log("[admin] senha do usuário admin redefinida por RESET_ADMIN_PASSWORD. Troque no próximo login.");
 }
 
 function importCatalogIfEmpty(db) {
@@ -984,8 +1034,10 @@ applyAdminPasswordReset();
 function logDbBoot(created) {
   try {
     const db = getDb();
+    if (dbHasEstablishedUser() && !hasAdminReady()) markAdminReady();
     console.log(
-      `[dados] banco: ${DB_PATH} · usuários: ${(db.users || []).length} · produtos: ${(db.products || []).length}` +
+      `[dados] banco: ${DB_PATH} · ready: ${hasAdminReady() ? "sim" : "não"} · ` +
+        `usuários: ${(db.users || []).length} · produtos: ${(db.products || []).length}` +
         (created ? " · criado agora" : "")
     );
   } catch (err) {
@@ -2790,6 +2842,7 @@ app.put("/api/users/:id/password", requireAuth, async (req, res, next) => {
     Object.assign(user, await hashPassword(password));
     user.mustChangePassword = isSelf ? false : true; // senha resetada por admin precisa ser trocada no login
     saveDb(db);
+    if (isSelf) markAdminReady();
 
     logAction(req, "user.password", {
       targetType: "user",
