@@ -21,11 +21,13 @@
 | `NODE_ENV=production` | Liga cookie `secure` e mensagens de erro sem detalhes. |
 | `FORCE_HTTPS=1` | Redireciona HTTP→HTTPS, liga HSTS e recusa POST em HTTP. |
 | `TRUST_PROXY=1` | Número de proxies na frente (Nginx = 1). Sem isso o rate limit vê o IP do proxy e pune todo mundo junto. |
+| `DATA_DIR` | Pasta do banco e das fotos. No Railway, se ficar vazio, o servidor usa o volume (`RAILWAY_VOLUME_MOUNT_PATH`). Monte o volume nesse mesmo caminho. |
 | `ADMIN_ALLOW_IPS` | Opcional. Lista de IPs que podem abrir `/admin` e as APIs privadas. É a proteção mais forte do painel. |
 | `SESSION_IDLE_MIN` / `SESSION_MAX_HOURS` | Tempo de inatividade (120 min) e duração máxima (12 h) da sessão. |
 | `LIMIT_LOGIN`, `LIMIT_API`, `LIMIT_WRITE`, `LIMIT_UPLOAD`, `LIMIT_PUBLIC` | Limites de requisição por IP. |
 | `AUDIT_MAX_MB` | Tamanho do log antes de rotacionar para `backups/`. |
 | `SETUP_ADMIN_PASSWORD` | Só na primeira execução: define a senha inicial em vez de sortear uma. |
+| `RESET_ADMIN_PASSWORD` | Redefine a senha do `admin` no próximo boot e zera o 2FA. **Apague depois de entrar.** |
 
 ## Opção A — VPS (Hostinger, DigitalOcean, etc.)
 
@@ -86,8 +88,14 @@ certbot --nginx -d sualoja.com -d www.sualoja.com
 2. Comando de start: `node server.js`
 3. Variáveis: `SESSION_SECRET`, `NODE_ENV=production`, `FORCE_HTTPS=1`, `TRUST_PROXY=1`
    (`PORT` a plataforma define sozinha).
-4. **Volume persistente montado em `data/`** — sem isso você perde produtos,
-   fotos e logs em cada deploy.
+4. **Volume persistente** — sem isso você perde produtos, fotos e senhas em cada deploy.
+   No Railway, monte o volume (ex.: `/data`). O servidor usa `RAILWAY_VOLUME_MOUNT_PATH`
+   automaticamente. Confira no log de partida a linha `[dados] banco: ...`.
+5. Esqueceu a senha do admin: defina `RESET_ADMIN_PASSWORD`, faça deploy, entre, **apague** a variável.
+
+Se o log mostrar `PRIMEIRO ACESSO` depois de um deploy, o app criou um banco novo
+(volume no caminho errado). Ajuste o mount path e suba de novo — a senha antiga
+volta se o `db.json` original estiver no volume.
 
 ## Domínio
 

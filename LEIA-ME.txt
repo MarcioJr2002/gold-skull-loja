@@ -24,6 +24,18 @@ A nova senha precisa ter 8 caracteres ou mais e não pode ser óbvia.
 Se você instalar a loja em outro computador/servidor do zero, o próprio
 programa cria uma senha aleatória e mostra ela no terminal na primeira vez.
 
+ESQUECI A SENHA DO PAINEL
+-------------------------
+No Railway (ou no servidor), crie a variável RESET_ADMIN_PASSWORD com uma
+senha nova (8+ caracteres, nada óbvio). Faça um deploy de novo.
+
+Entre com usuário admin e essa senha. O painel vai pedir para trocar.
+Depois APAGUE a variável RESET_ADMIN_PASSWORD, senão qualquer um com
+acesso ao painel do host consegue resetar de novo.
+
+Se o log de partida mostrar "PRIMEIRO ACESSO", o servidor criou um banco
+novo — use a senha impressa nesse log, não a senha antiga.
+
 COMO ANUNCIAR UM PRODUTO
 ------------------------
 1. Entre no painel

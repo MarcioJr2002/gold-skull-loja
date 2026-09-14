@@ -39,13 +39,70 @@ const LEDGER_MAX = 20000;
 const COUPON_TYPES = ["percent", "free_shipping", "gift"];
 
 const ROOT = __dirname;
-const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, "data");
+
+function uniqueDirs(dirs) {
+  const seen = new Set();
+  const out = [];
+  for (const d of dirs) {
+    if (!d) continue;
+    const resolved = path.resolve(String(d).trim());
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+    out.push(resolved);
+  }
+  return out;
+}
+
+function inspectDbFile(dir) {
+  const file = path.join(dir, "db.json");
+  try {
+    if (!fs.existsSync(file)) return null;
+    const st = fs.statSync(file);
+    const db = JSON.parse(fs.readFileSync(file, "utf8"));
+    const users = Array.isArray(db.users) ? db.users : [];
+    const products = Array.isArray(db.products) ? db.products : [];
+    const established = users.filter((u) => u && u.mustChangePassword === false).length;
+    return { dir, users: users.length, products: products.length, established, mtime: st.mtimeMs };
+  } catch {
+    return null;
+  }
+}
+
+/** Pasta persistente: DATA_DIR, volume do Railway, ou ./data. Prefere um db.json já existente. */
+function resolveDataDir() {
+  const local = path.join(ROOT, "data");
+  const envDir = String(process.env.DATA_DIR || "").trim();
+  const volume = String(process.env.RAILWAY_VOLUME_MOUNT_PATH || "").trim();
+  const candidates = uniqueDirs([envDir, volume, local]);
+  const existing = candidates.map(inspectDbFile).filter(Boolean);
+  if (existing.length) {
+    existing.sort((a, b) => {
+      if (b.established !== a.established) return b.established - a.established;
+      if (b.users !== a.users) return b.users - a.users;
+      if (b.products !== a.products) return b.products - a.products;
+      return a.mtime - b.mtime;
+    });
+    const chosen = existing[0];
+    if (existing.length > 1) {
+      console.log(
+        `[dados] ${existing.length} bancos encontrados; usando ${chosen.dir} (${chosen.users} acessos, ${chosen.products} produtos)`
+      );
+    }
+    return chosen.dir;
+  }
+  if (envDir) return path.resolve(envDir);
+  if (volume) return path.resolve(volume);
+  return local;
+}
+
+const DATA_DIR = resolveDataDir();
 const DB_PATH = path.join(DATA_DIR, "db.json");
 const UPLOADS = path.join(DATA_DIR, "uploads");
 const PUBLIC_UPLOADS = path.join(ROOT, "public", "uploads");
 const BACKUPS = path.join(ROOT, "backups");
 const AUDIT_PATH = path.join(DATA_DIR, "audit.jsonl");
 
+fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(UPLOADS, { recursive: true });
 fs.mkdirSync(PUBLIC_UPLOADS, { recursive: true });
 fs.mkdirSync(BACKUPS, { recursive: true });
@@ -231,12 +288,8 @@ function hashPasswordSync(password) {
 
 async function verifyPassword(password, user) {
   if (!user || !user.salt || !user.hash) return false;
-  try {
-    const hash = await scryptAsync(password, user.salt, kdfOf(user));
-    return safeEqual(hash, user.hash);
-  } catch {
-    return false;
-  }
+  const hash = await scryptAsync(password, user.salt, kdfOf(user));
+  return safeEqual(hash, user.hash);
 }
 
 function verifyPasswordSync(password, user) {
@@ -516,7 +569,7 @@ function diffFields(before, after, fields) {
 
 /** Instalação nova: cria o banco a partir do seed com uma senha aleatória (nunca uma senha padrão). */
 function ensureDb() {
-  if (fs.existsSync(DB_PATH)) return;
+  if (fs.existsSync(DB_PATH)) return false;
   const seedPath = path.join(ROOT, "db.seed.json");
   const db = normalizeDb(JSON.parse(fs.readFileSync(seedPath, "utf8")));
   const password = process.env.SETUP_ADMIN_PASSWORD || crypto.randomBytes(12).toString("base64url");
@@ -534,13 +587,15 @@ function ensureDb() {
   saveDb(db);
   console.log(
     "\n==================== PRIMEIRO ACESSO ====================\n" +
-      `  Usuário: admin\n  Senha:   ${password}\n\n` +
+      `  Usuário: admin\n  Senha:   ${password}\n` +
+      `  Banco:   ${DB_PATH}\n\n` +
       "  O painel vai pedir a troca dessa senha no primeiro login.\n" +
       "  Anote agora: ela não será mostrada de novo.\n" +
       "=========================================================\n"
   );
+  return true;
 }
-ensureDb();
+const dbJustCreated = ensureDb();
 
 const DEFAULT_CITIES = ["Itajaí", "Joinville", "Atacado"];
 
@@ -925,6 +980,19 @@ function migrate() {
 }
 migrate();
 applyAdminPasswordReset();
+
+function logDbBoot(created) {
+  try {
+    const db = getDb();
+    console.log(
+      `[dados] banco: ${DB_PATH} · usuários: ${(db.users || []).length} · produtos: ${(db.products || []).length}` +
+        (created ? " · criado agora" : "")
+    );
+  } catch (err) {
+    console.error("[dados] não foi possível ler o banco:", err && err.message ? err.message : err);
+  }
+}
+logDbBoot(dbJustCreated);
 
 /* =========================================================================
    RATE LIMITING
@@ -1862,7 +1930,13 @@ app.post("/api/login", loginLimiter, async (req, res, next) => {
 
     const db = getDb();
     const user = db.users.find((u) => String(u.username).toLowerCase() === username);
-    const ok = user ? await verifyPassword(password, user) : false;
+    let ok = false;
+    try {
+      ok = user ? await verifyPassword(password, user) : false;
+    } catch (err) {
+      console.error("[login] falha ao validar senha:", err && err.message ? err.message : err);
+      return res.status(500).json({ error: "Falha ao validar senha. Tente de novo." });
+    }
 
     if (!ok) {
       const rec = registerFail(username);
@@ -3063,6 +3137,7 @@ const server = app.listen(PORT, HOST, () => {
     `Segurança: ${PROD ? "produção" : "desenvolvimento"} · HTTPS obrigatório: ${FORCE_HTTPS ? "sim" : "não"} · ` +
       `IPs do painel: ${ADMIN_ALLOW_IPS.length ? ADMIN_ALLOW_IPS.join(", ") : "todos"}`
   );
+  console.log(`Dados: ${DB_PATH}`);
 });
 
 server.on("error", (err) => {
