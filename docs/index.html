@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Unbounded:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-green-main/css/base.css?v=17" />
-  <link rel="stylesheet" href="/site-green-main/css/store.css?v=18" />
+  <link rel="stylesheet" href="/site-green-main/css/store.css?v=24" />
 </head>
 <body class="store">
   <div id="age-gate" class="age-gate hidden">
@@ -41,7 +41,7 @@
     <div class="location-box">
       <img class="age-logo" src="/site-green-main/img/logo-160.png" alt="" width="120" height="120" />
       <h2>Onde você está?</h2>
-      <p class="location-sub">Escolha sua cidade de entrega para ver os produtos certos e o frete.</p>
+      <p class="location-sub">Entrega de motoboy em Itajaí e região ou Joinville e região. Brasil para as demais cidades.</p>
       <div id="location-choices" class="location-choices"></div>
       <label class="city-confirm location-confirm">
         <input type="checkbox" id="location-confirm" />
@@ -75,7 +75,10 @@
         <span class="cart-count hidden" id="cart-count">0</span>
       </button>
     </div>
-    <nav class="categories" id="categories"></nav>
+    <button type="button" class="region-bar hidden" id="region-open" aria-label="Trocar região">
+      <span id="region-label">Região</span>
+      <small>Trocar</small>
+    </button>
   </header>
 
   <main id="top">
@@ -227,8 +230,8 @@
           </div>
         </div>
         <div class="wizard-panel" id="wizard-step-1">
-          <p class="step-title">Sua cidade de entrega</p>
-          <p class="city-warn">Motoboy em Itajaí e região ou Joinville e região. Brasil = envio para o restante do país.</p>
+          <p class="step-title">Sua região de entrega</p>
+          <p class="city-warn">Motoboy em Itajaí e região ou Joinville e região. Brasil = envio para as demais cidades.</p>
           <div id="shipping-choices"></div>
           <label class="city-confirm" id="city-confirm-label">
             <input type="checkbox" id="city-confirm" />
@@ -305,41 +308,51 @@
     </div>
   </div>
 
-  <div class="drawer-backdrop hidden" id="account-backdrop"></div>
-  <aside class="account-drawer hidden" id="account-drawer" role="dialog" aria-modal="true" aria-label="Minha conta">
-    <div class="cart-head">
-      <h3 id="account-title">Minha conta</h3>
-      <button class="modal-close" id="account-close" aria-label="Fechar">✕</button>
-    </div>
-    <div id="account-logged" class="account-panel hidden">
-      <p class="account-greeting">Olá, <strong id="account-name"></strong></p>
-      <p class="account-balance">Cashback: <strong id="account-balance">R$ 0,00</strong></p>
-      <p class="account-ref">Seu código de indicação: <strong id="account-ref-code"></strong></p>
-      <p class="hint">Compartilhe esse código. Quem se cadastrar com ele ganha bônus — e você também.</p>
-      <button type="button" class="btn btn-ghost btn-sm" id="account-logout">Sair da conta</button>
-    </div>
-    <div id="account-guest" class="account-panel">
-      <div class="account-tabs">
-        <button type="button" class="account-tab active" data-mode="login">Entrar</button>
-        <button type="button" class="account-tab" data-mode="register">Criar conta</button>
-      </div>
-      <form id="account-login-form" class="checkout-fields">
-        <label>WhatsApp<input id="acc-phone" type="tel" placeholder="47 99999-0000" autocomplete="tel" /></label>
-        <label>PIN (4–6 dígitos)<input id="acc-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" /></label>
-        <button type="submit" class="btn btn-gold btn-big">ENTRAR</button>
-      </form>
-      <form id="account-register-form" class="checkout-fields hidden">
-        <label>Seu nome<input id="acc-reg-name" type="text" autocomplete="name" /></label>
-        <label>WhatsApp<input id="acc-reg-phone" type="tel" placeholder="47 99999-0000" autocomplete="tel" /></label>
-        <label>Endereço padrão<input id="acc-reg-address" type="text" placeholder="Bairro e cidade" autocomplete="street-address" /></label>
-        <label>Código de indicação (opcional)<input id="acc-reg-ref" type="text" placeholder="Ex.: JOAO1A2" autocapitalize="characters" /></label>
-        <label>Crie um PIN (4–6 dígitos)<input id="acc-reg-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" /></label>
-        <button type="submit" class="btn btn-gold btn-big">CRIAR CONTA</button>
-      </form>
-      <p class="hint">Salve seus dados de entrega e acumule cashback a cada pedido.</p>
-    </div>
-  </aside>
+  <div id="account-gate" class="location-gate account-gate hidden" role="dialog" aria-modal="true" aria-labelledby="account-title">
+    <div class="location-box account-box">
+      <button type="button" class="modal-close account-gate-close hidden" id="account-close" aria-label="Fechar">✕</button>
+      <img class="age-logo" src="/site-green-main/img/logo-160.png" alt="" width="64" height="64" />
+      <h2 id="account-title">Sua conta</h2>
+      <p class="location-sub" id="account-sub">Salve a entrega e acumule cashback. Ou continue sem cadastro.</p>
 
-  <script src="/site-green-main/js/app.js?v=19"></script>
+      <div id="account-logged" class="account-panel hidden">
+        <p class="account-greeting">Olá, <strong id="account-name"></strong></p>
+        <p class="account-balance">Cashback: <strong id="account-balance">R$ 0,00</strong></p>
+        <p class="account-ref">Seu código de indicação: <strong id="account-ref-code"></strong></p>
+        <p class="hint">Quem se cadastrar com esse código ganha bônus — e você também.</p>
+        <div class="account-logged-actions">
+          <button type="button" class="btn btn-ghost" id="account-copy-ref">Copiar código</button>
+          <button type="button" class="btn btn-ghost" id="account-logout">Sair da conta</button>
+        </div>
+        <button type="button" class="btn btn-gold btn-big hidden" id="account-go">IR AO CATÁLOGO</button>
+      </div>
+
+      <div id="account-guest" class="account-panel">
+        <div class="account-tabs">
+          <button type="button" class="account-tab active" data-mode="login">Entrar</button>
+          <button type="button" class="account-tab" data-mode="register">Criar conta</button>
+        </div>
+        <form id="account-login-form" class="checkout-fields">
+          <label>WhatsApp<input id="acc-phone" type="tel" placeholder="47 99999-0000" autocomplete="tel" inputmode="tel" /></label>
+          <label>PIN (4–6 dígitos)<input id="acc-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" /></label>
+          <button type="submit" class="btn btn-gold btn-big" id="account-login-btn">ENTRAR</button>
+        </form>
+        <form id="account-register-form" class="checkout-fields hidden">
+          <label>Seu nome<input id="acc-reg-name" type="text" autocomplete="name" maxlength="80" /></label>
+          <label>WhatsApp<input id="acc-reg-phone" type="tel" placeholder="47 99999-0000" autocomplete="tel" inputmode="tel" /></label>
+          <label>Endereço padrão<input id="acc-reg-address" type="text" placeholder="Bairro e cidade" autocomplete="street-address" maxlength="200" /></label>
+          <label>Código de indicação (opcional)<input id="acc-reg-ref" type="text" placeholder="Ex.: JOAO1A2" autocapitalize="characters" maxlength="20" /></label>
+          <label>Crie um PIN (4–6 dígitos)<input id="acc-reg-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" /></label>
+          <label>Repita o PIN<input id="acc-reg-pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" /></label>
+          <button type="submit" class="btn btn-gold btn-big" id="account-register-btn">CRIAR CONTA</button>
+        </form>
+        <p class="account-error hidden" id="account-error"></p>
+        <p class="hint">WhatsApp + PIN. Sem e-mail. Seus dados entram no pedido automaticamente.</p>
+        <button type="button" class="btn btn-ghost btn-big hidden" id="account-skip">Continuar sem cadastro</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/site-green-main/js/app.js?v=28"></script>
 </body>
 </html>

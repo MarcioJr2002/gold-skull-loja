@@ -127,6 +127,20 @@
       </div>
     </header>
 
+    <!-- SININHO DE PEDIDOS NOVOS -->
+    <div class="notif-bell" id="notif-bell">
+      <button type="button" class="notif-bell-btn" id="notif-bell-btn" title="Pedidos novos" aria-label="Pedidos novos">
+        🔔<span class="notif-badge hidden" id="notif-badge">0</span>
+      </button>
+      <div class="notif-panel hidden" id="notif-panel">
+        <div class="notif-panel-head">
+          <strong>Pedidos novos</strong>
+          <button type="button" class="btn btn-ghost btn-sm" id="notif-mark-read">Marcar como lidos</button>
+        </div>
+        <div class="notif-list" id="notif-list"></div>
+      </div>
+    </div>
+
     <!-- PRODUCTS TAB -->
     <section id="tab-products" class="tab-panel">
       <p class="hint">Organize por caixa e tipo. Caixas: Itajaí e região, Joinville e região, Atacado (Brasil). Tipos: Pods, Refis, Baterias, Gomas.</p>
@@ -509,6 +523,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=20"></script>
+  <script src="/admin/admin.js?v=21"></script>
 </body>
 </html>

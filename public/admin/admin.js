@@ -31,6 +31,9 @@
     logMeta: null,
     logLimit: 100,
     logLoading: false,
+    notifOrders: [],
+    notifLastSeen: 0,
+    notifTimer: null,
   };
 
   function sellPrice(p) {
@@ -233,6 +236,7 @@
     document.querySelectorAll('.editor-only').forEach((el) => el.classList.toggle('hidden', isAdmin));
     $('#whoami').textContent = `${state.user.name || state.user.username} · ${isAdmin ? 'admin' : 'editor'}`;
     loadAll();
+    startNotifPolling();
   }
 
   $('#login-form').addEventListener('submit', async (e) => {
@@ -471,6 +475,9 @@
   }
 
   async function doLogout() {
+    stopNotifPolling();
+    state.notifOrders = [];
+    $('#notif-panel')?.classList.add('hidden');
     try {
       await api('/api/logout', { method: 'POST' });
     } catch {
@@ -481,6 +488,132 @@
     showLogin();
   }
   $('#logout-btn').addEventListener('click', doLogout);
+
+  /* ---------- sininho: pedidos novos ---------- */
+  const NOTIF_SEEN_KEY = 'gs_notif_last_seen';
+  function getNotifLastSeen() {
+    try {
+      return Number(localStorage.getItem(NOTIF_SEEN_KEY)) || 0;
+    } catch {
+      return 0;
+    }
+  }
+  function setNotifLastSeen(ts) {
+    try {
+      localStorage.setItem(NOTIF_SEEN_KEY, String(ts));
+    } catch {
+      /* navegação privada ou storage bloqueado: segue sem lembrar */
+    }
+  }
+  function playNotifSound() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.2, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+      osc.start(now);
+      osc.stop(now + 0.4);
+      osc.onended = () => ctx.close();
+    } catch {
+      /* som é só um extra */
+    }
+  }
+  function notifTimeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return 'agora';
+    if (min < 60) return `há ${min} min`;
+    const h = Math.floor(min / 60);
+    if (h < 24) return `há ${h}h`;
+    return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+  function renderNotifBell() {
+    const badge = $('#notif-badge');
+    const count = state.notifOrders.filter((o) => new Date(o.at).getTime() > state.notifLastSeen).length;
+    if (badge) {
+      badge.textContent = count > 9 ? '9+' : String(count);
+      badge.classList.toggle('hidden', count === 0);
+    }
+    const list = $('#notif-list');
+    if (!list) return;
+    list.innerHTML = state.notifOrders.length
+      ? state.notifOrders
+          .slice(0, 25)
+          .map((o) => {
+            const meta = o.meta || {};
+            const unread = new Date(o.at).getTime() > state.notifLastSeen;
+            const total = meta.total != null ? money(meta.total) : '';
+            return `
+        <div class="notif-item ${unread ? 'unread' : ''}">
+          <div class="notif-item-head"><span>${esc(o.targetName || 'Cliente')}</span><span class="notif-item-total">${esc(total)}</span></div>
+          <div class="notif-item-detail">${esc(o.detail || '')}</div>
+          <div class="notif-item-when">${esc(notifTimeAgo(o.at))}${meta.phone ? ` · ${esc(meta.phone)}` : ''}</div>
+        </div>`;
+          })
+          .join('')
+      : '<p class="notif-empty">Nenhum pedido ainda.</p>';
+  }
+  async function pollNotifOrders(announce) {
+    if (!state.user) return;
+    try {
+      const data = await api('/api/orders/notifications');
+      const prevNewest = state.notifOrders[0] ? state.notifOrders[0].id : null;
+      state.notifOrders = data.orders || [];
+      const newest = state.notifOrders[0];
+      const hasNew = newest && newest.id !== prevNewest && new Date(newest.at).getTime() > state.notifLastSeen;
+      renderNotifBell();
+      if (announce && hasNew) {
+        playNotifSound();
+        const btn = $('#notif-bell-btn');
+        if (btn) {
+          btn.classList.remove('ring');
+          void btn.offsetWidth;
+          btn.classList.add('ring');
+        }
+        toast(`Novo pedido: ${newest.targetName || 'cliente'}`);
+      }
+    } catch {
+      /* não deixa a checagem de pedidos travar o resto do painel */
+    }
+  }
+  function startNotifPolling() {
+    state.notifLastSeen = getNotifLastSeen();
+    pollNotifOrders(false);
+    clearInterval(state.notifTimer);
+    state.notifTimer = setInterval(() => pollNotifOrders(true), 20000);
+  }
+  function stopNotifPolling() {
+    clearInterval(state.notifTimer);
+    state.notifTimer = null;
+  }
+  const notifBellBtn = $('#notif-bell-btn');
+  if (notifBellBtn) {
+    notifBellBtn.addEventListener('click', () => {
+      $('#notif-panel').classList.toggle('hidden');
+    });
+  }
+  document.addEventListener('click', (e) => {
+    const bell = $('#notif-bell');
+    const panel = $('#notif-panel');
+    if (bell && panel && !bell.contains(e.target)) panel.classList.add('hidden');
+  });
+  const notifMarkRead = $('#notif-mark-read');
+  if (notifMarkRead) {
+    notifMarkRead.addEventListener('click', () => {
+      state.notifLastSeen = Date.now();
+      setNotifLastSeen(state.notifLastSeen);
+      renderNotifBell();
+    });
+  }
 
   /* ---------- tabs ---------- */
   const TAB_IDS = ['products', 'stock', 'profit', 'promos', 'coupons', 'categories', 'settings', 'users', 'logs', 'account'];

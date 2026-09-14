@@ -337,6 +337,51 @@
 .profit-row-value.adjust { color: var(--text-2); }
 .profit-empty { text-align: center; color: var(--text-2); padding: 28px 12px; font-weight: 600; }
 
+/* sininho de pedidos novos */
+.notif-bell { position: fixed; top: 10px; right: 12px; z-index: 90; }
+@media (max-width: 640px) { .notif-bell { top: calc(10px + env(safe-area-inset-top)); right: 10px; } }
+.notif-bell-btn {
+  position: relative; width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bg-2); border: 1px solid var(--line); font-size: 18px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow); cursor: pointer;
+}
+.notif-bell-btn:hover { border-color: var(--gold); }
+.notif-bell-btn.ring { animation: notifRing 0.6s ease; }
+@keyframes notifRing {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-14deg); }
+  40% { transform: rotate(12deg); }
+  60% { transform: rotate(-8deg); }
+  80% { transform: rotate(6deg); }
+}
+.notif-badge {
+  position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px;
+  border-radius: 999px; background: var(--danger); color: #fff; font-size: 11px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.notif-panel {
+  position: absolute; top: 48px; right: 0; width: 320px; max-width: calc(100vw - 24px);
+  max-height: 70vh; overflow-y: auto; background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 16px; box-shadow: var(--shadow); padding: 10px;
+}
+.notif-panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 4px 6px 10px; border-bottom: 1px solid var(--line); margin-bottom: 8px;
+}
+.notif-panel-head strong { font-size: 13.5px; }
+.notif-list { display: flex; flex-direction: column; gap: 8px; }
+.notif-item {
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px; text-align: left; width: 100%;
+}
+.notif-item.unread { border-color: var(--gold); background: var(--gold-dim); }
+.notif-item-head { display: flex; justify-content: space-between; gap: 8px; font-weight: 800; font-size: 13px; }
+.notif-item-total { color: var(--gold-2); white-space: nowrap; }
+.notif-item-detail { font-size: 12px; color: var(--text-2); margin-top: 4px; word-break: break-word; }
+.notif-item-when { font-size: 11px; color: var(--text-2); font-weight: 600; margin-top: 4px; }
+.notif-empty { text-align: center; color: var(--text-2); font-size: 12.5px; padding: 20px 8px; }
+
 /* mobile dock */
 .admin-dock {
   display: none;

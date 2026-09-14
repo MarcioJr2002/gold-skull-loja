@@ -1,15 +1,15 @@
 /* Service worker da loja: faz o site abrir como app e funcionar mesmo com internet ruim.
    Regras: o painel (/admin) e as respostas privadas NUNCA são guardadas. */
 
-const VERSION = 'gs-v15';
+const VERSION = 'gs-v22';
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 
 const SHELL_FILES = [
   '/',
-  '/css/base.css?v=14',
-  '/css/store.css?v=14',
-  '/js/app.js?v=19',
+  '/css/base.css?v=17',
+  '/css/store.css?v=24',
+  '/js/app.js?v=28',
   '/img/logo.png',
   '/img/logo-160.png',
   '/img/icon-192.png',

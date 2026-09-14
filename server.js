@@ -426,6 +426,7 @@ const AUDIT_ACTIONS = {
   "security.session_mismatch": "Sessão usada em outro navegador",
   "security.ip_blocked": "Acesso ao painel de IP não liberado",
   "security.upload_rejected": "Upload recusado",
+  "order.placed": "Novo pedido do cliente",
 };
 
 function rotateAuditIfNeeded() {
@@ -468,6 +469,7 @@ function logAction(req, action, extra = {}) {
     targetName: str(extra.targetName, 160),
     detail: str(extra.detail, 400),
     changes: Array.isArray(extra.changes) && extra.changes.length ? extra.changes.slice(0, 40) : null,
+    meta: extra.meta && typeof extra.meta === "object" ? extra.meta : null,
   };
   try {
     rotateAuditIfNeeded();
@@ -1720,6 +1722,62 @@ app.post("/api/public/customer/checkout", publicLimiter, requireCustomer, (req, 
     cashbackBalance: customer.cashbackBalance,
     customer: customerPublic(customer),
   });
+});
+
+/** Itens do pedido: valida e corta tamanho antes de guardar. */
+function sanitizeOrderItems(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(0, 80)
+    .map((it) => ({
+      name: str(it && it.name, 120),
+      qty: Math.max(1, Math.min(999, Math.round(Number(it && it.qty)) || 1)),
+      option: str(it && it.option, 80),
+      price: Math.max(0, Number(it && it.price) || 0),
+    }))
+    .filter((it) => it.name);
+}
+
+/**
+ * Avisa o painel de um novo pedido. O cliente chama isso pelo site logo antes
+ * de abrir o WhatsApp — funciona tanto para quem tem conta quanto para convidado.
+ * Não bloqueia o checkout: se isso falhar o pedido ainda vai pro WhatsApp normalmente.
+ */
+app.post("/api/public/order/notify", publicLimiter, (req, res) => {
+  const b = req.body || {};
+  const items = sanitizeOrderItems(b.items);
+  if (!items.length) return res.status(400).json({ error: "Pedido sem itens." });
+
+  const name = str(b.name, 80) || "Cliente";
+  const phone = str(b.phone, 20);
+  const address = str(b.address, 200);
+  const city = str(b.city, 60);
+  const payment = str(b.payment, 40);
+  const note = str(b.note, 300);
+  const couponCode = str(b.couponCode, 30);
+  const subtotal = Math.max(0, Number(b.subtotal) || 0);
+  const total = Math.max(0, Number(b.total) || 0);
+  const cashbackUsed = Math.max(0, Number(b.cashbackUsed) || 0);
+
+  const itemsSummary = items.map((it) => `${it.qty}x ${it.name}${it.option ? ` (${it.option})` : ""}`).join(", ");
+
+  logAction(req, "order.placed", {
+    actor: { id: req.session.customer ? req.session.customer.id : null, name, role: "cliente" },
+    targetType: "order",
+    targetName: name,
+    detail: itemsSummary,
+    meta: { phone, address, city, payment, note, couponCode, subtotal, total, cashbackUsed, items },
+  });
+
+  res.json({ ok: true });
+});
+
+/** Pedidos recentes para o sininho do painel (qualquer usuário logado, não só admin). */
+app.get("/api/orders/notifications", requireAuth, (_req, res) => {
+  const orders = readAudit()
+    .filter((e) => e.action === "order.placed")
+    .slice(0, 100);
+  res.json({ orders });
 });
 
 app.get("/api/settings", requireAdmin, (_req, res) => {

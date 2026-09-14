@@ -81,6 +81,21 @@ PEDIDOS
 O cliente monta a sacola e clica em "Finalizar no WhatsApp".
 A mensagem chega pronta no número cadastrado da loja.
 
+NOTIFICAÇÃO DE PEDIDOS (sininho no painel)
+------------------------------------------
+Quando o cliente finaliza o pedido no site, o painel avisa na hora:
+
+1. Um sininho 🔔 aparece no canto superior direito do painel
+2. O número vermelho mostra quantos pedidos novos ainda não foram lidos
+3. Toque no sininho para ver nome, itens, total e WhatsApp do cliente
+4. "Marcar como lidos" zera o contador (os pedidos continuam na lista)
+5. Pedido novo toca um som curto e mostra um aviso na tela
+
+Isso funciona para cliente com conta ou convidado. O pedido continua
+indo pro WhatsApp normalmente — a notificação é um extra pro painel.
+
+Os pedidos também ficam registrados na aba Logs (ação "Novo pedido do cliente").
+
 SEGURANÇA — O QUE NUNCA FAZER
 -----------------------------
 1. Não deixe a senha padrão. Troque no primeiro acesso.

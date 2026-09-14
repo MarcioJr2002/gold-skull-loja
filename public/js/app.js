@@ -1574,6 +1574,32 @@
       `*Total: ${money(checkoutMeta ? checkoutMeta.total : total)}*`,
       ...(note ? ['', `Obs: ${note}`] : []),
     ].join('\n');
+
+    if (!IS_PAGES) {
+      // Avisa o sininho do painel. Não trava o checkout se isso falhar.
+      storeFetch('/api/public/order/notify', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          phone,
+          address,
+          city: orderCityLabel(ship),
+          payment: pay,
+          note,
+          couponCode: state.appliedCoupon ? state.appliedCoupon.code : '',
+          subtotal,
+          total: checkoutMeta ? checkoutMeta.total : total,
+          cashbackUsed,
+          items: items.map((i) => ({
+            name: i.product.name,
+            qty: i.qty,
+            option: i.option || '',
+            price: i.product.price,
+          })),
+        }),
+      }).catch(() => {});
+    }
+
     window.open(`https://wa.me/${state.store.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
     state.appliedCoupon = null;
     state.useCashback = false;
