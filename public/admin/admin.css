@@ -368,13 +368,16 @@
 .notif-panel-head {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 4px 6px 10px; border-bottom: 1px solid var(--line); margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 .notif-panel-head strong { font-size: 13.5px; }
+.notif-panel-actions { display: flex; gap: 4px; flex-wrap: wrap; }
 .notif-list { display: flex; flex-direction: column; gap: 8px; }
 .notif-item {
   background: var(--bg-3); border: 1px solid var(--line); border-radius: 12px;
-  padding: 10px 12px; text-align: left; width: 100%;
+  padding: 10px 12px; text-align: left; width: 100%; cursor: pointer; color: inherit; font: inherit;
 }
+.notif-item:hover { border-color: var(--gold); }
 .notif-item.unread { border-color: var(--gold); background: var(--gold-dim); }
 .notif-item-head { display: flex; justify-content: space-between; gap: 8px; font-weight: 800; font-size: 13px; }
 .notif-item-total { color: var(--gold-2); white-space: nowrap; }
@@ -382,13 +385,38 @@
 .notif-item-when { font-size: 11px; color: var(--text-2); font-weight: 600; margin-top: 4px; }
 .notif-empty { text-align: center; color: var(--text-2); font-size: 12.5px; padding: 20px 8px; }
 
+.orders-admin-list { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.order-admin-card {
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 16px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+}
+.order-admin-card.status-pending { border-color: var(--gold); }
+.order-admin-card.status-approved { border-color: rgba(34, 197, 94, 0.45); }
+.order-admin-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.order-admin-top strong { font-size: 15px; }
+.order-admin-status {
+  display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 800;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--gold-2);
+}
+.order-admin-card.status-approved .order-admin-status { color: var(--green); }
+.order-admin-card.status-cancelled .order-admin-status { color: var(--text-2); }
+.order-admin-top time { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+.order-admin-meta { font-size: 13px; color: var(--text-2); line-height: 1.45; }
+.order-admin-items { font-size: 13.5px; line-height: 1.5; }
+.order-admin-foot {
+  display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap;
+  padding-top: 8px; border-top: 1px dashed var(--line);
+}
+.order-admin-foot strong { color: var(--gold); font-size: 18px; }
+.order-admin-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* mobile dock */
 .admin-dock {
   display: none;
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
   background: rgba(255, 255, 255, 0.96); border-top: 1px solid var(--line);
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-  grid-template-columns: repeat(4, 1fr); gap: 4px;
+  grid-template-columns: repeat(5, 1fr); gap: 4px;
 }
 .dock-btn {
   padding: 12px 6px; border-radius: 12px; font-size: 12.5px; font-weight: 800; color: var(--text-2);

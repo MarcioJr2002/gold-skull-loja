@@ -1714,6 +1714,7 @@
           total: checkoutMeta ? checkoutMeta.total : total,
           cashbackUsed,
           items: items.map((i) => ({
+            productId: i.product.id,
             name: i.product.name,
             qty: i.qty,
             option: i.option || '',

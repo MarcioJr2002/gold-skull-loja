@@ -36,6 +36,7 @@ const LOGIN_MAX_FAILS = 8;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const AUDIT_MAX_BYTES = Number(process.env.AUDIT_MAX_MB || 8) * 1024 * 1024;
 const LEDGER_MAX = 20000;
+const ORDERS_MAX = 5000;
 const COUPON_TYPES = ["percent", "free_shipping", "gift"];
 
 const ROOT = __dirname;
@@ -309,6 +310,7 @@ function normalizeDb(db) {
   if (!Array.isArray(db.users)) db.users = [];
   if (!Array.isArray(db.customers)) db.customers = [];
   if (!Array.isArray(db.ledger)) db.ledger = [];
+  if (!Array.isArray(db.orders)) db.orders = [];
   return db;
 }
 
@@ -328,6 +330,7 @@ function getDb() {
 
 function saveDb(db) {
   if (db.ledger.length > LEDGER_MAX) db.ledger.length = LEDGER_MAX;
+  if (Array.isArray(db.orders) && db.orders.length > ORDERS_MAX) db.orders.length = ORDERS_MAX;
   const tmp = `${DB_PATH}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
   fs.renameSync(tmp, DB_PATH); // troca atômica: nunca deixa o db pela metade
@@ -573,6 +576,8 @@ const AUDIT_ACTIONS = {
   "security.ip_blocked": "Acesso ao painel de IP não liberado",
   "security.upload_rejected": "Upload recusado",
   "order.placed": "Novo pedido do cliente",
+  "order.approved": "Pedido aprovado (baixa estoque)",
+  "order.cancelled": "Pedido recusado",
 };
 
 function rotateAuditIfNeeded() {
@@ -1982,12 +1987,68 @@ function sanitizeOrderItems(raw) {
   return raw
     .slice(0, 80)
     .map((it) => ({
+      productId: str(it && it.productId, 60),
       name: str(it && it.name, 120),
       qty: Math.max(1, Math.min(999, Math.round(Number(it && it.qty)) || 1)),
       option: str(it && it.option, 80),
       price: Math.max(0, Number(it && it.price) || 0),
     }))
     .filter((it) => it.name);
+}
+
+function orderFromAuditEntry(e) {
+  const meta = e.meta || {};
+  return {
+    id: uid("ord"),
+    auditId: e.id || "",
+    status: "pending",
+    createdAt: e.at || new Date().toISOString(),
+    customerName: str(e.targetName || meta.name, 80) || "Cliente",
+    phone: str(meta.phone, 20),
+    address: str(meta.address, 200),
+    city: str(meta.city, 60),
+    payment: str(meta.payment, 40),
+    note: str(meta.note, 300),
+    couponCode: str(meta.couponCode, 30),
+    subtotal: Math.max(0, Number(meta.subtotal) || 0),
+    total: Math.max(0, Number(meta.total) || 0),
+    cashbackUsed: Math.max(0, Number(meta.cashbackUsed) || 0),
+    items: sanitizeOrderItems(meta.items),
+    approvedAt: null,
+    approvedBy: "",
+    cancelledAt: null,
+    cancelledBy: "",
+    stockMoves: [],
+  };
+}
+
+/** Importa pedidos antigos que só existiam no audit (sininho). */
+function migrateOrdersFromAudit(db) {
+  if (!Array.isArray(db.orders)) db.orders = [];
+  const known = new Set(db.orders.map((o) => o.auditId).filter(Boolean));
+  let added = 0;
+  for (const e of readAudit().filter((x) => x.action === "order.placed")) {
+    if (!e.id || known.has(e.id)) continue;
+    db.orders.unshift(orderFromAuditEntry(e));
+    known.add(e.id);
+    added += 1;
+  }
+  if (added) saveDb(db);
+  return added;
+}
+
+function findOrder(db, id) {
+  return (db.orders || []).find((o) => o.id === id) || null;
+}
+
+function resolveOrderProduct(db, item) {
+  if (item.productId) {
+    const byId = findProduct(db, item.productId);
+    if (byId) return byId;
+  }
+  const name = String(item.name || "").trim().toLowerCase();
+  if (!name) return null;
+  return (db.products || []).find((p) => String(p.name || "").trim().toLowerCase() === name) || null;
 }
 
 /**
@@ -2013,23 +2074,216 @@ app.post("/api/public/order/notify", publicLimiter, (req, res) => {
 
   const itemsSummary = items.map((it) => `${it.qty}x ${it.name}${it.option ? ` (${it.option})` : ""}`).join(", ");
 
-  logAction(req, "order.placed", {
+  const order = {
+    id: uid("ord"),
+    auditId: "",
+    status: "pending",
+    createdAt: new Date().toISOString(),
+    customerName: name,
+    phone,
+    address,
+    city,
+    payment,
+    note,
+    couponCode,
+    subtotal,
+    total,
+    cashbackUsed,
+    items,
+    approvedAt: null,
+    approvedBy: "",
+    cancelledAt: null,
+    cancelledBy: "",
+    stockMoves: [],
+  };
+
+  const db = getDb();
+  db.orders.unshift(order);
+  saveDb(db);
+
+  const auditEntry = logAction(req, "order.placed", {
     actor: { id: req.session.customer ? req.session.customer.id : null, name, role: "cliente" },
     targetType: "order",
+    targetId: order.id,
     targetName: name,
     detail: itemsSummary,
-    meta: { phone, address, city, payment, note, couponCode, subtotal, total, cashbackUsed, items },
+    meta: { phone, address, city, payment, note, couponCode, subtotal, total, cashbackUsed, items, orderId: order.id },
   });
+  if (auditEntry && auditEntry.id) {
+    order.auditId = String(auditEntry.id);
+    saveDb(db);
+  }
 
-  res.json({ ok: true });
+  res.json({ ok: true, orderId: order.id });
 });
 
 /** Pedidos recentes para o sininho do painel (qualquer usuário logado, não só admin). */
 app.get("/api/orders/notifications", requireAuth, (_req, res) => {
-  const orders = readAudit()
-    .filter((e) => e.action === "order.placed")
-    .slice(0, 100);
+  const db = getDb();
+  migrateOrdersFromAudit(db);
+  const orders = (db.orders || [])
+    .filter((o) => o.status === "pending")
+    .slice(0, 100)
+    .map((o) => ({
+      id: o.id,
+      at: o.createdAt,
+      action: "order.placed",
+      targetName: o.customerName,
+      detail: (o.items || []).map((it) => `${it.qty}x ${it.name}${it.option ? ` (${it.option})` : ""}`).join(", "),
+      meta: {
+        phone: o.phone,
+        address: o.address,
+        city: o.city,
+        payment: o.payment,
+        note: o.note,
+        couponCode: o.couponCode,
+        subtotal: o.subtotal,
+        total: o.total,
+        cashbackUsed: o.cashbackUsed,
+        items: o.items,
+        orderId: o.id,
+        status: o.status,
+      },
+    }));
   res.json({ orders });
+});
+
+app.get("/api/orders", requireAuth, (req, res) => {
+  const db = getDb();
+  migrateOrdersFromAudit(db);
+  const status = str(req.query.status, 20);
+  const city = str(req.query.city, 60);
+  const q = str(req.query.q, 80).toLowerCase();
+  const period = str(req.query.period, 20) || "all";
+  const now = Date.now();
+  let start = 0;
+  if (period === "today") {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    start = d.getTime();
+  } else if (period === "week") start = now - 7 * 24 * 60 * 60 * 1000;
+  else if (period === "month") start = now - 30 * 24 * 60 * 60 * 1000;
+  else if (period === "year") start = now - 365 * 24 * 60 * 60 * 1000;
+
+  let list = db.orders || [];
+  if (status && status !== "all") list = list.filter((o) => o.status === status);
+  if (city) {
+    const needle = city.toLowerCase();
+    list = list.filter((o) => String(o.city || "").toLowerCase().includes(needle));
+  }
+  if (q) {
+    list = list.filter((o) =>
+      [o.customerName, o.phone, o.address, o.city, o.payment, o.note, ...(o.items || []).map((i) => i.name)]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }
+  if (start) list = list.filter((o) => new Date(o.createdAt).getTime() >= start);
+
+  const pending = (db.orders || []).filter((o) => o.status === "pending").length;
+  const approvedInPeriod = (db.orders || []).filter((o) => {
+    if (o.status !== "approved") return false;
+    const t = new Date(o.approvedAt || o.createdAt).getTime();
+    return !start || t >= start;
+  });
+  const stats = {
+    pending,
+    approvedCount: approvedInPeriod.length,
+    approvedTotal: approvedInPeriod.reduce((s, o) => s + (Number(o.total) || 0), 0),
+    cancelledCount: (db.orders || []).filter((o) => {
+      if (o.status !== "cancelled") return false;
+      const t = new Date(o.cancelledAt || o.createdAt).getTime();
+      return !start || t >= start;
+    }).length,
+  };
+
+  res.json({ orders: list.slice(0, 300), stats });
+});
+
+app.post("/api/orders/:id/approve", requireAuth, (req, res) => {
+  const db = getDb();
+  const order = findOrder(db, str(req.params.id, 60));
+  if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
+  if (order.status !== "pending") return res.status(400).json({ error: "Este pedido já foi tratado." });
+
+  const resolved = (order.items || []).map((it) => ({ item: it, product: resolveOrderProduct(db, it) }));
+  const missing = resolved.filter((r) => !r.product);
+  if (missing.length) {
+    return res.status(400).json({
+      error: `Não achei o produto no estoque: ${missing.map((r) => r.item.name).join(", ")}. Edite o catálogo ou baixe manualmente na aba Estoque.`,
+    });
+  }
+  for (const r of resolved) {
+    const current = r.product.stock == null ? 0 : Number(r.product.stock) || 0;
+    if (r.product.stockActive && current < r.item.qty) {
+      return res.status(400).json({
+        error: `Estoque insuficiente de "${r.product.name}" (${current} un., pedido ${r.item.qty}).`,
+      });
+    }
+  }
+
+  const moves = [];
+  const cityNames = shippingCities(db.settings);
+  for (const r of resolved) {
+    const product = r.product;
+    const qty = r.item.qty;
+    const current = product.stock == null ? 0 : Number(product.stock) || 0;
+    if (product.stockActive || product.stock != null) {
+      product.stock = Math.max(0, current - qty);
+      product.stockActive = true;
+    }
+    const cities = inferProductCities(product, cityNames);
+    const entry = {
+      id: uid("l"),
+      type: "sale",
+      productId: product.id,
+      productName: product.name,
+      category: product.category || "",
+      city: order.city || cities[0] || "",
+      cities,
+      qty,
+      price: r.item.price > 0 ? r.item.price : sellPrice(product),
+      cost: product.cost == null || product.cost === "" ? null : Number(product.cost),
+      createdAt: new Date().toISOString(),
+      userName: req.session.user.name || req.session.user.username,
+      orderId: order.id,
+      option: r.item.option || "",
+    };
+    db.ledger.unshift(entry);
+    moves.push(entry.id);
+  }
+
+  order.status = "approved";
+  order.approvedAt = new Date().toISOString();
+  order.approvedBy = req.session.user.name || req.session.user.username;
+  order.stockMoves = moves;
+  saveDb(db);
+  logAction(req, "order.approved", {
+    targetType: "order",
+    targetId: order.id,
+    targetName: order.customerName,
+    detail: `aprovou pedido · ${moves.length} baixa(s) no estoque · ${order.total}`,
+  });
+  res.json({ order, ledger: db.ledger, products: db.products });
+});
+
+app.post("/api/orders/:id/cancel", requireAuth, (req, res) => {
+  const db = getDb();
+  const order = findOrder(db, str(req.params.id, 60));
+  if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
+  if (order.status !== "pending") return res.status(400).json({ error: "Este pedido já foi tratado." });
+  order.status = "cancelled";
+  order.cancelledAt = new Date().toISOString();
+  order.cancelledBy = req.session.user.name || req.session.user.username;
+  saveDb(db);
+  logAction(req, "order.cancelled", {
+    targetType: "order",
+    targetId: order.id,
+    targetName: order.customerName,
+    detail: "pedido recusado / cancelado (sem baixa de estoque)",
+  });
+  res.json({ order });
 });
 
 app.get("/api/settings", requireAdmin, (_req, res) => {

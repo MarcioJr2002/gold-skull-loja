@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=15" />
+  <link rel="stylesheet" href="/admin/admin.css?v=16" />
 </head>
 <body class="admin-body">
 
@@ -109,6 +109,7 @@
         <span class="brand"><span class="brand-name">PAINEL</span></span>
         <nav class="tabs">
           <button class="tab active" data-tab="products">Produtos</button>
+          <button class="tab" data-tab="orders">Pedidos</button>
           <button class="tab" data-tab="stock">Estoque</button>
           <button class="tab" data-tab="profit">Lucro</button>
           <button class="tab admin-only" data-tab="promos">Promoções</button>
@@ -133,9 +134,12 @@
         🔔<span class="notif-badge hidden" id="notif-badge">0</span>
       </button>
       <div class="notif-panel hidden" id="notif-panel">
-        <div class="notif-panel-head">
+      <div class="notif-panel-head">
           <strong>Pedidos novos</strong>
-          <button type="button" class="btn btn-ghost btn-sm" id="notif-mark-read">Marcar como lidos</button>
+          <div class="notif-panel-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="notif-open-orders">Ver todos</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="notif-mark-read">Marcar como lidos</button>
+          </div>
         </div>
         <div class="notif-list" id="notif-list"></div>
       </div>
@@ -174,6 +178,29 @@
       <p class="catalog-count" id="catalog-count"></p>
       <div id="catalog-board"></div>
       <button type="button" class="fab-add mobile-only" id="fab-add">+ Anunciar</button>
+    </section>
+
+    <!-- ORDERS TAB -->
+    <section id="tab-orders" class="tab-panel hidden">
+      <p class="hint">Pedidos que chegaram pela loja. <b>Aprovar</b> dá baixa no estoque e conta no Lucro. <b>Recusar</b> só arquiva, sem mexer no estoque.</p>
+      <div class="profit-toolbar">
+        <div class="period-tabs" id="orders-period">
+          <button type="button" class="period-btn active" data-period="today">Hoje</button>
+          <button type="button" class="period-btn" data-period="week">7 dias</button>
+          <button type="button" class="period-btn" data-period="month">Mês</button>
+          <button type="button" class="period-btn" data-period="year">Ano</button>
+          <button type="button" class="period-btn" data-period="all">Tudo</button>
+        </div>
+        <select id="orders-status-filter" class="toolbar-select" aria-label="Status">
+          <option value="pending">Para gerenciar</option>
+          <option value="approved">Aprovados</option>
+          <option value="cancelled">Recusados</option>
+          <option value="all">Todos</option>
+        </select>
+        <input type="search" id="orders-search" class="toolbar-select" placeholder="Buscar cliente, WhatsApp, produto..." />
+      </div>
+      <div class="profit-cards" id="orders-stats"></div>
+      <div id="orders-list" class="orders-admin-list"></div>
     </section>
 
     <!-- STOCK TAB -->
@@ -486,6 +513,7 @@
 
   <nav class="admin-dock" id="admin-dock">
     <button type="button" class="dock-btn active" data-tab="products">Produtos</button>
+    <button type="button" class="dock-btn" data-tab="orders">Pedidos</button>
     <button type="button" class="dock-btn" data-tab="stock">Estoque</button>
     <button type="button" class="dock-btn" data-tab="profit">Lucro</button>
     <button type="button" class="dock-btn" id="dock-more">Mais</button>
@@ -523,6 +551,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=21"></script>
+  <script src="/admin/admin.js?v=22"></script>
 </body>
 </html>

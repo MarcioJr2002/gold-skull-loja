@@ -34,6 +34,11 @@
     notifOrders: [],
     notifLastSeen: 0,
     notifTimer: null,
+    orders: [],
+    ordersStats: { pending: 0, approvedCount: 0, approvedTotal: 0, cancelledCount: 0 },
+    ordersPeriod: 'today',
+    ordersStatus: 'pending',
+    ordersSearch: '',
   };
 
   function sellPrice(p) {
@@ -552,15 +557,26 @@
             const meta = o.meta || {};
             const unread = new Date(o.at).getTime() > state.notifLastSeen;
             const total = meta.total != null ? money(meta.total) : '';
+            const orderId = meta.orderId || o.id;
             return `
-        <div class="notif-item ${unread ? 'unread' : ''}">
+        <button type="button" class="notif-item ${unread ? 'unread' : ''}" data-open-order="${esc(orderId)}">
           <div class="notif-item-head"><span>${esc(o.targetName || 'Cliente')}</span><span class="notif-item-total">${esc(total)}</span></div>
           <div class="notif-item-detail">${esc(o.detail || '')}</div>
           <div class="notif-item-when">${esc(notifTimeAgo(o.at))}${meta.phone ? ` · ${esc(meta.phone)}` : ''}</div>
-        </div>`;
+        </button>`;
           })
           .join('')
       : '<p class="notif-empty">Nenhum pedido ainda.</p>';
+    list.querySelectorAll('[data-open-order]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        $('#notif-panel')?.classList.add('hidden');
+        state.ordersStatus = 'pending';
+        const sel = $('#orders-status-filter');
+        if (sel) sel.value = 'pending';
+        switchTab('orders');
+        loadOrders();
+      })
+    );
   }
   async function pollNotifOrders(announce) {
     if (!state.user) return;
@@ -614,15 +630,26 @@
       renderNotifBell();
     });
   }
+  const notifOpenOrders = $('#notif-open-orders');
+  if (notifOpenOrders) {
+    notifOpenOrders.addEventListener('click', () => {
+      $('#notif-panel')?.classList.add('hidden');
+      state.ordersStatus = 'pending';
+      const sel = $('#orders-status-filter');
+      if (sel) sel.value = 'pending';
+      switchTab('orders');
+      loadOrders();
+    });
+  }
 
   /* ---------- tabs ---------- */
-  const TAB_IDS = ['products', 'stock', 'profit', 'promos', 'coupons', 'categories', 'settings', 'users', 'logs', 'account'];
+  const TAB_IDS = ['products', 'orders', 'stock', 'profit', 'promos', 'coupons', 'categories', 'settings', 'users', 'logs', 'account'];
   function switchTab(id) {
     if (!TAB_IDS.includes(id)) return;
     const more = $('#more-sheet');
     if (more) more.classList.add('hidden');
     document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x.dataset.tab === id));
-    const dockMain = ['products', 'stock', 'profit'].includes(id);
+    const dockMain = ['products', 'orders', 'stock', 'profit'].includes(id);
     document.querySelectorAll('.dock-btn[data-tab]').forEach((x) => x.classList.toggle('active', x.dataset.tab === id));
     const moreBtn = $('#dock-more');
     if (moreBtn) moreBtn.classList.toggle('active', !dockMain);
@@ -632,6 +659,7 @@
     });
     if (id === 'logs') loadLogs(true);
     if (id === 'account') loadTwoFactorStatus();
+    if (id === 'orders') loadOrders();
   }
   document.querySelectorAll('.tab, .dock-btn[data-tab]').forEach((t) =>
     t.addEventListener('click', () => switchTab(t.dataset.tab))
@@ -913,44 +941,48 @@
         (state.cityFilter ? ` em ${cityLabel(state.cityFilter)}` : '') +
         (state.catFilter ? ` · ${state.catFilter}` : '');
     }
-    const cities = cityNames().filter((c) => !state.cityFilter || c === state.cityFilter);
     const board = $('#catalog-board');
     if (!list.length) {
       board.innerHTML = '<p class="profit-empty">Nenhum produto nesta busca.</p>';
       return;
     }
+
+    const renderCatBlocks = (items) => {
+      const cats = sortTypeNames([...new Set(items.map((p) => p.category || 'Sem categoria'))]);
+      return cats
+        .map((cat) => {
+          const rows = items.filter((p) => (p.category || 'Sem categoria') === cat);
+          return `<details class="catalog-cat" open>
+            <summary>${esc(cat)} <em>${rows.length}</em></summary>
+            <div class="table-wrap desktop-only">
+              <table class="table">
+                <thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Status</th><th></th></tr></thead>
+                <tbody>${rows.map(productRowHtml).join('')}</tbody>
+              </table>
+            </div>
+            <div class="product-cards mobile-only">${rows.map(productCardHtml).join('')}</div>
+          </details>`;
+        })
+        .join('');
+    };
+
+    // "Todas as cidades": cada produto uma vez (chips de caixa no card).
+    // Com filtro de caixa: agrupa só naquela caixa.
+    if (!state.cityFilter) {
+      board.innerHTML = `<div class="catalog-city-body">${renderCatBlocks(list)}</div>`;
+      bindProductActs(board);
+      return;
+    }
+
+    const cities = cityNames().filter((c) => c === state.cityFilter);
     board.innerHTML = cities
       .map((city) => {
         const items = list.filter((p) => productInCity(p, city));
         if (!items.length) return '';
-        const cats = [...new Set(items.map((p) => p.category || 'Sem categoria'))].sort((a, b) => {
-          const order = ['Pods', 'Refis', 'Baterias', 'Gomas', 'Outros'];
-          const ia = order.indexOf(a);
-          const ib = order.indexOf(b);
-          if (ia < 0 && ib < 0) return a.localeCompare(b, 'pt-BR');
-          if (ia < 0) return 1;
-          if (ib < 0) return -1;
-          return ia - ib;
-        });
         const hidden = items.filter((p) => p.active === false).length;
-        const catBlocks = cats
-          .map((cat) => {
-            const rows = items.filter((p) => (p.category || 'Sem categoria') === cat);
-            return `<details class="catalog-cat" open>
-              <summary>${esc(cat)} <em>${rows.length}</em></summary>
-              <div class="table-wrap desktop-only">
-                <table class="table">
-                  <thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Status</th><th></th></tr></thead>
-                  <tbody>${rows.map(productRowHtml).join('')}</tbody>
-                </table>
-              </div>
-              <div class="product-cards mobile-only">${rows.map(productCardHtml).join('')}</div>
-            </details>`;
-          })
-          .join('');
         return `<details class="catalog-city" open>
           <summary>${esc(cityLabel(city))} <em>${items.length} produto${items.length === 1 ? '' : 's'}${hidden ? ` · ${hidden} oculto${hidden === 1 ? '' : 's'}` : ''}</em></summary>
-          <div class="catalog-city-body">${catBlocks}</div>
+          <div class="catalog-city-body">${renderCatBlocks(items)}</div>
         </details>`;
       })
       .join('') || '<p class="profit-empty">Nenhum produto nesta busca.</p>';
@@ -1001,6 +1033,130 @@
   });
   $('#add-product-btn').addEventListener('click', () => openProductModal(null));
   $('#fab-add').addEventListener('click', () => openProductModal(null));
+
+  async function loadOrders() {
+    try {
+      const qs = new URLSearchParams({
+        status: state.ordersStatus || 'pending',
+        period: state.ordersPeriod || 'all',
+        q: state.ordersSearch || '',
+      });
+      const data = await api(`/api/orders?${qs}`);
+      state.orders = data.orders || [];
+      state.ordersStats = data.stats || { pending: 0, approvedCount: 0, approvedTotal: 0, cancelledCount: 0 };
+      renderOrders();
+    } catch (err) {
+      toast(err.message || 'Erro ao carregar pedidos');
+    }
+  }
+
+  function orderStatusLabel(status) {
+    if (status === 'approved') return 'Aprovado';
+    if (status === 'cancelled') return 'Recusado';
+    return 'Pendente';
+  }
+
+  function renderOrders() {
+    document.querySelectorAll('#orders-period .period-btn').forEach((b) =>
+      b.classList.toggle('active', b.dataset.period === state.ordersPeriod)
+    );
+    const stats = state.ordersStats || {};
+    const statsEl = $('#orders-stats');
+    if (statsEl) {
+      statsEl.innerHTML = `
+        <div class="profit-card"><span>Para gerenciar</span><strong>${stats.pending || 0}</strong></div>
+        <div class="profit-card ok"><span>Aprovados no período</span><strong>${stats.approvedCount || 0}</strong></div>
+        <div class="profit-card"><span>Faturamento aprovado</span><strong>${money(stats.approvedTotal || 0)}</strong></div>
+        <div class="profit-card"><span>Recusados no período</span><strong>${stats.cancelledCount || 0}</strong></div>
+      `;
+    }
+    const wrap = $('#orders-list');
+    if (!wrap) return;
+    if (!state.orders.length) {
+      wrap.innerHTML = '<p class="profit-empty">Nenhum pedido neste filtro.</p>';
+      return;
+    }
+    wrap.innerHTML = state.orders
+      .map((o) => {
+        const when = new Date(o.createdAt).toLocaleString('pt-BR', {
+          day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit',
+        });
+        const items = (o.items || [])
+          .map((it) => `${it.qty}x ${esc(it.name)}${it.option ? ` (${esc(it.option)})` : ''} — ${money(it.price * it.qty)}`)
+          .join('<br>');
+        const pending = o.status === 'pending';
+        return `<article class="order-admin-card status-${esc(o.status)}" data-id="${esc(o.id)}">
+          <div class="order-admin-top">
+            <div>
+              <strong>${esc(o.customerName || 'Cliente')}</strong>
+              <span class="order-admin-status">${esc(orderStatusLabel(o.status))}</span>
+            </div>
+            <time>${esc(when)}</time>
+          </div>
+          <div class="order-admin-meta">
+            ${esc(o.city || '—')} · ${esc(o.address || 'Sem endereço')}<br>
+            WhatsApp: ${esc(o.phone || '—')} · ${esc(o.payment || 'Pagamento')}
+            ${o.couponCode ? `<br>Cupom: ${esc(o.couponCode)}` : ''}
+            ${o.note ? `<br>Obs: ${esc(o.note)}` : ''}
+          </div>
+          <div class="order-admin-items">${items}</div>
+          <div class="order-admin-foot">
+            <strong>${money(o.total)}</strong>
+            ${pending ? `<div class="order-admin-acts">
+              <button type="button" class="btn btn-gold btn-sm" data-order-act="approve">Aprovar (baixa estoque)</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-order-act="cancel">Recusar</button>
+            </div>` : o.status === 'approved'
+              ? `<small>Aprovado por ${esc(o.approvedBy || '—')}${o.approvedAt ? ` · ${esc(new Date(o.approvedAt).toLocaleString('pt-BR'))}` : ''}</small>`
+              : `<small>Recusado por ${esc(o.cancelledBy || '—')}</small>`}
+          </div>
+        </article>`;
+      })
+      .join('');
+    wrap.querySelectorAll('[data-order-act]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const card = btn.closest('[data-id]');
+        const id = card && card.dataset.id;
+        if (!id) return;
+        const act = btn.dataset.orderAct;
+        btn.disabled = true;
+        try {
+          if (act === 'approve') {
+            await api(`/api/orders/${encodeURIComponent(id)}/approve`, { method: 'POST', json: {} });
+            toast('Pedido aprovado e estoque atualizado');
+            await loadAll();
+          } else {
+            await api(`/api/orders/${encodeURIComponent(id)}/cancel`, { method: 'POST', json: {} });
+            toast('Pedido recusado');
+          }
+          await loadOrders();
+          pollNotifOrders(false);
+        } catch (err) {
+          toast(err.message || 'Falha ao atualizar pedido');
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  $('#orders-period')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-period]');
+    if (!btn) return;
+    state.ordersPeriod = btn.dataset.period;
+    loadOrders();
+  });
+  $('#orders-status-filter')?.addEventListener('change', (e) => {
+    state.ordersStatus = e.target.value;
+    loadOrders();
+  });
+  let ordersSearchTimer;
+  $('#orders-search')?.addEventListener('input', (e) => {
+    clearTimeout(ordersSearchTimer);
+    ordersSearchTimer = setTimeout(() => {
+      state.ordersSearch = e.target.value;
+      loadOrders();
+    }, 200);
+  });
+
   $('#stock-search').addEventListener('input', (e) => {
     state.stockSearch = e.target.value;
     renderStock();
