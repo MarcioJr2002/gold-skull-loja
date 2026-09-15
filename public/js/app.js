@@ -111,7 +111,7 @@
   function fillGuest() {
     const g = loadGuest();
     $('#order-name').value = g.name || '';
-    $('#order-phone').value = g.phone || '';
+    $('#order-phone').value = formatPhoneMask(g.phone || '');
     $('#order-address').value = g.address || '';
     $('#order-note').value = g.note || '';
     if (g.pay) state.pay = g.pay;
@@ -732,7 +732,7 @@
 
   function filtered() {
     const q = state.search.trim().toLowerCase();
-    const list = cityProducts().filter((p) => {
+    let list = cityProducts().filter((p) => {
       if (state.activeCategory !== 'all' && p.categoryId !== state.activeCategory) return false;
       if (state.catalogFilter === 'promo' && !isPromo(p)) return false;
       if (state.catalogFilter === 'featured' && !p.featured) return false;
@@ -740,7 +740,41 @@
       if (!q) return true;
       return [p.name, p.description, p.category, ...(p.cities || [])].join(' ').toLowerCase().includes(q);
     });
+    list = dedupeProducts(list);
     return sortProducts(list);
+  }
+
+  function productKey(name) {
+    return String(name || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/^\s*\d+\s*uni[dn]?\w*\.?\s*/i, '')
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function dedupeProducts(list) {
+    const byKey = new Map();
+    for (const p of list) {
+      const key = productKey(p.name);
+      const prev = byKey.get(key);
+      if (!prev) {
+        byKey.set(key, p);
+        continue;
+      }
+      const pOpts = (p.options || []).length;
+      const prevOpts = (prev.options || []).length;
+      const preferCurrentCity =
+        state.activeCategory !== 'all' &&
+        p.categoryId === state.activeCategory &&
+        prev.categoryId !== state.activeCategory;
+      const preferMoreOpts = pOpts > prevOpts;
+      const preferFeatured = p.featured && !prev.featured;
+      if (preferCurrentCity || preferMoreOpts || preferFeatured) byKey.set(key, p);
+    }
+    return [...byKey.values()];
   }
 
   function renderSkeleton() {
@@ -819,11 +853,17 @@
         </div>`
       : '';
     const mainImg = (firstOk && firstOk.image) || p.image;
+    const descHtml = p.description
+      ? `<div class="modal-desc"><span class="modal-desc-title">Detalhes</span>${esc(p.description)}</div>`
+      : '';
     $('#modal-body').innerHTML = `
       <div class="modal-grid">
-        <div class="modal-img-wrap">
-          <img class="modal-img" id="modal-main-img" src="${esc(mainImg)}" alt="${esc(p.name)}" />
-          ${promo ? '<span class="badge badge-promo">Promoção</span>' : ''}
+        <div class="modal-media">
+          <div class="modal-img-wrap">
+            <img class="modal-img" id="modal-main-img" src="${esc(mainImg)}" alt="${esc(p.name)}" />
+            ${promo ? '<span class="badge badge-promo">Promoção</span>' : ''}
+          </div>
+          ${descHtml}
         </div>
         <div class="modal-info">
           <span class="modal-cat">${esc(p.category || 'Geral')}</span>
@@ -833,7 +873,6 @@
             ${promo ? `<span class="modal-price-old">${money(p.originalPrice)}</span>` : ''}
           </div>
           ${optsHtml}
-          ${p.description ? `<details class="modal-more"><summary>Ver descrição</summary><div class="modal-desc">${esc(p.description)}</div></details>` : ''}
           <div class="modal-actions">
             ${p.outOfStock
               ? '<span class="badge badge-out" style="position:static">Produto esgotado</span>'
@@ -869,7 +908,7 @@
         addToCart(p.id, state.modalQty, state.modalOption);
         $('#product-modal').classList.add('hidden');
         openCart();
-        toast('Pronto. Agora preencha seus dados e aperte ENVIAR.');
+        toast('Pronto. Agora preencha seus dados e finalize o pedido.');
       });
     }
     $('#product-modal').classList.remove('hidden');
@@ -1089,7 +1128,7 @@
   function fillFromCustomer() {
     if (!state.customer) return;
     if (state.customer.name) $('#order-name').value = state.customer.name;
-    if (state.customer.phone) $('#order-phone').value = state.customer.phone;
+    if (state.customer.phone) $('#order-phone').value = formatPhoneMask(state.customer.phone);
     if (state.customer.address) $('#order-address').value = state.customer.address;
   }
 
@@ -1386,8 +1425,9 @@
     const wrap = $('#cart-items');
     const { items, subtotal, ship, shipPrice, couponDiscount, freeShipping, gift, effectiveShip, cashbackUsed, total } = cartTotals();
     const has = items.length > 0;
-    $('#cart-empty').classList.toggle('hidden', has);
-    $('#cart-foot').classList.toggle('hidden', !has);
+    const successOpen = $('#checkout-success') && !$('#checkout-success').classList.contains('hidden');
+    $('#cart-empty').classList.toggle('hidden', has || successOpen);
+    $('#cart-foot').classList.toggle('hidden', !has && !successOpen);
     wrap.classList.toggle('hidden', !has);
     wrap.innerHTML = items
       .map((i) => {
@@ -1473,6 +1513,7 @@
   }
 
   function openCart() {
+    resetCheckoutSuccess();
     state.checkoutStep = state.locationReady && state.cityConfirmed ? 2 : 1;
     if (state.locationReady) state.cityConfirmed = true;
     renderCart();
@@ -1483,10 +1524,89 @@
   }
   function closeCart() {
     $('#cart-drawer').classList.add('hidden');
+    resetCheckoutSuccess();
     if ($('#product-modal').classList.contains('hidden')) {
       $('#drawer-backdrop').classList.add('hidden');
       document.body.style.overflow = '';
     }
+  }
+
+  function formatPhoneMask(raw) {
+    const d = String(raw || '').replace(/\D/g, '').slice(0, 11);
+    if (d.length <= 2) return d.length ? `(${d}` : '';
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+
+  function burstConfetti() {
+    const canvas = $('#confetti-canvas');
+    if (!canvas || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = canvas.getContext('2d');
+    const parent = canvas.parentElement;
+    const w = parent.clientWidth || 360;
+    const h = parent.clientHeight || 420;
+    canvas.width = w;
+    canvas.height = h;
+    const colors = ['#ffc422', '#ffd873', '#25d366', '#ffffff', '#ff6b6b', '#7aa2ff'];
+    const pieces = Array.from({ length: 90 }, () => ({
+      x: Math.random() * w,
+      y: -20 - Math.random() * h,
+      r: 3 + Math.random() * 5,
+      c: colors[(Math.random() * colors.length) | 0],
+      vy: 2 + Math.random() * 3.5,
+      vx: -1.5 + Math.random() * 3,
+      rot: Math.random() * Math.PI,
+      vr: -0.2 + Math.random() * 0.4,
+    }));
+    let frame = 0;
+    const tick = () => {
+      frame += 1;
+      ctx.clearRect(0, 0, w, h);
+      pieces.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.c;
+        ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+        ctx.restore();
+      });
+      if (frame < 160) requestAnimationFrame(tick);
+      else ctx.clearRect(0, 0, w, h);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  function showCheckoutSuccess(waMsg) {
+    state.lastWhatsAppMsg = waMsg || '';
+    const wizard = document.querySelector('.checkout-wizard');
+    const success = $('#checkout-success');
+    if (wizard) wizard.classList.add('hidden');
+    if (success) success.classList.remove('hidden');
+    $('#cart-empty')?.classList.add('hidden');
+    $('#cart-foot')?.classList.remove('hidden');
+    $('#cart-items')?.classList.add('hidden');
+    const waBtn = $('#success-wa');
+    if (waBtn) {
+      if (state.store.whatsapp && waMsg) {
+        waBtn.href = `https://wa.me/${state.store.whatsapp}?text=${encodeURIComponent(waMsg)}`;
+        waBtn.classList.remove('hidden');
+      } else {
+        waBtn.classList.add('hidden');
+      }
+    }
+    burstConfetti();
+  }
+
+  function resetCheckoutSuccess() {
+    const wizard = document.querySelector('.checkout-wizard');
+    const success = $('#checkout-success');
+    if (wizard) wizard.classList.remove('hidden');
+    if (success) success.classList.add('hidden');
+    state.lastWhatsAppMsg = '';
   }
 
   async function checkout() {
@@ -1500,12 +1620,15 @@
       setCheckoutStep(2);
       return;
     }
+    if (!state.pay) {
+      toast('Escolha como vai pagar');
+      return;
+    }
     const name = $('#order-name').value.trim();
     const phone = $('#order-phone').value.trim();
     const address = $('#order-address').value.trim();
     const note = $('#order-note').value.trim();
     const pay = state.pay || 'A combinar';
-    if (!state.store.whatsapp) { toast('WhatsApp da loja não configurado'); return; }
     saveGuest();
 
     let totals = cartTotals();
@@ -1600,12 +1723,18 @@
       }).catch(() => {});
     }
 
-    window.open(`https://wa.me/${state.store.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
+    state.cart = [];
     state.appliedCoupon = null;
     state.useCashback = false;
+    const couponInput = $('#coupon-code');
+    if (couponInput) couponInput.value = '';
+    const couponRow = $('#coupon-row');
+    if (couponRow) couponRow.classList.add('hidden');
+    saveCart();
     renderAccountBtn();
     renderCart();
-    toast('Abriu o WhatsApp. Agora aperte ENVIAR.');
+    showCheckoutSuccess(msg);
+    toast('Pedido finalizado!');
   }
 
   /* ---------- instalar na tela inicial (PWA) ---------- */
@@ -1684,6 +1813,17 @@
   $('#modal-close').addEventListener('click', closeModal);
   $('#drawer-backdrop').addEventListener('click', () => { closeModal(); closeCart(); closeAccount(); });
   $('#checkout-btn').addEventListener('click', checkout);
+  $('#coupon-toggle').addEventListener('click', () => {
+    const row = $('#coupon-row');
+    row.classList.toggle('hidden');
+    if (!row.classList.contains('hidden')) $('#coupon-code').focus();
+  });
+  $('#order-phone').addEventListener('input', (e) => {
+    e.target.value = formatPhoneMask(e.target.value);
+  });
+  $('#success-close').addEventListener('click', () => {
+    closeCart();
+  });
   $('#wizard-next').addEventListener('click', () => {
     if (!validateCheckoutStep(state.checkoutStep)) return;
     if (state.checkoutStep === 2) setCheckoutStep(3);
@@ -1727,6 +1867,12 @@
   onlyDigits($('#acc-reg-pin'), 6);
   onlyDigits($('#acc-reg-pin2'), 6);
   $('#coupon-apply').addEventListener('click', applyCouponCode);
+  $('#coupon-code').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      applyCouponCode();
+    }
+  });
   $('#cashback-use').addEventListener('change', (e) => {
     state.useCashback = e.target.checked;
     renderCart();

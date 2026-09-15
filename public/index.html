@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Unbounded:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=17" />
-  <link rel="stylesheet" href="/css/store.css?v=24" />
+  <link rel="stylesheet" href="/css/store.css?v=25" />
 </head>
 <body class="store">
   <div id="age-gate" class="age-gate hidden">
@@ -245,20 +245,21 @@
           <p class="step-title">Quem é você?</p>
           <div class="checkout-fields">
             <label>Seu nome<input id="order-name" type="text" placeholder="Ex.: João" autocomplete="name" /></label>
-            <label>Seu WhatsApp<input id="order-phone" type="tel" placeholder="Ex.: 47 99999-0000" autocomplete="tel" /></label>
+            <label>Seu WhatsApp<input id="order-phone" type="tel" inputmode="numeric" placeholder="(47) 99999-0000" autocomplete="tel" maxlength="16" /></label>
             <label>Onde entregar<input id="order-address" type="text" placeholder="Bairro e cidade (ex.: Centro, Joinville)" autocomplete="street-address" /></label>
           </div>
         </div>
         <div class="wizard-panel hidden" id="wizard-step-3">
           <p class="step-title">Como vai pagar?</p>
           <div class="choice-list" id="pay-choices"></div>
-          <div class="coupon-row">
-            <label>Cupom de desconto
+          <div class="coupon-box">
+            <button type="button" class="coupon-toggle" id="coupon-toggle">Tem um cupom?</button>
+            <div class="coupon-row hidden" id="coupon-row">
               <div class="coupon-input-row">
-                <input id="coupon-code" type="text" placeholder="Ex.: PROMO10" autocapitalize="characters" maxlength="30" />
+                <input id="coupon-code" type="text" autocapitalize="characters" maxlength="30" aria-label="Cupom de desconto" />
                 <button type="button" class="btn btn-ghost btn-sm" id="coupon-apply">Aplicar</button>
               </div>
-            </label>
+            </div>
             <p class="coupon-applied hidden" id="coupon-applied"></p>
           </div>
           <div class="cashback-row hidden" id="cashback-row">
@@ -281,12 +282,22 @@
             <strong id="city-banner-title">Entrega</strong>
             <small>Se não for essa cidade, aperte Voltar.</small>
           </div>
-          <button class="btn btn-gold btn-big" id="checkout-btn">ENVIAR NO WHATSAPP</button>
-          <p class="cart-note" id="checkout-message">Não precisa de senha. Aperte o botão amarelo e depois ENVIAR no WhatsApp.</p>
+          <button class="btn btn-gold btn-big" id="checkout-btn">FINALIZAR PEDIDO</button>
+          <p class="cart-note" id="checkout-message">Ao finalizar, o pedido entra na loja. Se quiser, você ainda pode mandar no WhatsApp depois.</p>
         </div>
         <div class="wizard-nav">
           <button type="button" class="btn btn-ghost btn-sm hidden" id="wizard-back">Voltar</button>
           <button type="button" class="btn btn-gold btn-sm" id="wizard-next">Próximo</button>
+        </div>
+      </div>
+      <div class="checkout-success hidden" id="checkout-success">
+        <canvas id="confetti-canvas" class="confetti-canvas" aria-hidden="true"></canvas>
+        <div class="success-content">
+          <div class="success-emoji" aria-hidden="true">🎉</div>
+          <h3>Obrigado pela compra!</h3>
+          <p>Seu pedido já foi registrado. Se quiser, mande pelo WhatsApp para agilizar o atendimento.</p>
+          <a class="btn btn-wa btn-big hidden" id="success-wa" target="_blank" rel="noopener">ENVIAR NO WHATSAPP</a>
+          <button type="button" class="btn btn-ghost" id="success-close">Fechar</button>
         </div>
       </div>
     </div>
@@ -353,6 +364,6 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=28"></script>
+  <script src="/js/app.js?v=29"></script>
 </body>
 </html>
