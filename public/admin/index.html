@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=17" />
+  <link rel="stylesheet" href="/admin/admin.css?v=18" />
 </head>
 <body class="admin-body">
 
@@ -112,7 +112,6 @@
       <nav class="admin-sidebar-nav">
         <button class="side-link active" data-tab="products">Produtos</button>
         <button class="side-link" data-tab="orders">Pedidos</button>
-        <button class="side-link" data-tab="stock">Estoque</button>
         <button class="side-link" data-tab="profit">Lucro</button>
         <button class="side-link admin-only" data-tab="promos">Promoções</button>
         <button class="side-link admin-only" data-tab="coupons">Cupons</button>
@@ -132,7 +131,6 @@
         <span class="brand"><span class="brand-name">PAINEL</span></span>
         <nav class="header-shortcuts" aria-label="Atalhos">
           <button class="tab active" data-tab="products">Produtos</button>
-          <button class="tab" data-tab="stock">Estoque</button>
           <button class="tab" data-tab="profit">Lucro</button>
         </nav>
         <div class="admin-header-actions">
@@ -161,13 +159,14 @@
       </div>
     </div>
 
-    <!-- PRODUCTS TAB -->
+    <!-- PRODUCTS TAB (catálogo + estoque por caixa) -->
     <section id="tab-products" class="tab-panel">
-      <p class="hint">Organize por caixa e tipo. Caixas: Itajaí e região, Joinville e região, Atacado (Brasil). Tipos: Pods, Refis, Baterias, Gomas.</p>
+      <p class="hint">Toque numa <b>caixa</b> para ver os produtos e controlar o estoque dela. Em “todas”, você organiza o catálogo.</p>
+      <div id="stock-alert" class="stock-alert hidden"></div>
       <div id="catalog-stats" class="catalog-stats"></div>
       <div class="toolbar toolbar-catalog">
-        <input type="search" id="admin-search" placeholder="Buscar produto, cidade ou categoria..." />
-        <select id="admin-city-filter" class="toolbar-select">
+        <input type="search" id="admin-search" placeholder="Buscar produto..." />
+        <select id="admin-city-filter" class="toolbar-select hidden" aria-hidden="true">
           <option value="">Todas as cidades</option>
         </select>
         <select id="admin-cat-filter" class="toolbar-select">
@@ -217,26 +216,6 @@
       </div>
       <div class="profit-cards" id="orders-stats"></div>
       <div id="orders-list" class="orders-admin-list"></div>
-    </section>
-
-    <!-- STOCK TAB -->
-    <section id="tab-stock" class="tab-panel hidden">
-      <p class="hint">Escolha a caixa para ver o estoque dela. Cada produto aparece só na caixa em que está marcado.</p>
-      <div id="stock-alert" class="stock-alert hidden"></div>
-      <div id="stock-hub" class="stock-hub"></div>
-      <div id="stock-detail" class="stock-detail hidden">
-        <div class="stock-detail-head">
-          <button type="button" class="btn btn-ghost btn-sm" id="stock-back">← Voltar às caixas</button>
-          <h3 id="stock-detail-title">Estoque</h3>
-        </div>
-        <div class="toolbar">
-          <input type="search" id="stock-search" placeholder="Buscar neste estoque..." />
-          <select id="stock-cat-filter" class="toolbar-select">
-            <option value="">Todas categorias</option>
-          </select>
-        </div>
-        <div id="stock-list" class="stock-list"></div>
-      </div>
     </section>
 
     <!-- PROFIT TAB -->
@@ -420,6 +399,15 @@
 
     <!-- ACCOUNT TAB -->
     <section id="tab-account" class="tab-panel hidden">
+      <form id="profile-form" class="settings-form">
+        <h3>Meu perfil</h3>
+        <div class="grid-2">
+          <label>Nome de exibição<input id="profile-name" maxlength="60" autocomplete="name" required /></label>
+          <label>Usuário de login<input id="profile-username" maxlength="40" autocapitalize="none" spellcheck="false" autocomplete="username" required /></label>
+        </div>
+        <button type="submit" class="btn btn-gold" style="width:fit-content">Salvar perfil</button>
+      </form>
+
       <form id="editor-password-form" class="settings-form">
         <h3>Minha senha</h3>
         <label>Senha atual<input type="password" id="epw-current" autocomplete="current-password" /></label>
@@ -430,11 +418,34 @@
       <div class="settings-form">
         <h3>Verificação em duas etapas</h3>
         <p class="twofa-status" id="twofa-status">Carregando...</p>
-        <p class="hint">Os códigos de recuperação são a sua chave reserva. Se sobrarem poucos, gere uma lista nova — a antiga deixa de funcionar na hora.</p>
-        <form id="recovery-form" class="recovery-form">
-          <label>Sua senha atual<input type="password" id="rc-password" autocomplete="current-password" /></label>
-          <button type="submit" class="btn btn-ghost" style="width:fit-content">Gerar novos códigos de recuperação</button>
-        </form>
+        <div id="twofa-off-actions" class="hidden">
+          <p class="hint">Proteja o painel com um código no celular (Google Authenticator, Authy, etc.).</p>
+          <button type="button" class="btn btn-gold" id="twofa-enable-btn" style="width:fit-content">Ligar verificação em 2 etapas</button>
+        </div>
+        <div id="twofa-setup-box" class="hidden">
+          <p class="hint">Escaneie o QR no autenticador e digite o código de 6 números.</p>
+          <div class="qr-box" style="margin:12px 0">
+            <img id="account-twofa-qr" alt="QR Code 2FA" width="220" height="220" />
+          </div>
+          <button type="button" class="btn-link" id="account-twofa-manual">Não consigo escanear — ver código</button>
+          <div class="qr-secret hidden" id="account-twofa-secret-wrap">
+            <span id="account-twofa-secret"></span>
+          </div>
+          <label>Código do aplicativo
+            <input type="text" id="account-twofa-code" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" />
+          </label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button type="button" class="btn btn-gold" id="account-twofa-activate">Ativar 2FA</button>
+            <button type="button" class="btn btn-ghost" id="account-twofa-cancel">Cancelar</button>
+          </div>
+        </div>
+        <div id="twofa-on-actions" class="hidden">
+          <p class="hint">Os códigos de recuperação são a sua chave reserva. Se sobrarem poucos, gere uma lista nova — a antiga deixa de funcionar na hora.</p>
+          <form id="recovery-form" class="recovery-form">
+            <label>Sua senha atual<input type="password" id="rc-password" autocomplete="current-password" /></label>
+            <button type="submit" class="btn btn-ghost" style="width:fit-content">Gerar novos códigos de recuperação</button>
+          </form>
+        </div>
       </div>
     </section>
     </div><!-- /.admin-main -->
@@ -535,7 +546,6 @@
   <nav class="admin-dock" id="admin-dock">
     <button type="button" class="dock-btn active" data-tab="products">Produtos</button>
     <button type="button" class="dock-btn" data-tab="orders">Pedidos</button>
-    <button type="button" class="dock-btn" data-tab="stock">Estoque</button>
     <button type="button" class="dock-btn" data-tab="profit">Lucro</button>
     <button type="button" class="dock-btn" id="dock-more">Mais</button>
   </nav>
@@ -572,6 +582,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=23"></script>
+  <script src="/admin/admin.js?v=24"></script>
 </body>
 </html>

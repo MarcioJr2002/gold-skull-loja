@@ -113,7 +113,9 @@
 }
 .admin-main { min-width: 0; }
 .admin-menu-btn { display: none; }
-.header-shortcuts { display: flex; gap: 4px; flex: 1; }
+.header-shortcuts {
+  display: flex; gap: 4px; flex: 1; justify-content: center;
+}
 
 /* header */
 .admin-header { position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
@@ -310,10 +312,23 @@
 }
 
 /* stock */
-.stock-hub {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px; margin-top: 8px;
+.inline-stock {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
 }
+.inline-stock .qty-step { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.inline-stock .qty-step button { width: 34px; height: 34px; font-weight: 800; }
+.inline-stock .move-qty { min-width: 28px; text-align: center; font-weight: 800; font-size: 13px; }
+.inline-cost { display: inline-flex; flex-direction: column; gap: 2px; font-size: 11px; font-weight: 700; color: var(--text-2); }
+.inline-cost input {
+  width: 88px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg-3); color: var(--text); font-size: 14px;
+}
+.product-card-open {
+  display: flex; flex-direction: column; gap: 3px; text-align: left; width: 100%;
+  background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer;
+}
+.product-card .product-card-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .stock-box-card {
   text-align: left; padding: 18px 16px; border-radius: 18px;
   border: 1px solid var(--line); background: var(--bg-2); cursor: pointer;
@@ -476,7 +491,7 @@
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
   background: rgba(255, 255, 255, 0.96); border-top: 1px solid var(--line);
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-  grid-template-columns: repeat(5, 1fr); gap: 4px;
+  grid-template-columns: repeat(4, 1fr); gap: 4px;
 }
 .dock-btn {
   padding: 12px 6px; border-radius: 12px; font-size: 12.5px; font-weight: 800; color: var(--text-2);

@@ -436,18 +436,80 @@
 
   async function loadTwoFactorStatus() {
     const el = $('#twofa-status');
+    const off = $('#twofa-off-actions');
+    const on = $('#twofa-on-actions');
+    const setup = $('#twofa-setup-box');
     if (!el || !state.user) return;
     try {
       const data = await api('/api/2fa/status');
       const left = data.recoveryLeft;
       el.textContent = data.enabled
         ? `Ativa neste acesso. Você tem ${left} código(s) de recuperação sem uso.`
-        : 'Desligada.';
+        : 'Desligada — você pode ligar abaixo.';
       el.classList.toggle('twofa-status-warn', data.enabled && left <= 3);
+      off?.classList.toggle('hidden', !!data.enabled);
+      on?.classList.toggle('hidden', !data.enabled);
+      setup?.classList.add('hidden');
     } catch {
       el.textContent = 'Não foi possível checar agora.';
     }
   }
+
+  function fillProfileForm() {
+    if (!state.user) return;
+    const name = $('#profile-name');
+    const user = $('#profile-username');
+    if (name) name.value = state.user.name || '';
+    if (user) user.value = state.user.username || '';
+  }
+
+  $('#profile-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const data = await api('/api/users/me/profile', {
+        method: 'PUT',
+        json: {
+          name: $('#profile-name').value.trim(),
+          username: $('#profile-username').value.trim(),
+        },
+      });
+      if (data.session) state.user = { ...state.user, ...data.session };
+      else if (data.user) state.user = { ...state.user, name: data.user.name, username: data.user.username };
+      showPanel();
+      toast('Perfil atualizado');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  $('#twofa-enable-btn')?.addEventListener('click', async () => {
+    $('#twofa-off-actions')?.classList.add('hidden');
+    $('#twofa-setup-box')?.classList.remove('hidden');
+    $('#account-twofa-code').value = '';
+    try {
+      const data = await api('/api/2fa/setup', { method: 'POST' });
+      $('#account-twofa-qr').src = data.qr;
+      $('#account-twofa-secret').textContent = data.secret;
+    } catch (err) {
+      toast(err.message);
+      loadTwoFactorStatus();
+    }
+  });
+  $('#account-twofa-manual')?.addEventListener('click', () => {
+    $('#account-twofa-secret-wrap')?.classList.toggle('hidden');
+  });
+  $('#account-twofa-cancel')?.addEventListener('click', () => loadTwoFactorStatus());
+  $('#account-twofa-activate')?.addEventListener('click', async () => {
+    try {
+      const data = await api('/api/2fa/activate', { json: { code: $('#account-twofa-code').value } });
+      state.user = data.user || { ...state.user, needs2faSetup: false };
+      if (data.recoveryCodes) showRecoveryCodes(data.recoveryCodes, () => loadTwoFactorStatus());
+      else loadTwoFactorStatus();
+      toast('2FA ativada');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
 
   $('#recovery-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -644,14 +706,14 @@
   }
 
   /* ---------- tabs ---------- */
-  const TAB_IDS = ['products', 'orders', 'stock', 'profit', 'promos', 'coupons', 'categories', 'settings', 'users', 'logs', 'account'];
+  const TAB_IDS = ['products', 'orders', 'profit', 'promos', 'coupons', 'categories', 'settings', 'users', 'logs', 'account'];
   function switchTab(id) {
     if (!TAB_IDS.includes(id)) return;
     const more = $('#more-sheet');
     if (more) more.classList.add('hidden');
     closeSidebar();
     document.querySelectorAll('.tab, .side-link').forEach((x) => x.classList.toggle('active', x.dataset.tab === id));
-    const dockMain = ['products', 'orders', 'stock', 'profit'].includes(id);
+    const dockMain = ['products', 'orders', 'profit'].includes(id);
     document.querySelectorAll('.dock-btn[data-tab]').forEach((x) => x.classList.toggle('active', x.dataset.tab === id));
     const moreBtn = $('#dock-more');
     if (moreBtn) moreBtn.classList.toggle('active', !dockMain);
@@ -660,9 +722,11 @@
       if (panel) panel.classList.toggle('hidden', tab !== id);
     });
     if (id === 'logs') loadLogs(true);
-    if (id === 'account') loadTwoFactorStatus();
+    if (id === 'account') {
+      fillProfileForm();
+      loadTwoFactorStatus();
+    }
     if (id === 'orders') loadOrders();
-    if (id === 'stock') renderStock();
   }
   function openSidebar() {
     $('#panel')?.classList.add('sidebar-open');
@@ -707,13 +771,7 @@
       sel.innerHTML = catOpts;
       sel.value = state.catFilter;
     }
-    const stockSel = $('#stock-cat-filter');
-    if (stockSel) {
-      stockSel.innerHTML = catOpts;
-      stockSel.value = state.stockCat;
-    }
     renderProducts();
-    renderStock();
     renderProfit();
     if (state.user.role === 'admin') {
       const [settingsRes, users, customersRes] = await Promise.all([
@@ -879,6 +937,54 @@
     );
   }
 
+  function productStockControlsHtml(p) {
+    if (!state.cityFilter) return '';
+    const tracking = p.stockActive && p.stock != null;
+    const qty = tracking ? p.stock : null;
+    const lowStock = tracking && qty <= 3;
+    return `<div class="inline-stock" data-stock-id="${esc(p.id)}">
+      <span class="stock-count ${!tracking ? 'off' : lowStock ? 'low' : ''}">${
+        tracking ? `${qty} un.` : 'Sem controle'
+      }</span>
+      <div class="qty-step">
+        <button type="button" data-act="qty-minus">−</button>
+        <span class="move-qty">1</span>
+        <button type="button" data-act="qty-plus">+</button>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" data-act="in">+ Entrada</button>
+      <button type="button" class="btn btn-gold btn-sm" data-act="sale">Vendi</button>
+      <label class="inline-cost">Custo
+        <input type="number" min="0" step="0.01" inputmode="decimal" class="stock-cost" value="${p.cost != null ? p.cost : ''}" placeholder="R$" />
+      </label>
+    </div>`;
+  }
+
+  function bindInlineStock(root) {
+    root.querySelectorAll('.inline-stock').forEach((row) => {
+      const id = row.dataset.stockId;
+      const qtyEl = row.querySelector('.move-qty');
+      const costInput = row.querySelector('.stock-cost');
+      const readQty = () => Math.max(1, parseInt(qtyEl.textContent, 10) || 1);
+      row.querySelector('[data-act="qty-minus"]')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        qtyEl.textContent = Math.max(1, readQty() - 1);
+      });
+      row.querySelector('[data-act="qty-plus"]')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        qtyEl.textContent = Math.min(999, readQty() + 1);
+      });
+      row.querySelector('[data-act="in"]')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        stockMove(id, 'in', readQty());
+      });
+      row.querySelector('[data-act="sale"]')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        stockMove(id, 'sale', readQty());
+      });
+      costInput?.addEventListener('change', () => saveCost(id, costInput.value));
+    });
+  }
+
   function productRowHtml(p) {
     const st = productFlags(p);
     const flavors = (p.options || []).length;
@@ -886,7 +992,7 @@
     return `
         <tr>
           <td><img class="t-thumb img-hide-on-error" src="${esc(p.image)}" alt="" loading="lazy" /></td>
-          <td class="t-name">${esc(p.name)}${flavors ? `<small class="t-flavors">${esc(flavorSummary(p))}</small>` : ''}<div class="city-chips">${chips}</div></td>
+          <td class="t-name">${esc(p.name)}${flavors ? `<small class="t-flavors">${esc(flavorSummary(p))}</small>` : ''}<div class="city-chips">${chips}</div>${productStockControlsHtml(p)}</td>
           <td class="t-cat t-cat-col">${esc(p.category || '—')}</td>
           <td class="t-price">${money(st.promo ? p.promoPrice : p.price)}${st.promo ? `<small>${money(p.price)}</small>` : ''}</td>
           <td><div class="status">
@@ -910,17 +1016,32 @@
     return `
           <div class="product-card">
             <img class="img-hide-on-error" src="${esc(p.image || '')}" alt="" loading="lazy" />
-            <button type="button" class="product-card-main" data-act="edit" data-id="${esc(p.id)}">
-              <span class="product-card-name">${esc(p.name)}</span>
-              <span class="product-card-meta">${esc(p.category || '—')}${st.out ? ' · esgotado' : st.tracking ? ` · ${p.stock} un.` : ''} · ${st.visible ? 'visível' : 'oculto'}</span>
-              <span class="city-chips">${chips}</span>
-              ${flavors ? `<span class="product-card-flavors">${esc(flavors)}</span>` : ''}
-            </button>
+            <div class="product-card-main">
+              <button type="button" class="product-card-open" data-act="edit" data-id="${esc(p.id)}">
+                <span class="product-card-name">${esc(p.name)}</span>
+                <span class="product-card-meta">${esc(p.category || '—')}${st.out ? ' · esgotado' : st.tracking ? ` · ${p.stock} un.` : ''} · ${st.visible ? 'visível' : 'oculto'}</span>
+                <span class="city-chips">${chips}</span>
+                ${flavors ? `<span class="product-card-flavors">${esc(flavors)}</span>` : ''}
+              </button>
+              ${productStockControlsHtml(p)}
+            </div>
             <div class="product-card-side">
               <strong class="product-card-price">${money(st.promo ? p.promoPrice : p.price)}</strong>
               <button type="button" class="icon-btn" data-act="flavors" data-id="${esc(p.id)}" title="Sabores">🎨</button>
             </div>
           </div>`;
+  }
+
+  function updateStockAlert() {
+    const low = state.products.filter((p) => p.stockActive && p.stock != null && p.stock <= 3);
+    const alert = $('#stock-alert');
+    if (!alert) return;
+    if (low.length) {
+      alert.classList.remove('hidden');
+      alert.textContent = `${low.length} produto${low.length === 1 ? '' : 's'} com estoque baixo (3 ou menos). Toque numa caixa para ajustar.`;
+    } else {
+      alert.classList.add('hidden');
+    }
   }
 
   function renderCatalogStats() {
@@ -929,12 +1050,13 @@
     wrap.innerHTML = cityNames()
       .map((city) => {
         const list = state.products.filter((p) => productInCity(p, city));
-        const hidden = list.filter((p) => p.active === false).length;
-        const low = list.filter((p) => productFlags(p).low || productFlags(p).out).length;
+        const tracking = list.filter((p) => p.stockActive && p.stock != null);
+        const units = tracking.reduce((s, p) => s + (Number(p.stock) || 0), 0);
+        const low = tracking.filter((p) => p.stock <= 3).length;
         return `<button type="button" class="catalog-stat ${state.cityFilter === city ? 'active' : ''}" data-city="${esc(city)}">
           <strong>${list.length}</strong>
           <span>${esc(cityLabel(city))}</span>
-          <small>${hidden ? `${hidden} oculto${hidden === 1 ? '' : 's'}` : 'todos visíveis'}${low ? ` · ${low} estoque baixo` : ''}</small>
+          <small>${units} un. em estoque${low ? ` · ${low} baixo` : ''}</small>
         </button>`;
       })
       .join('');
@@ -949,13 +1071,14 @@
   }
 
   function renderProducts() {
+    updateStockAlert();
     renderCatalogStats();
     const list = filteredProducts();
     const count = $('#catalog-count');
     if (count) {
-      count.textContent = `${list.length} ${list.length === 1 ? 'produto' : 'produtos'}` +
-        (state.cityFilter ? ` em ${cityLabel(state.cityFilter)}` : '') +
-        (state.catFilter ? ` · ${state.catFilter}` : '');
+      count.textContent = state.cityFilter
+        ? `${list.length} produto${list.length === 1 ? '' : 's'} · estoque de ${cityLabel(state.cityFilter)}`
+        : `${list.length} produto${list.length === 1 ? '' : 's'} · toque numa caixa para estoque`;
     }
     const board = $('#catalog-board');
     if (!list.length) {
@@ -982,11 +1105,10 @@
         .join('');
     };
 
-    // "Todas as cidades": cada produto uma vez (chips de caixa no card).
-    // Com filtro de caixa: agrupa só naquela caixa.
     if (!state.cityFilter) {
       board.innerHTML = `<div class="catalog-city-body">${renderCatBlocks(list)}</div>`;
       bindProductActs(board);
+      bindInlineStock(board);
       return;
     }
 
@@ -1003,6 +1125,7 @@
       })
       .join('') || '<p class="profit-empty">Nenhum produto nesta busca.</p>';
     bindProductActs(board);
+    bindInlineStock(board);
   }
 
   async function quickToggle(id, field) {
@@ -1173,22 +1296,8 @@
     }, 200);
   });
 
-  $('#stock-search').addEventListener('input', (e) => {
-    state.stockSearch = e.target.value;
-    renderStockDetail();
-  });
-  $('#stock-cat-filter').addEventListener('change', (e) => {
-    state.stockCat = e.target.value;
-    renderStockDetail();
-  });
-  $('#stock-back')?.addEventListener('click', () => {
-    state.stockView = 'hub';
-    state.stockCity = '';
-    state.stockSearch = '';
-    const search = $('#stock-search');
-    if (search) search.value = '';
-    renderStock();
-  });
+  $('#stock-search')?.addEventListener('input', () => {});
+  $('#stock-cat-filter')?.addEventListener('change', () => {});
   $('#profit-period').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-period]');
     if (!btn) return;

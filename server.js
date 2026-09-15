@@ -565,6 +565,7 @@ const AUDIT_ACTIONS = {
   "user.create": "Acesso criado",
   "user.delete": "Acesso excluído",
   "user.password": "Senha alterada",
+  "user.profile": "Perfil atualizado",
   "audit.clear": "Logs apagados",
   "audit.export": "Logs exportados",
   "security.unauthorized": "Acesso sem permissão",
@@ -1521,6 +1522,10 @@ app.use("/api", (req, res, next) => (SAFE_METHODS.has(req.method) ? next() : wri
 
 app.use("/api", (req, res, next) => {
   if (SAFE_METHODS.has(req.method)) return next();
+  // Pedido da vitrine: público + rate-limit. CSRF falhava com painel aberto na mesma sessão.
+  if (req.path === "/api/public/order/notify" || req.originalUrl.split("?")[0] === "/api/public/order/notify") {
+    return next();
+  }
   if (!sameOrigin(req)) {
     logAction(req, "security.origin", { detail: `origin=${str(req.get("origin"), 120) || "-"} referer=${str(req.get("referer"), 120) || "-"}` });
     return res.status(403).json({ error: "Origem da requisição não autorizada." });
@@ -1535,7 +1540,11 @@ app.use("/api", (req, res, next) => {
 /* ---------- autorização ---------- */
 function requireAuth(req, res, next) {
   if (!req.session.user) {
-    logAction(req, "security.unauthorized", { detail: `${req.method} ${req.originalUrl}` });
+    const quietPaths = ["/api/orders/notifications", "/api/csrf"];
+    const pathOnly = String(req.originalUrl || req.path || "").split("?")[0];
+    if (!quietPaths.includes(pathOnly)) {
+      logAction(req, "security.unauthorized", { detail: `${req.method} ${req.originalUrl}` });
+    }
     return res.status(401).json({ error: "Faça login para continuar." });
   }
   const selfPasswordRoute =
@@ -3212,6 +3221,44 @@ app.post("/api/users", requireAdmin, async (req, res, next) => {
     saveDb(db);
     logAction(req, "user.create", { targetType: "user", targetId: user.id, targetName: `${name} (@${username})`, detail: role });
     res.json({ user: publicUser(user) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.put("/api/users/me/profile", requireAuth, async (req, res, next) => {
+  try {
+    const db = getDb();
+    const me = req.session.user;
+    const user = db.users.find((u) => u.id === me.id);
+    if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+
+    const name = str(req.body.name, 60);
+    const usernameRaw = str(req.body.username, 40).toLowerCase().replace(/\s+/g, "");
+    if (!name) return res.status(400).json({ error: "Informe o nome de exibição." });
+    if (!/^[a-z0-9._-]{3,40}$/.test(usernameRaw)) {
+      return res.status(400).json({ error: "Usuário: 3 a 40 caracteres (letras, números, ponto, hífen ou _)." });
+    }
+    if (db.users.some((u) => u.id !== user.id && String(u.username).toLowerCase() === usernameRaw)) {
+      return res.status(400).json({ error: "Esse usuário já existe." });
+    }
+
+    const before = { name: user.name, username: user.username };
+    user.name = name;
+    user.username = usernameRaw;
+    saveDb(db);
+    req.session.user = {
+      ...req.session.user,
+      name: user.name,
+      username: user.username,
+    };
+    logAction(req, "user.profile", {
+      targetType: "user",
+      targetId: user.id,
+      targetName: `${user.name} (@${user.username})`,
+      detail: `antes: ${before.name} (@${before.username})`,
+    });
+    res.json({ user: publicUser(user), session: req.session.user });
   } catch (err) {
     next(err);
   }
