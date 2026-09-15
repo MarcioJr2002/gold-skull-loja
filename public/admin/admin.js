@@ -36,10 +36,17 @@
     notifLastSeen: 0,
     notifTimer: null,
     orders: [],
-    ordersStats: { pending: 0, approvedCount: 0, approvedTotal: 0, cancelledCount: 0 },
+    ordersStats: { pending: 0, approvedCount: 0, approvedTotal: 0, cancelledCount: 0, shippedCount: 0, completedCount: 0, returnedCount: 0 },
     ordersPeriod: 'today',
     ordersStatus: 'pending',
     ordersSearch: '',
+    ordersView: 'list',
+    ordersPage: 1,
+    productsPage: 1,
+    profitPage: 1,
+    usersPage: 1,
+    pageSize: 20,
+    orderModalId: null,
   };
 
   function sellPrice(p) {
@@ -49,6 +56,35 @@
   function fold(s) {
     return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   }
+
+  function pageSlice(items, page, size) {
+    const total = items.length;
+    const pages = Math.max(1, Math.ceil(total / size) || 1);
+    const p = Math.min(Math.max(1, page || 1), pages);
+    const start = (p - 1) * size;
+    return { items: items.slice(start, start + size), page: p, pages, total, size };
+  }
+
+  function renderPager(el, pageInfo, onPage) {
+    if (!el) return;
+    const { page, pages, total, size } = pageInfo;
+    if (total <= size) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    const from = (page - 1) * size + 1;
+    const to = Math.min(total, page * size);
+    el.innerHTML = `
+      <button type="button" class="btn btn-ghost btn-sm" data-pager="prev" ${page <= 1 ? 'disabled' : ''}>Anterior</button>
+      <span class="list-pager-info">${from}–${to} de ${total}</span>
+      <button type="button" class="btn btn-ghost btn-sm" data-pager="next" ${page >= pages ? 'disabled' : ''}>Próxima</button>
+    `;
+    el.querySelector('[data-pager="prev"]')?.addEventListener('click', () => onPage(page - 1));
+    el.querySelector('[data-pager="next"]')?.addEventListener('click', () => onPage(page + 1));
+  }
+
   const CASHBOXES = [
     { id: 'Itajaí', title: 'Itajaí e região', check: 'Itajaí e região' },
     { id: 'Joinville', title: 'Joinville e região', check: 'Joinville e região' },
@@ -1083,8 +1119,13 @@
     const board = $('#catalog-board');
     if (!list.length) {
       board.innerHTML = '<p class="profit-empty">Nenhum produto nesta busca.</p>';
+      renderPager($('#products-pager'), { page: 1, pages: 1, total: 0, size: state.pageSize }, () => {});
       return;
     }
+
+    const pageInfo = pageSlice(list, state.productsPage, state.pageSize);
+    state.productsPage = pageInfo.page;
+    const pageItems = pageInfo.items;
 
     const renderCatBlocks = (items) => {
       const cats = sortTypeNames([...new Set(items.map((p) => p.category || 'Sem categoria'))]);
@@ -1106,16 +1147,20 @@
     };
 
     if (!state.cityFilter) {
-      board.innerHTML = `<div class="catalog-city-body">${renderCatBlocks(list)}</div>`;
+      board.innerHTML = `<div class="catalog-city-body">${renderCatBlocks(pageItems)}</div>`;
       bindProductActs(board);
       bindInlineStock(board);
+      renderPager($('#products-pager'), pageInfo, (p) => {
+        state.productsPage = p;
+        renderProducts();
+      });
       return;
     }
 
     const cities = cityNames().filter((c) => c === state.cityFilter);
     board.innerHTML = cities
       .map((city) => {
-        const items = list.filter((p) => productInCity(p, city));
+        const items = pageItems.filter((p) => productInCity(p, city));
         if (!items.length) return '';
         const hidden = items.filter((p) => p.active === false).length;
         return `<details class="catalog-city" open>
@@ -1126,6 +1171,10 @@
       .join('') || '<p class="profit-empty">Nenhum produto nesta busca.</p>';
     bindProductActs(board);
     bindInlineStock(board);
+    renderPager($('#products-pager'), pageInfo, (p) => {
+      state.productsPage = p;
+      renderProducts();
+    });
   }
 
   async function quickToggle(id, field) {
@@ -1152,22 +1201,27 @@
 
   $('#admin-search').addEventListener('input', (e) => {
     state.search = e.target.value;
+    state.productsPage = 1;
     renderProducts();
   });
   $('#admin-cat-filter').addEventListener('change', (e) => {
     state.catFilter = e.target.value;
+    state.productsPage = 1;
     renderProducts();
   });
   $('#admin-city-filter').addEventListener('change', (e) => {
     state.cityFilter = e.target.value;
+    state.productsPage = 1;
     renderProducts();
   });
   $('#admin-status-filter').addEventListener('change', (e) => {
     state.statusFilter = e.target.value;
+    state.productsPage = 1;
     renderProducts();
   });
   $('#admin-sort').addEventListener('change', (e) => {
     state.sort = e.target.value;
+    state.productsPage = 1;
     renderProducts();
   });
   $('#add-product-btn').addEventListener('click', () => openProductModal(null));
@@ -1175,14 +1229,16 @@
 
   async function loadOrders() {
     try {
+      const status = state.ordersView === 'kanban' ? 'all' : state.ordersStatus || 'pending';
       const qs = new URLSearchParams({
-        status: state.ordersStatus || 'pending',
+        status,
         period: state.ordersPeriod || 'all',
         q: state.ordersSearch || '',
+        limit: '500',
       });
       const data = await api(`/api/orders?${qs}`);
       state.orders = data.orders || [];
-      state.ordersStats = data.stats || { pending: 0, approvedCount: 0, approvedTotal: 0, cancelledCount: 0 };
+      state.ordersStats = data.stats || {};
       renderOrders();
     } catch (err) {
       toast(err.message || 'Erro ao carregar pedidos');
@@ -1190,69 +1246,75 @@
   }
 
   function orderStatusLabel(status) {
-    if (status === 'approved') return 'Aprovado';
-    if (status === 'cancelled') return 'Recusado';
-    return 'Pendente';
+    const map = {
+      pending: 'Recebido',
+      approved: 'Aceito',
+      shipped: 'Em rota',
+      completed: 'Finalizado',
+      cancelled: 'Recusado',
+      returned: 'Devolvido',
+    };
+    return map[status] || status || 'Recebido';
   }
 
-  function renderOrders() {
-    document.querySelectorAll('#orders-period .period-btn').forEach((b) =>
-      b.classList.toggle('active', b.dataset.period === state.ordersPeriod)
-    );
-    const stats = state.ordersStats || {};
-    const statsEl = $('#orders-stats');
-    if (statsEl) {
-      statsEl.innerHTML = `
-        <div class="profit-card"><span>Para gerenciar</span><strong>${stats.pending || 0}</strong></div>
-        <div class="profit-card ok"><span>Aprovados no período</span><strong>${stats.approvedCount || 0}</strong></div>
-        <div class="profit-card"><span>Faturamento aprovado</span><strong>${money(stats.approvedTotal || 0)}</strong></div>
-        <div class="profit-card"><span>Recusados no período</span><strong>${stats.cancelledCount || 0}</strong></div>
-      `;
-    }
-    const wrap = $('#orders-list');
-    if (!wrap) return;
-    if (!state.orders.length) {
-      wrap.innerHTML = '<p class="profit-empty">Nenhum pedido neste filtro.</p>';
-      return;
-    }
-    wrap.innerHTML = state.orders
-      .map((o) => {
-        const when = new Date(o.createdAt).toLocaleString('pt-BR', {
-          day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit',
-        });
-        const items = (o.items || [])
-          .map((it) => `${it.qty}x ${esc(it.name)}${it.option ? ` (${esc(it.option)})` : ''} — ${money(it.price * it.qty)}`)
-          .join('<br>');
-        const pending = o.status === 'pending';
-        return `<article class="order-admin-card status-${esc(o.status)}" data-id="${esc(o.id)}">
-          <div class="order-admin-top">
-            <div>
-              <strong>${esc(o.customerName || 'Cliente')}</strong>
-              <span class="order-admin-status">${esc(orderStatusLabel(o.status))}</span>
-            </div>
-            <time>${esc(when)}</time>
-          </div>
-          <div class="order-admin-meta">
-            ${esc(o.city || '—')} · ${esc(o.address || 'Sem endereço')}<br>
-            WhatsApp: ${esc(o.phone || '—')} · ${esc(o.payment || 'Pagamento')}
-            ${o.couponCode ? `<br>Cupom: ${esc(o.couponCode)}` : ''}
-            ${o.note ? `<br>Obs: ${esc(o.note)}` : ''}
-          </div>
-          <div class="order-admin-items">${items}</div>
-          <div class="order-admin-foot">
-            <strong>${money(o.total)}</strong>
-            ${pending ? `<div class="order-admin-acts">
-              <button type="button" class="btn btn-gold btn-sm" data-order-act="approve">Aprovar (baixa estoque)</button>
+  function formatOrderWhen(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  function orderFootHint(o) {
+    if (o.status === 'pending') return '';
+    if (o.status === 'approved') return `Aceito por ${esc(o.approvedBy || '—')}`;
+    if (o.status === 'shipped') return `Em rota · ${esc(o.shippedBy || '—')}`;
+    if (o.status === 'completed') return `Finalizado · ${esc(o.completedBy || '—')}`;
+    if (o.status === 'cancelled') return `Recusado por ${esc(o.cancelledBy || '—')}`;
+    if (o.status === 'returned') return `Devolvido · ${esc(o.returnedBy || '—')}`;
+    return '';
+  }
+
+  function orderCardHtml(o, { compact } = {}) {
+    const when = formatOrderWhen(o.createdAt);
+    const items = (o.items || [])
+      .map((it) => `${it.qty}x ${esc(it.name)}${it.option ? ` (${esc(it.option)})` : ''}${compact ? '' : ` — ${money(it.price * it.qty)}`}`)
+      .join('<br>');
+    const pending = o.status === 'pending';
+    const hint = orderFootHint(o);
+    return `<article class="order-admin-card status-${esc(o.status)}" data-id="${esc(o.id)}" role="button" tabindex="0">
+      <div class="order-admin-top">
+        <div>
+          <strong>${esc(o.customerName || 'Cliente')}</strong>
+          <span class="order-admin-status">${esc(orderStatusLabel(o.status))}</span>
+        </div>
+        <time>${esc(when)}</time>
+      </div>
+      <div class="order-admin-meta">
+        ${esc(o.city || '—')} · ${esc(o.address || 'Sem endereço')}<br>
+        WhatsApp: ${esc(o.phone || '—')} · ${esc(o.payment || 'Pagamento')}
+        ${!compact && o.couponCode ? `<br>Cupom: ${esc(o.couponCode)}` : ''}
+        ${!compact && o.note ? `<br>Obs: ${esc(o.note)}` : ''}
+      </div>
+      <div class="order-admin-items">${items}</div>
+      <div class="order-admin-foot">
+        <strong>${money(o.total)}</strong>
+        ${pending
+          ? `<div class="order-admin-acts">
+              <button type="button" class="btn btn-gold btn-sm" data-order-act="approve">Aceitar</button>
               <button type="button" class="btn btn-ghost btn-sm" data-order-act="cancel">Recusar</button>
-            </div>` : o.status === 'approved'
-              ? `<small>Aprovado por ${esc(o.approvedBy || '—')}${o.approvedAt ? ` · ${esc(new Date(o.approvedAt).toLocaleString('pt-BR'))}` : ''}</small>`
-              : `<small>Recusado por ${esc(o.cancelledBy || '—')}</small>`}
-          </div>
-        </article>`;
-      })
-      .join('');
-    wrap.querySelectorAll('[data-order-act]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
+            </div>`
+          : hint
+            ? `<small>${hint}</small>`
+            : ''}
+      </div>
+    </article>`;
+  }
+
+  function bindOrderCards(root) {
+    if (!root) return;
+    root.querySelectorAll('[data-order-act]').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         const card = btn.closest('[data-id]');
         const id = card && card.dataset.id;
         if (!id) return;
@@ -1261,9 +1323,9 @@
         try {
           if (act === 'approve') {
             await api(`/api/orders/${encodeURIComponent(id)}/approve`, { method: 'POST', json: {} });
-            toast('Pedido aprovado e estoque atualizado');
+            toast('Pedido aceito e estoque atualizado');
             await loadAll();
-          } else {
+          } else if (act === 'cancel') {
             await api(`/api/orders/${encodeURIComponent(id)}/cancel`, { method: 'POST', json: {} });
             toast('Pedido recusado');
           }
@@ -1275,16 +1337,252 @@
         }
       });
     });
+    root.querySelectorAll('.order-admin-card[data-id]').forEach((card) => {
+      const open = () => openOrderModal(card.dataset.id);
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('[data-order-act]')) return;
+        open();
+      });
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open();
+        }
+      });
+    });
   }
+
+  const KANBAN_COLS = [
+    { id: 'pending', title: 'Recebido' },
+    { id: 'approved', title: 'Aceito' },
+    { id: 'shipped', title: 'Em rota' },
+    { id: 'completed', title: 'Finalizado' },
+    { id: 'cancelled', title: 'Recusado' },
+    { id: 'returned', title: 'Devolvido' },
+  ];
+
+  function renderOrders() {
+    document.querySelectorAll('#orders-period .period-btn').forEach((b) =>
+      b.classList.toggle('active', b.dataset.period === state.ordersPeriod)
+    );
+    document.querySelectorAll('#orders-view-toggle [data-orders-view]').forEach((b) =>
+      b.classList.toggle('active', b.dataset.ordersView === state.ordersView)
+    );
+    const statusFilter = $('#orders-status-filter');
+    if (statusFilter) statusFilter.disabled = state.ordersView === 'kanban';
+
+    const stats = state.ordersStats || {};
+    const statsEl = $('#orders-stats');
+    if (statsEl) {
+      statsEl.innerHTML = `
+        <div class="profit-card"><span>Recebidos</span><strong>${stats.pending || 0}</strong></div>
+        <div class="profit-card ok"><span>Aceitos</span><strong>${stats.approvedCount || 0}</strong></div>
+        <div class="profit-card"><span>Em rota</span><strong>${stats.shippedCount || 0}</strong></div>
+        <div class="profit-card"><span>Finalizados</span><strong>${stats.completedCount || 0}</strong></div>
+        <div class="profit-card"><span>Faturamento ativo</span><strong>${money(stats.approvedTotal || 0)}</strong></div>
+      `;
+    }
+
+    const listWrap = $('#orders-list');
+    const kanbanWrap = $('#orders-kanban');
+    const pager = $('#orders-pager');
+
+    if (state.ordersView === 'kanban') {
+      if (listWrap) {
+        listWrap.classList.add('hidden');
+        listWrap.innerHTML = '';
+      }
+      if (pager) {
+        pager.classList.add('hidden');
+        pager.innerHTML = '';
+      }
+      if (!kanbanWrap) return;
+      kanbanWrap.classList.remove('hidden');
+      kanbanWrap.innerHTML = KANBAN_COLS.map((col) => {
+        const items = state.orders.filter((o) => o.status === col.id);
+        const cards = items.length
+          ? items.map((o) => orderCardHtml(o, { compact: true })).join('')
+          : '<p class="orders-kanban-empty">Vazio</p>';
+        return `<div class="orders-kanban-col" data-col="${esc(col.id)}">
+          <h4>${esc(col.title)} <em>${items.length}</em></h4>
+          ${cards}
+        </div>`;
+      }).join('');
+      bindOrderCards(kanbanWrap);
+      return;
+    }
+
+    if (kanbanWrap) {
+      kanbanWrap.classList.add('hidden');
+      kanbanWrap.innerHTML = '';
+    }
+    if (!listWrap) return;
+    listWrap.classList.remove('hidden');
+    if (!state.orders.length) {
+      listWrap.innerHTML = '<p class="profit-empty">Nenhum pedido neste filtro.</p>';
+      renderPager(pager, { page: 1, pages: 1, total: 0, size: state.pageSize }, () => {});
+      return;
+    }
+    const pageInfo = pageSlice(state.orders, state.ordersPage, state.pageSize);
+    state.ordersPage = pageInfo.page;
+    listWrap.innerHTML = pageInfo.items.map((o) => orderCardHtml(o)).join('');
+    bindOrderCards(listWrap);
+    renderPager(pager, pageInfo, (p) => {
+      state.ordersPage = p;
+      renderOrders();
+    });
+  }
+
+  function closeOrderModal() {
+    state.orderModalId = null;
+    $('#order-modal')?.classList.add('hidden');
+  }
+
+  function openOrderModal(id) {
+    const order = state.orders.find((o) => o.id === id);
+    if (!order) return;
+    state.orderModalId = id;
+    const modal = $('#order-modal');
+    const title = $('#order-modal-title');
+    const body = $('#order-modal-body');
+    const foot = $('#order-modal-foot');
+    if (!modal || !body || !foot) return;
+
+    if (title) title.textContent = `Pedido · ${orderStatusLabel(order.status)}`;
+    const items = (order.items || [])
+      .map(
+        (it) => `<div class="order-detail-item">
+          <span>${it.qty}x ${esc(it.name)}${it.option ? ` (${esc(it.option)})` : ''}</span>
+          <strong>${money(it.price * it.qty)}</strong>
+        </div>`
+      )
+      .join('');
+    const timeline = [
+      order.createdAt ? `Recebido · ${formatOrderWhen(order.createdAt)}` : '',
+      order.approvedAt ? `Aceito por ${order.approvedBy || '—'} · ${formatOrderWhen(order.approvedAt)}` : '',
+      order.shippedAt ? `Em rota · ${order.shippedBy || '—'} · ${formatOrderWhen(order.shippedAt)}` : '',
+      order.completedAt ? `Finalizado · ${order.completedBy || '—'} · ${formatOrderWhen(order.completedAt)}` : '',
+      order.cancelledAt ? `Recusado por ${order.cancelledBy || '—'} · ${formatOrderWhen(order.cancelledAt)}` : '',
+      order.returnedAt ? `Devolvido · ${order.returnedBy || '—'} · ${formatOrderWhen(order.returnedAt)}` : '',
+    ]
+      .filter(Boolean)
+      .map((line) => `<div>${esc(line)}</div>`)
+      .join('');
+
+    body.innerHTML = `
+      <div class="order-detail-grid">
+        <div class="order-detail-row"><span>Cliente</span><div>${esc(order.customerName || '—')}</div></div>
+        <div class="order-detail-row"><span>WhatsApp</span><div>${esc(order.phone || '—')}</div></div>
+        <div class="order-detail-row"><span>Cidade</span><div>${esc(order.city || '—')}</div></div>
+        <div class="order-detail-row"><span>Endereço</span><div>${esc(order.address || '—')}</div></div>
+        <div class="order-detail-row"><span>Pagamento</span><div>${esc(order.payment || '—')}</div></div>
+        ${order.couponCode ? `<div class="order-detail-row"><span>Cupom</span><div>${esc(order.couponCode)}</div></div>` : ''}
+        ${order.note ? `<div class="order-detail-row"><span>Obs.</span><div>${esc(order.note)}</div></div>` : ''}
+        ${order.cashbackUsed ? `<div class="order-detail-row"><span>Cashback</span><div>${money(order.cashbackUsed)}</div></div>` : ''}
+        <div class="order-detail-items">${items || '<p class="hint">Sem itens</p>'}</div>
+        <div class="order-detail-total">${money(order.total)}</div>
+        <div class="order-detail-timeline">${timeline}</div>
+      </div>
+    `;
+
+    const acts = [];
+    if (order.status === 'pending') {
+      acts.push(`<button type="button" class="btn btn-gold" data-om-act="approve">Aceitar (baixa estoque)</button>`);
+      acts.push(`<button type="button" class="btn btn-ghost" data-om-act="cancel">Recusar</button>`);
+    }
+    if (order.status === 'approved') {
+      acts.push(`<button type="button" class="btn btn-gold" data-om-act="ship">Marcar em rota</button>`);
+      acts.push(`<button type="button" class="btn btn-ghost" data-om-act="complete">Finalizar</button>`);
+      acts.push(`<button type="button" class="btn btn-ghost" data-om-act="return">Devolvido</button>`);
+      acts.push(`<button type="button" class="btn btn-ghost" data-om-act="undo">Desfazer</button>`);
+    }
+    if (order.status === 'shipped') {
+      acts.push(`<button type="button" class="btn btn-gold" data-om-act="complete">Finalizar</button>`);
+      acts.push(`<button type="button" class="btn btn-ghost" data-om-act="return">Devolvido</button>`);
+      acts.push(`<button type="button" class="btn btn-ghost" data-om-act="undo">Desfazer</button>`);
+    }
+    if (order.status === 'completed') {
+      acts.push(`<button type="button" class="btn btn-ghost" data-om-act="return">Devolvido</button>`);
+      acts.push(`<button type="button" class="btn btn-ghost" data-om-act="undo">Desfazer</button>`);
+    }
+    if (order.status === 'cancelled' || order.status === 'returned') {
+      acts.push(`<button type="button" class="btn btn-ghost" data-om-act="undo">Desfazer</button>`);
+    }
+    foot.innerHTML = `<div class="order-modal-acts">${acts.join('')}</div>`;
+
+    foot.querySelectorAll('[data-om-act]').forEach((btn) => {
+      btn.addEventListener('click', () => runOrderAction(order.id, btn.dataset.omAct, btn));
+    });
+    modal.classList.remove('hidden');
+  }
+
+  async function runOrderAction(id, act, btn) {
+    const confirmMap = {
+      undo: { title: 'Desfazer pedido', text: 'O estoque e o Lucro voltam como antes (se houver baixa). O pedido volta para Recebido.', okLabel: 'Desfazer' },
+      return: { title: 'Marcar como devolvido', text: 'O estoque será devolvido e a venda sai do Lucro.', okLabel: 'Devolvido' },
+      cancel: { title: 'Recusar pedido', text: 'O pedido será arquivado sem mexer no estoque.', okLabel: 'Recusar' },
+    };
+    if (confirmMap[act]) {
+      const { ok } = await askConfirm(confirmMap[act]);
+      if (!ok) return;
+    }
+    if (btn) btn.disabled = true;
+    try {
+      if (act === 'approve') {
+        await api(`/api/orders/${encodeURIComponent(id)}/approve`, { method: 'POST', json: {} });
+        toast('Pedido aceito');
+        await loadAll();
+      } else if (act === 'cancel') {
+        await api(`/api/orders/${encodeURIComponent(id)}/cancel`, { method: 'POST', json: {} });
+        toast('Pedido recusado');
+      } else if (act === 'ship') {
+        await api(`/api/orders/${encodeURIComponent(id)}/status`, { method: 'POST', json: { status: 'shipped' } });
+        toast('Pedido em rota');
+      } else if (act === 'complete') {
+        await api(`/api/orders/${encodeURIComponent(id)}/status`, { method: 'POST', json: { status: 'completed' } });
+        toast('Pedido finalizado');
+      } else if (act === 'return') {
+        await api(`/api/orders/${encodeURIComponent(id)}/status`, { method: 'POST', json: { status: 'returned' } });
+        toast('Pedido devolvido · estoque restaurado');
+        await loadAll();
+      } else if (act === 'undo') {
+        await api(`/api/orders/${encodeURIComponent(id)}/undo`, { method: 'POST', json: {} });
+        toast('Pedido desfeito');
+        await loadAll();
+      }
+      await loadOrders();
+      pollNotifOrders(false);
+      const updated = state.orders.find((o) => o.id === id);
+      if (updated) openOrderModal(id);
+      else closeOrderModal();
+    } catch (err) {
+      toast(err.message || 'Falha ao atualizar pedido');
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  $('#order-modal-close')?.addEventListener('click', closeOrderModal);
+  $('#order-modal')?.addEventListener('click', (e) => {
+    if (e.target === $('#order-modal')) closeOrderModal();
+  });
 
   $('#orders-period')?.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-period]');
     if (!btn) return;
     state.ordersPeriod = btn.dataset.period;
+    state.ordersPage = 1;
     loadOrders();
   });
   $('#orders-status-filter')?.addEventListener('change', (e) => {
     state.ordersStatus = e.target.value;
+    state.ordersPage = 1;
+    loadOrders();
+  });
+  $('#orders-view-toggle')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-orders-view]');
+    if (!btn) return;
+    state.ordersView = btn.dataset.ordersView;
+    state.ordersPage = 1;
     loadOrders();
   });
   let ordersSearchTimer;
@@ -1292,6 +1590,7 @@
     clearTimeout(ordersSearchTimer);
     ordersSearchTimer = setTimeout(() => {
       state.ordersSearch = e.target.value;
+      state.ordersPage = 1;
       loadOrders();
     }, 200);
   });
@@ -1302,14 +1601,17 @@
     const btn = e.target.closest('[data-period]');
     if (!btn) return;
     state.profitPeriod = btn.dataset.period;
+    state.profitPage = 1;
     renderProfit();
   });
   $('#profit-city-filter').addEventListener('change', (e) => {
     state.profitCity = e.target.value;
+    state.profitPage = 1;
     renderProfit();
   });
   $('#profit-cat-filter').addEventListener('change', (e) => {
     state.profitCat = e.target.value;
+    state.profitPage = 1;
     renderProfit();
   });
 
@@ -1578,8 +1880,10 @@
       : totals.known
         ? `<p class="hint">Custo das vendas: ${money(totals.costSum)}</p>`
         : '';
-    const list = rows.length
-      ? rows
+    const pageInfo = pageSlice(rows, state.profitPage, state.pageSize);
+    state.profitPage = pageInfo.page;
+    const list = pageInfo.items.length
+      ? pageInfo.items
           .map((e) => {
             const when = new Date(e.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
             const kind = e.type === 'sale' ? 'Venda' : e.type === 'in' ? 'Entrada' : 'Baixa';
@@ -1608,6 +1912,10 @@
     $('#profit-list').querySelectorAll('[data-undo]').forEach((b) =>
       b.addEventListener('click', () => undoLedger(b.dataset.undo))
     );
+    renderPager($('#profit-pager'), pageInfo, (p) => {
+      state.profitPage = p;
+      renderProfit();
+    });
   }
 
   async function undoLedger(id) {
@@ -2508,7 +2816,9 @@
 
   /* ---------- users ---------- */
   function renderUsers() {
-    $('#users-list').innerHTML = state.users
+    const pageInfo = pageSlice(state.users || [], state.usersPage || 1, state.pageSize);
+    state.usersPage = pageInfo.page;
+    $('#users-list').innerHTML = pageInfo.items
       .map(
         (u) => `
       <div class="cat-row">
@@ -2537,6 +2847,10 @@
         else resetUserPassword(b.dataset.id);
       })
     );
+    renderPager($('#users-pager'), pageInfo, (p) => {
+      state.usersPage = p;
+      renderUsers();
+    });
   }
 
   async function removeUser(id) {
@@ -2752,6 +3066,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!$('#confirm-modal').classList.contains('hidden')) return closeConfirm({ ok: false });
+    if (!$('#order-modal')?.classList.contains('hidden')) return closeOrderModal();
     if (!$('#flavors-modal').classList.contains('hidden')) return closeFlavors();
     if (!$('#product-modal').classList.contains('hidden')) return closeProductModal();
   });

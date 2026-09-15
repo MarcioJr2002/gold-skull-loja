@@ -192,12 +192,13 @@
       </div>
       <p class="catalog-count" id="catalog-count"></p>
       <div id="catalog-board"></div>
+      <div id="products-pager" class="list-pager"></div>
       <button type="button" class="fab-add mobile-only" id="fab-add">+ Anunciar</button>
     </section>
 
     <!-- ORDERS TAB -->
     <section id="tab-orders" class="tab-panel hidden">
-      <p class="hint">Pedidos que chegaram pela loja. <b>Aprovar</b> dá baixa no estoque e conta no Lucro. <b>Recusar</b> só arquiva, sem mexer no estoque.</p>
+      <p class="hint">Fluxo: <b>Recebido</b> → <b>Aceito</b> (baixa estoque) → <b>Em rota</b> → <b>Finalizado</b>. <b>Recusar</b> arquiva sem estoque. <b>Devolvido</b> devolve o estoque. Toque no card para detalhes.</p>
       <div class="profit-toolbar">
         <div class="period-tabs" id="orders-period">
           <button type="button" class="period-btn active" data-period="today">Hoje</button>
@@ -207,15 +208,24 @@
           <button type="button" class="period-btn" data-period="all">Tudo</button>
         </div>
         <select id="orders-status-filter" class="toolbar-select" aria-label="Status">
-          <option value="pending">Para gerenciar</option>
-          <option value="approved">Aprovados</option>
+          <option value="pending">Recebidos</option>
+          <option value="approved">Aceitos</option>
+          <option value="shipped">Em rota</option>
+          <option value="completed">Finalizados</option>
           <option value="cancelled">Recusados</option>
+          <option value="returned">Devolvidos</option>
           <option value="all">Todos</option>
         </select>
         <input type="search" id="orders-search" class="toolbar-select" placeholder="Buscar cliente, WhatsApp, produto..." />
+        <div class="view-toggle" id="orders-view-toggle" role="group" aria-label="Visualização">
+          <button type="button" class="period-btn active" data-orders-view="list">Lista</button>
+          <button type="button" class="period-btn" data-orders-view="kanban">Kanban</button>
+        </div>
       </div>
       <div class="profit-cards" id="orders-stats"></div>
       <div id="orders-list" class="orders-admin-list"></div>
+      <div id="orders-kanban" class="orders-kanban hidden"></div>
+      <div id="orders-pager" class="list-pager"></div>
     </section>
 
     <!-- PROFIT TAB -->
@@ -242,6 +252,7 @@
       <div id="profit-cat-cards" class="profit-city-cards"></div>
       <h3 class="section-label">Movimentações</h3>
       <div id="profit-list" class="profit-list"></div>
+      <div id="profit-pager" class="list-pager"></div>
     </section>
 
     <!-- PROMOS TAB (admin) -->
@@ -366,6 +377,7 @@
         <h3>Acessos ativos</h3>
         <p class="hint">Se alguém perdeu o celular do autenticador e também os códigos de recuperação, use <b>Zerar 2FA</b>. A pessoa configura o aplicativo de novo no próximo login.</p>
         <div id="users-list" class="cat-list"></div>
+        <div id="users-pager" class="list-pager"></div>
       </div>
     </section>
 
@@ -563,6 +575,18 @@
 
   <div class="toast hidden" id="toast"></div>
 
+  <!-- DETALHE DO PEDIDO -->
+  <div class="admin-modal-backdrop hidden" id="order-modal">
+    <div class="admin-modal admin-modal-wide">
+      <div class="admin-modal-head">
+        <h3 id="order-modal-title">Pedido</h3>
+        <button type="button" class="modal-close" id="order-modal-close" aria-label="Fechar">×</button>
+      </div>
+      <div class="admin-modal-body" id="order-modal-body"></div>
+      <div class="admin-modal-foot" id="order-modal-foot"></div>
+    </div>
+  </div>
+
   <!-- CONFIRMAÇÃO -->
   <div class="admin-modal-backdrop hidden" id="confirm-modal">
     <form class="admin-modal confirm-box" id="confirm-form">
@@ -582,6 +606,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=24"></script>
+  <script src="/admin/admin.js?v=25"></script>
 </body>
 </html>

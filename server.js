@@ -2028,7 +2028,14 @@ function orderFromAuditEntry(e) {
     approvedBy: "",
     cancelledAt: null,
     cancelledBy: "",
+    shippedAt: null,
+    shippedBy: "",
+    completedAt: null,
+    completedBy: "",
+    returnedAt: null,
+    returnedBy: "",
     stockMoves: [],
+    stockRestored: false,
   };
 }
 
@@ -2059,6 +2066,48 @@ function resolveOrderProduct(db, item) {
   const name = String(item.name || "").trim().toLowerCase();
   if (!name) return null;
   return (db.products || []).find((p) => String(p.name || "").trim().toLowerCase() === name) || null;
+}
+
+/** Status do fluxo: Recebido → Aceito → Em rota → Finalizado; Recusado / Devolvido. */
+const ORDER_FLOW = ["pending", "approved", "shipped", "completed", "cancelled", "returned"];
+
+function ensureOrderFields(order) {
+  if (!order || typeof order !== "object") return order;
+  if (!ORDER_FLOW.includes(order.status)) order.status = "pending";
+  if (!Array.isArray(order.stockMoves)) order.stockMoves = [];
+  if (order.shippedAt === undefined) order.shippedAt = null;
+  if (order.shippedBy === undefined) order.shippedBy = "";
+  if (order.completedAt === undefined) order.completedAt = null;
+  if (order.completedBy === undefined) order.completedBy = "";
+  if (order.returnedAt === undefined) order.returnedAt = null;
+  if (order.returnedBy === undefined) order.returnedBy = "";
+  if (order.stockRestored === undefined) order.stockRestored = false;
+  return order;
+}
+
+/** Desfaz baixas de estoque ligadas ao pedido (remove sales do ledger e devolve qty). */
+function reverseOrderStockMoves(db, order) {
+  const moves = Array.isArray(order.stockMoves) ? [...order.stockMoves] : [];
+  let restored = 0;
+  for (const moveId of moves) {
+    const idx = db.ledger.findIndex((x) => x.id === moveId);
+    if (idx < 0) continue;
+    const entry = db.ledger[idx];
+    const product = findProduct(db, entry.productId);
+    if (product) {
+      const current = product.stock == null ? 0 : Number(product.stock) || 0;
+      if (entry.type === "in") product.stock = Math.max(0, current - (entry.qty || 0));
+      else if (product.stockActive || product.stock != null) {
+        product.stock = current + (entry.qty || 0);
+        product.stockActive = true;
+      }
+      restored += 1;
+    }
+    db.ledger.splice(idx, 1);
+  }
+  order.stockMoves = [];
+  order.stockRestored = true;
+  return restored;
 }
 
 /**
@@ -2104,7 +2153,14 @@ app.post("/api/public/order/notify", publicLimiter, (req, res) => {
     approvedBy: "",
     cancelledAt: null,
     cancelledBy: "",
+    shippedAt: null,
+    shippedBy: "",
+    completedAt: null,
+    completedBy: "",
+    returnedAt: null,
+    returnedBy: "",
     stockMoves: [],
+    stockRestored: false,
   };
 
   const db = getDb();
@@ -2161,10 +2217,13 @@ app.get("/api/orders/notifications", requireAuth, (_req, res) => {
 app.get("/api/orders", requireAuth, (req, res) => {
   const db = getDb();
   migrateOrdersFromAudit(db);
+  (db.orders || []).forEach(ensureOrderFields);
   const status = str(req.query.status, 20);
   const city = str(req.query.city, 60);
   const q = str(req.query.q, 80).toLowerCase();
   const period = str(req.query.period, 20) || "all";
+  const limit = Math.max(1, Math.min(500, Number(req.query.limit) || 300));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
   const now = Date.now();
   let start = 0;
   if (period === "today") {
@@ -2191,50 +2250,52 @@ app.get("/api/orders", requireAuth, (req, res) => {
   }
   if (start) list = list.filter((o) => new Date(o.createdAt).getTime() >= start);
 
-  const pending = (db.orders || []).filter((o) => o.status === "pending").length;
-  const approvedInPeriod = (db.orders || []).filter((o) => {
-    if (o.status !== "approved") return false;
-    const t = new Date(o.approvedAt || o.createdAt).getTime();
+  const inPeriod = (o, atField) => {
+    const t = new Date(o[atField] || o.createdAt).getTime();
     return !start || t >= start;
-  });
+  };
+  const all = db.orders || [];
+  const activeMoney = all.filter((o) => ["approved", "shipped", "completed"].includes(o.status) && inPeriod(o, "approvedAt"));
   const stats = {
-    pending,
-    approvedCount: approvedInPeriod.length,
-    approvedTotal: approvedInPeriod.reduce((s, o) => s + (Number(o.total) || 0), 0),
-    cancelledCount: (db.orders || []).filter((o) => {
-      if (o.status !== "cancelled") return false;
-      const t = new Date(o.cancelledAt || o.createdAt).getTime();
-      return !start || t >= start;
-    }).length,
+    pending: all.filter((o) => o.status === "pending").length,
+    approvedCount: all.filter((o) => o.status === "approved" && inPeriod(o, "approvedAt")).length,
+    shippedCount: all.filter((o) => o.status === "shipped" && inPeriod(o, "shippedAt")).length,
+    completedCount: all.filter((o) => o.status === "completed" && inPeriod(o, "completedAt")).length,
+    cancelledCount: all.filter((o) => o.status === "cancelled" && inPeriod(o, "cancelledAt")).length,
+    returnedCount: all.filter((o) => o.status === "returned" && inPeriod(o, "returnedAt")).length,
+    approvedTotal: activeMoney.reduce((s, o) => s + (Number(o.total) || 0), 0),
   };
 
-  res.json({ orders: list.slice(0, 300), stats });
+  res.json({ orders: list.slice(offset, offset + limit), total: list.length, stats });
 });
 
-app.post("/api/orders/:id/approve", requireAuth, (req, res) => {
-  const db = getDb();
-  const order = findOrder(db, str(req.params.id, 60));
-  if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
-  if (order.status !== "pending") return res.status(400).json({ error: "Este pedido já foi tratado." });
+function approveOrderCore(req, db, order) {
+  ensureOrderFields(order);
+  if (order.status !== "pending") {
+    return { error: "Só pedidos recebidos podem ser aceitos.", status: 400 };
+  }
 
   const resolved = (order.items || []).map((it) => ({ item: it, product: resolveOrderProduct(db, it) }));
   const missing = resolved.filter((r) => !r.product);
   if (missing.length) {
-    return res.status(400).json({
+    return {
       error: `Não achei o produto no estoque: ${missing.map((r) => r.item.name).join(", ")}. Edite o catálogo ou baixe manualmente na aba Estoque.`,
-    });
+      status: 400,
+    };
   }
   for (const r of resolved) {
     const current = r.product.stock == null ? 0 : Number(r.product.stock) || 0;
     if (r.product.stockActive && current < r.item.qty) {
-      return res.status(400).json({
+      return {
         error: `Estoque insuficiente de "${r.product.name}" (${current} un., pedido ${r.item.qty}).`,
-      });
+        status: 400,
+      };
     }
   }
 
   const moves = [];
   const cityNames = shippingCities(db.settings);
+  const who = req.session.user.name || req.session.user.username;
   for (const r of resolved) {
     const product = r.product;
     const qty = r.item.qty;
@@ -2256,7 +2317,7 @@ app.post("/api/orders/:id/approve", requireAuth, (req, res) => {
       price: r.item.price > 0 ? r.item.price : sellPrice(product),
       cost: product.cost == null || product.cost === "" ? null : Number(product.cost),
       createdAt: new Date().toISOString(),
-      userName: req.session.user.name || req.session.user.username,
+      userName: who,
       orderId: order.id,
       option: r.item.option || "",
     };
@@ -2266,14 +2327,32 @@ app.post("/api/orders/:id/approve", requireAuth, (req, res) => {
 
   order.status = "approved";
   order.approvedAt = new Date().toISOString();
-  order.approvedBy = req.session.user.name || req.session.user.username;
+  order.approvedBy = who;
   order.stockMoves = moves;
+  order.stockRestored = false;
+  order.cancelledAt = null;
+  order.cancelledBy = "";
+  order.shippedAt = null;
+  order.shippedBy = "";
+  order.completedAt = null;
+  order.completedBy = "";
+  order.returnedAt = null;
+  order.returnedBy = "";
+  return { ok: true, moves, who };
+}
+
+app.post("/api/orders/:id/approve", requireAuth, (req, res) => {
+  const db = getDb();
+  const order = findOrder(db, str(req.params.id, 60));
+  if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
+  const result = approveOrderCore(req, db, order);
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
   saveDb(db);
   logAction(req, "order.approved", {
     targetType: "order",
     targetId: order.id,
     targetName: order.customerName,
-    detail: `aprovou pedido · ${moves.length} baixa(s) no estoque · ${order.total}`,
+    detail: `aceitou pedido · ${result.moves.length} baixa(s) no estoque · ${order.total}`,
   });
   res.json({ order, ledger: db.ledger, products: db.products });
 });
@@ -2282,7 +2361,8 @@ app.post("/api/orders/:id/cancel", requireAuth, (req, res) => {
   const db = getDb();
   const order = findOrder(db, str(req.params.id, 60));
   if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
-  if (order.status !== "pending") return res.status(400).json({ error: "Este pedido já foi tratado." });
+  ensureOrderFields(order);
+  if (order.status !== "pending") return res.status(400).json({ error: "Só pedidos recebidos podem ser recusados." });
   order.status = "cancelled";
   order.cancelledAt = new Date().toISOString();
   order.cancelledBy = req.session.user.name || req.session.user.username;
@@ -2294,6 +2374,119 @@ app.post("/api/orders/:id/cancel", requireAuth, (req, res) => {
     detail: "pedido recusado / cancelado (sem baixa de estoque)",
   });
   res.json({ order });
+});
+
+/** Avança etapa: approved→shipped→completed, ou marca devolvido (devolve estoque). */
+app.post("/api/orders/:id/status", requireAuth, (req, res) => {
+  const db = getDb();
+  const order = findOrder(db, str(req.params.id, 60));
+  if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
+  ensureOrderFields(order);
+  const next = str(req.body && req.body.status, 20);
+  const who = req.session.user.name || req.session.user.username;
+  const now = new Date().toISOString();
+
+  const allowed = {
+    shipped: ["approved"],
+    completed: ["shipped", "approved"],
+    returned: ["approved", "shipped", "completed"],
+  };
+  if (!allowed[next]) {
+    return res.status(400).json({ error: "Status inválido. Use shipped, completed ou returned." });
+  }
+  if (!allowed[next].includes(order.status)) {
+    return res.status(400).json({ error: `Não dá para marcar como "${next}" a partir de "${order.status}".` });
+  }
+
+  if (next === "shipped") {
+    order.status = "shipped";
+    order.shippedAt = now;
+    order.shippedBy = who;
+  } else if (next === "completed") {
+    order.status = "completed";
+    order.completedAt = now;
+    order.completedBy = who;
+    if (!order.shippedAt) {
+      order.shippedAt = now;
+      order.shippedBy = who;
+    }
+  } else if (next === "returned") {
+    if (!order.stockRestored && (order.stockMoves || []).length) {
+      reverseOrderStockMoves(db, order);
+    }
+    order.status = "returned";
+    order.returnedAt = now;
+    order.returnedBy = who;
+  }
+
+  saveDb(db);
+  logAction(req, "order.status", {
+    targetType: "order",
+    targetId: order.id,
+    targetName: order.customerName,
+    detail: `status → ${next}`,
+  });
+  res.json({ order, ledger: db.ledger, products: db.products });
+});
+
+/**
+ * Desfaz o tratamento do pedido (mesma ideia do Lucro):
+ * - Aceito/Em rota/Finalizado → volta a Recebido e devolve estoque/ledger
+ * - Recusado → volta a Recebido
+ * - Devolvido → volta a Aceito e dá baixa de novo no estoque
+ */
+app.post("/api/orders/:id/undo", requireAuth, (req, res) => {
+  const db = getDb();
+  const order = findOrder(db, str(req.params.id, 60));
+  if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
+  ensureOrderFields(order);
+  const who = req.session.user.name || req.session.user.username;
+  const prev = order.status;
+
+  if (order.status === "pending") {
+    return res.status(400).json({ error: "Pedido ainda está recebido — nada para desfazer." });
+  }
+
+  if (order.status === "cancelled") {
+    order.status = "pending";
+    order.cancelledAt = null;
+    order.cancelledBy = "";
+  } else if (order.status === "returned") {
+    order.status = "pending";
+    order.returnedAt = null;
+    order.returnedBy = "";
+    order.approvedAt = null;
+    order.approvedBy = "";
+    order.shippedAt = null;
+    order.shippedBy = "";
+    order.completedAt = null;
+    order.completedBy = "";
+    order.stockRestored = false;
+    order.stockMoves = [];
+    const result = approveOrderCore(req, db, order);
+    if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  } else if (["approved", "shipped", "completed"].includes(order.status)) {
+    if (!order.stockRestored) reverseOrderStockMoves(db, order);
+    order.status = "pending";
+    order.approvedAt = null;
+    order.approvedBy = "";
+    order.shippedAt = null;
+    order.shippedBy = "";
+    order.completedAt = null;
+    order.completedBy = "";
+    order.stockRestored = false;
+  } else {
+    return res.status(400).json({ error: "Não é possível desfazer este status." });
+  }
+
+  saveDb(db);
+  logAction(req, "order.undo", {
+    targetType: "order",
+    targetId: order.id,
+    targetName: order.customerName,
+    detail: `desfez ${prev} → ${order.status} · por ${who}`,
+  });
+  res.json({ order, ledger: db.ledger, products: db.products });
 });
 
 app.get("/api/settings", requireAdmin, (_req, res) => {
