@@ -19,8 +19,9 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
 const FORCE_HTTPS = /^(1|true|yes|on)$/i.test(process.env.FORCE_HTTPS || "");
 const TRUST_PROXY = process.env.TRUST_PROXY || (PROD ? "1" : "loopback");
-// 2FA is temporarily disabled while the admin flow is being tested.
-// Set DISABLE_2FA=false to require it again.
+// Se DISABLE_2FA=true (padrão), o painel NÃO obriga a configurar 2FA no primeiro acesso.
+// Contas que já ligaram o 2FA continuam precisando do código no login.
+// Para obrigar todo mundo a configurar: DISABLE_2FA=false
 const DISABLE_2FA = !/^(0|false|no|off)$/i.test(process.env.DISABLE_2FA || "true");
 
 // IPs liberados para o painel (vazio = liberado para todos)
@@ -2421,27 +2422,28 @@ app.post("/api/login", loginLimiter, async (req, res, next) => {
       saveDb(db);
     }
 
-    // Senha padrão pendente ou 2FA ainda não configurado: entra em modo restrito
-    if (DISABLE_2FA || user.mustChangePassword || !(user.totp && user.totp.confirmedAt)) {
-      const detail = user.mustChangePassword
-        ? "senha precisa ser trocada"
-        : DISABLE_2FA
-          ? "2FA temporariamente desativado"
-          : "2FA precisa ser configurado";
-      return startSession(req, res, next, user, detail);
+    // Conta com 2FA ativo: sempre pede o código (mesmo se DISABLE_2FA=true)
+    if (user.totp && user.totp.confirmedAt) {
+      req.session.regenerate((err) => {
+        if (err) return next(err);
+        req.session.pending = { userId: user.id, at: Date.now(), tries: 0 };
+        req.session.uaHash = uaHash(req);
+        const token = csrfToken(req);
+        req.session.save((err2) => {
+          if (err2) return next(err2);
+          res.json({ stage: "totp", csrf: token, name: user.name || user.username });
+        });
+      });
+      return;
     }
 
-    // 2FA ativo: a sessão só nasce depois do código
-    req.session.regenerate((err) => {
-      if (err) return next(err);
-      req.session.pending = { userId: user.id, at: Date.now(), tries: 0 };
-      req.session.uaHash = uaHash(req);
-      const token = csrfToken(req);
-      req.session.save((err2) => {
-        if (err2) return next(err2);
-        res.json({ stage: "totp", csrf: token, name: user.name || user.username });
-      });
-    });
+    // Sem 2FA: entra direto (ou força configuração se DISABLE_2FA=false)
+    const detail = user.mustChangePassword
+      ? "senha precisa ser trocada"
+      : !DISABLE_2FA
+        ? "2FA precisa ser configurado"
+        : "login sem 2FA";
+    return startSession(req, res, next, user, detail);
   } catch (err) {
     next(err);
   }
