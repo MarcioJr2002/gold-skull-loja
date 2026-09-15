@@ -23,6 +23,7 @@
     stockSearch: '',
     stockCat: '',
     stockCity: '',
+    stockView: 'hub', // hub | detail
     profitPeriod: 'today',
     profitCity: '',
     profitCat: '',
@@ -648,7 +649,8 @@
     if (!TAB_IDS.includes(id)) return;
     const more = $('#more-sheet');
     if (more) more.classList.add('hidden');
-    document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x.dataset.tab === id));
+    closeSidebar();
+    document.querySelectorAll('.tab, .side-link').forEach((x) => x.classList.toggle('active', x.dataset.tab === id));
     const dockMain = ['products', 'orders', 'stock', 'profit'].includes(id);
     document.querySelectorAll('.dock-btn[data-tab]').forEach((x) => x.classList.toggle('active', x.dataset.tab === id));
     const moreBtn = $('#dock-more');
@@ -660,10 +662,25 @@
     if (id === 'logs') loadLogs(true);
     if (id === 'account') loadTwoFactorStatus();
     if (id === 'orders') loadOrders();
+    if (id === 'stock') renderStock();
   }
-  document.querySelectorAll('.tab, .dock-btn[data-tab]').forEach((t) =>
-    t.addEventListener('click', () => switchTab(t.dataset.tab))
+  function openSidebar() {
+    $('#panel')?.classList.add('sidebar-open');
+    $('#sidebar-backdrop')?.classList.remove('hidden');
+  }
+  function closeSidebar() {
+    $('#panel')?.classList.remove('sidebar-open');
+    $('#sidebar-backdrop')?.classList.add('hidden');
+  }
+  document.querySelectorAll('.tab, .dock-btn[data-tab], .side-link, #header-orders-btn').forEach((t) =>
+    t.addEventListener('click', () => {
+      const id = t.dataset.tab;
+      if (id) switchTab(id);
+    })
   );
+  $('#sidebar-open')?.addEventListener('click', openSidebar);
+  $('#sidebar-close')?.addEventListener('click', closeSidebar);
+  $('#sidebar-backdrop')?.addEventListener('click', closeSidebar);
   $('#dock-more').addEventListener('click', () => $('#more-sheet').classList.toggle('hidden'));
   document.querySelectorAll('#more-sheet [data-tab]').forEach((b) =>
     b.addEventListener('click', () => switchTab(b.dataset.tab))
@@ -777,7 +794,6 @@
     const names = cityNames();
     [
       ['#admin-city-filter', state.cityFilter, 'Todas as cidades'],
-      ['#stock-city-filter', state.stockCity, 'Todas as cidades'],
       ['#profit-city-filter', state.profitCity, 'Todas as caixas'],
     ].forEach(([sel, value, allLabel]) => {
       const el = $(sel);
@@ -1159,14 +1175,18 @@
 
   $('#stock-search').addEventListener('input', (e) => {
     state.stockSearch = e.target.value;
-    renderStock();
+    renderStockDetail();
   });
   $('#stock-cat-filter').addEventListener('change', (e) => {
     state.stockCat = e.target.value;
-    renderStock();
+    renderStockDetail();
   });
-  $('#stock-city-filter').addEventListener('change', (e) => {
-    state.stockCity = e.target.value;
+  $('#stock-back')?.addEventListener('click', () => {
+    state.stockView = 'hub';
+    state.stockCity = '';
+    state.stockSearch = '';
+    const search = $('#stock-search');
+    if (search) search.value = '';
     renderStock();
   });
   $('#profit-period').addEventListener('click', (e) => {
@@ -1190,23 +1210,57 @@
     const cat = state.stockCat;
     const city = state.stockCity;
     return state.products.filter((p) => {
-      if (city && !productInCity(p, city)) return false;
+      if (!city || !productInCity(p, city)) return false;
       if (cat && p.category !== cat) return false;
       return !q || [p.name, p.category, ...productCities(p)].join(' ').toLowerCase().includes(q);
     });
   }
 
-  function renderStock() {
+  function renderStockHub() {
+    const hub = $('#stock-hub');
+    const detail = $('#stock-detail');
+    if (hub) hub.classList.remove('hidden');
+    if (detail) detail.classList.add('hidden');
+    if (!hub) return;
+    hub.innerHTML = cityNames()
+      .map((city) => {
+        const items = state.products.filter((p) => productInCity(p, city));
+        const tracking = items.filter((p) => p.stockActive && p.stock != null);
+        const low = tracking.filter((p) => p.stock <= 3).length;
+        const units = tracking.reduce((s, p) => s + (Number(p.stock) || 0), 0);
+        return `<button type="button" class="stock-box-card" data-stock-city="${esc(city)}">
+          <h3>${esc(cityLabel(city))}</h3>
+          <p><strong>${items.length}</strong> produto${items.length === 1 ? '' : 's'}</p>
+          <p><strong>${units}</strong> un. controladas${low ? ` · <strong>${low}</strong> baixo` : ''}</p>
+        </button>`;
+      })
+      .join('');
+    hub.querySelectorAll('[data-stock-city]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.stockCity = btn.dataset.stockCity;
+        state.stockView = 'detail';
+        state.stockSearch = '';
+        state.stockCat = '';
+        const search = $('#stock-search');
+        if (search) search.value = '';
+        const cat = $('#stock-cat-filter');
+        if (cat) cat.value = '';
+        renderStock();
+      });
+    });
+  }
+
+  function renderStockDetail() {
+    const hub = $('#stock-hub');
+    const detail = $('#stock-detail');
+    if (hub) hub.classList.add('hidden');
+    if (detail) detail.classList.remove('hidden');
+    const title = $('#stock-detail-title');
+    if (title) title.textContent = `Estoque · ${cityLabel(state.stockCity)}`;
     const list = stockList();
-    const low = state.products.filter((p) => p.stockActive && p.stock != null && p.stock <= 3);
-    const alert = $('#stock-alert');
-    if (low.length) {
-      alert.classList.remove('hidden');
-      alert.textContent = `${low.length} produto${low.length === 1 ? '' : 's'} com estoque baixo (3 ou menos).`;
-    } else {
-      alert.classList.add('hidden');
-    }
-    $('#stock-list').innerHTML =
+    const wrap = $('#stock-list');
+    if (!wrap) return;
+    wrap.innerHTML =
       list
         .map((p) => {
           const price = sellPrice(p);
@@ -1219,7 +1273,7 @@
           <img class="img-hide-on-error" src="${esc(p.image || '')}" alt="" loading="lazy" />
           <div>
             <div class="stock-card-name">${esc(p.name)}</div>
-            <div class="stock-card-meta">${esc(p.category || '—')} · ${productCities(p).map((c) => esc(cityLabel(c))).join(' · ')} · <strong>${money(price)}</strong></div>
+            <div class="stock-card-meta">${esc(p.category || '—')} · <strong>${money(price)}</strong></div>
             <div class="${profit == null ? 'unit-profit missing' : 'unit-profit'}">${
               profit == null ? 'Informe o custo para ver o lucro' : `Lucro ${money(profit)} / un.`
             }</div>
@@ -1245,9 +1299,9 @@
           </div>
         </article>`;
         })
-        .join('') || '<p class="profit-empty">Nenhum produto nesta busca.</p>';
+        .join('') || '<p class="profit-empty">Nenhum produto nesta caixa.</p>';
 
-    $('#stock-list').querySelectorAll('.stock-card').forEach((card) => {
+    wrap.querySelectorAll('.stock-card').forEach((card) => {
       const id = card.dataset.id;
       const qtyEl = card.querySelector('.move-qty');
       const costInput = card.querySelector('.stock-cost');
@@ -1262,6 +1316,21 @@
       card.querySelector('[data-act="sale"]').addEventListener('click', () => stockMove(id, 'sale', readQty()));
       costInput.addEventListener('change', () => saveCost(id, costInput.value));
     });
+  }
+
+  function renderStock() {
+    const low = state.products.filter((p) => p.stockActive && p.stock != null && p.stock <= 3);
+    const alert = $('#stock-alert');
+    if (alert) {
+      if (low.length) {
+        alert.classList.remove('hidden');
+        alert.textContent = `${low.length} produto${low.length === 1 ? '' : 's'} com estoque baixo (3 ou menos).`;
+      } else {
+        alert.classList.add('hidden');
+      }
+    }
+    if (state.stockView === 'detail' && state.stockCity) renderStockDetail();
+    else renderStockHub();
   }
 
   async function saveCost(id, raw) {

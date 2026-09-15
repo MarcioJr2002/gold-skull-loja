@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=16" />
+  <link rel="stylesheet" href="/admin/admin.css?v=17" />
 </head>
 <body class="admin-body">
 
@@ -103,25 +103,41 @@
   </div>
 
   <!-- PANEL -->
-  <div id="panel" class="panel hidden">
+  <div id="panel" class="panel admin-shell hidden">
+    <aside class="admin-sidebar" id="admin-sidebar" aria-label="Menu do painel">
+      <div class="admin-sidebar-head">
+        <span class="brand-name">PAINEL</span>
+        <button type="button" class="btn btn-ghost btn-sm admin-sidebar-close" id="sidebar-close" aria-label="Fechar menu">X</button>
+      </div>
+      <nav class="admin-sidebar-nav">
+        <button class="side-link active" data-tab="products">Produtos</button>
+        <button class="side-link" data-tab="orders">Pedidos</button>
+        <button class="side-link" data-tab="stock">Estoque</button>
+        <button class="side-link" data-tab="profit">Lucro</button>
+        <button class="side-link admin-only" data-tab="promos">Promoções</button>
+        <button class="side-link admin-only" data-tab="coupons">Cupons</button>
+        <button class="side-link admin-only" data-tab="categories">Categorias</button>
+        <button class="side-link admin-only" data-tab="settings">Loja</button>
+        <button class="side-link admin-only" data-tab="users">Acessos</button>
+        <button class="side-link admin-only" data-tab="logs">Logs</button>
+        <button class="side-link" data-tab="account">Minha conta</button>
+      </nav>
+    </aside>
+    <div class="admin-sidebar-backdrop hidden" id="sidebar-backdrop"></div>
+
+    <div class="admin-main">
     <header class="admin-header">
       <div class="admin-header-inner">
+        <button type="button" class="btn btn-ghost btn-sm admin-menu-btn" id="sidebar-open" aria-label="Abrir menu">☰</button>
         <span class="brand"><span class="brand-name">PAINEL</span></span>
-        <nav class="tabs">
+        <nav class="header-shortcuts" aria-label="Atalhos">
           <button class="tab active" data-tab="products">Produtos</button>
-          <button class="tab" data-tab="orders">Pedidos</button>
           <button class="tab" data-tab="stock">Estoque</button>
           <button class="tab" data-tab="profit">Lucro</button>
-          <button class="tab admin-only" data-tab="promos">Promoções</button>
-          <button class="tab admin-only" data-tab="coupons">Cupons</button>
-          <button class="tab admin-only" data-tab="categories">Categorias</button>
-          <button class="tab admin-only" data-tab="settings">Loja</button>
-          <button class="tab admin-only" data-tab="users">Acessos</button>
-          <button class="tab admin-only" data-tab="logs">Logs</button>
-          <button class="tab" data-tab="account">Minha conta</button>
         </nav>
         <div class="admin-header-actions">
           <span class="whoami" id="whoami"></span>
+          <button type="button" class="btn btn-gold btn-sm" id="header-orders-btn" data-tab="orders">Pedidos</button>
           <a href="/" target="_blank" rel="noopener" class="btn btn-gold btn-sm">Ver loja</a>
           <button id="logout-btn" class="btn btn-ghost btn-sm">Sair</button>
         </div>
@@ -205,18 +221,22 @@
 
     <!-- STOCK TAB -->
     <section id="tab-stock" class="tab-panel hidden">
-      <p class="hint">No celular: busque o produto, aperte <b>Entrada</b> quando chegar mercadoria e <b>Vendi</b> quando sair. O lucro entra sozinho se o custo estiver preenchido.</p>
+      <p class="hint">Escolha a caixa para ver o estoque dela. Cada produto aparece só na caixa em que está marcado.</p>
       <div id="stock-alert" class="stock-alert hidden"></div>
-      <div class="toolbar">
-        <input type="search" id="stock-search" placeholder="Buscar no estoque..." />
-        <select id="stock-city-filter" class="toolbar-select">
-          <option value="">Todas as cidades</option>
-        </select>
-        <select id="stock-cat-filter" class="toolbar-select">
-          <option value="">Todas categorias</option>
-        </select>
+      <div id="stock-hub" class="stock-hub"></div>
+      <div id="stock-detail" class="stock-detail hidden">
+        <div class="stock-detail-head">
+          <button type="button" class="btn btn-ghost btn-sm" id="stock-back">← Voltar às caixas</button>
+          <h3 id="stock-detail-title">Estoque</h3>
+        </div>
+        <div class="toolbar">
+          <input type="search" id="stock-search" placeholder="Buscar neste estoque..." />
+          <select id="stock-cat-filter" class="toolbar-select">
+            <option value="">Todas categorias</option>
+          </select>
+        </div>
+        <div id="stock-list" class="stock-list"></div>
       </div>
-      <div id="stock-list" class="stock-list"></div>
     </section>
 
     <!-- PROFIT TAB -->
@@ -417,7 +437,8 @@
         </form>
       </div>
     </section>
-  </div>
+    </div><!-- /.admin-main -->
+  </div><!-- /#panel -->
 
   <!-- PRODUCT MODAL -->
   <div class="admin-modal-backdrop hidden" id="product-modal">
@@ -551,6 +572,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=22"></script>
+  <script src="/admin/admin.js?v=23"></script>
 </body>
 </html>
