@@ -1276,9 +1276,20 @@
   }
 
   function orderCardHtml(o, { compact } = {}) {
+    if (compact) {
+      const products = (o.items || [])
+        .map((it) => `${it.qty}x ${esc(it.name)}${it.option ? ` · ${esc(it.option)}` : ''}`)
+        .join(' · ');
+      return `<article class="order-kanban-card status-${esc(o.status)}" data-id="${esc(o.id)}" role="button" tabindex="0" title="Abrir detalhes">
+        <strong class="order-kanban-name">${esc(o.customerName || 'Cliente')}</strong>
+        <span class="order-kanban-city">${esc(o.city || '—')}</span>
+        <span class="order-kanban-products">${products || 'Sem itens'}</span>
+        <strong class="order-kanban-total">${money(o.total)}</strong>
+      </article>`;
+    }
     const when = formatOrderWhen(o.createdAt);
     const items = (o.items || [])
-      .map((it) => `${it.qty}x ${esc(it.name)}${it.option ? ` (${esc(it.option)})` : ''}${compact ? '' : ` — ${money(it.price * it.qty)}`}`)
+      .map((it) => `${it.qty}x ${esc(it.name)}${it.option ? ` (${esc(it.option)})` : ''} — ${money(it.price * it.qty)}`)
       .join('<br>');
     const pending = o.status === 'pending';
     const hint = orderFootHint(o);
@@ -1293,8 +1304,8 @@
       <div class="order-admin-meta">
         ${esc(o.city || '—')} · ${esc(o.address || 'Sem endereço')}<br>
         WhatsApp: ${esc(o.phone || '—')} · ${esc(o.payment || 'Pagamento')}
-        ${!compact && o.couponCode ? `<br>Cupom: ${esc(o.couponCode)}` : ''}
-        ${!compact && o.note ? `<br>Obs: ${esc(o.note)}` : ''}
+        ${o.couponCode ? `<br>Cupom: ${esc(o.couponCode)}` : ''}
+        ${o.note ? `<br>Obs: ${esc(o.note)}` : ''}
       </div>
       <div class="order-admin-items">${items}</div>
       <div class="order-admin-foot">
@@ -1338,7 +1349,8 @@
         }
       });
     });
-    root.querySelectorAll('.order-admin-card[data-id]').forEach((card) => {
+    root.querySelectorAll('[data-id]').forEach((card) => {
+      if (!card.classList.contains('order-admin-card') && !card.classList.contains('order-kanban-card')) return;
       const open = () => openOrderModal(card.dataset.id);
       card.addEventListener('click', (e) => {
         if (e.target.closest('[data-order-act]')) return;

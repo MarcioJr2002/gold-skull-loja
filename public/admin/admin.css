@@ -543,20 +543,49 @@
 
 .view-toggle { display: inline-flex; gap: 4px; }
 .orders-kanban {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px; margin-top: 14px; align-items: start;
+  display: flex; gap: 12px; margin-top: 14px; align-items: stretch;
+  overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch;
 }
 .orders-kanban-col {
+  flex: 0 0 240px; width: 240px; max-width: 240px;
   background: var(--bg-3); border: 1px solid var(--line); border-radius: 14px;
-  padding: 10px; min-height: 120px; display: flex; flex-direction: column; gap: 8px;
+  padding: 10px; min-height: 140px; display: flex; flex-direction: column; gap: 8px;
+  box-sizing: border-box;
 }
 .orders-kanban-col h4 {
-  margin: 0 0 4px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em;
-  text-transform: uppercase; color: var(--text-2); display: flex; justify-content: space-between;
+  margin: 0 0 2px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-2); display: flex; justify-content: space-between; gap: 6px;
 }
-.orders-kanban-col .order-admin-card { padding: 10px 12px; }
-.orders-kanban-col .order-admin-items { font-size: 12.5px; }
-.orders-kanban-empty { font-size: 12px; color: var(--text-2); padding: 8px 4px; }
+.orders-kanban-col h4 em { font-style: normal; color: var(--text); }
+.orders-kanban-empty { font-size: 12px; color: var(--text-2); padding: 8px 4px; margin: 0; }
+.order-kanban-card {
+  width: 100%; max-width: 100%; box-sizing: border-box; min-width: 0;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px; display: flex; flex-direction: column; gap: 4px;
+  cursor: pointer; text-align: left; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.order-kanban-card:hover { border-color: var(--gold); box-shadow: 0 4px 14px rgba(28, 27, 24, 0.06); }
+.order-kanban-card.status-pending { border-color: var(--gold); }
+.order-kanban-card.status-approved { border-color: rgba(34, 197, 94, 0.4); }
+.order-kanban-card.status-shipped { border-color: rgba(59, 130, 246, 0.4); }
+.order-kanban-card.status-completed { border-color: rgba(34, 197, 94, 0.65); }
+.order-kanban-card.status-returned { border-color: rgba(239, 68, 68, 0.35); }
+.order-kanban-name {
+  font-size: 13.5px; font-weight: 800; line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.order-kanban-city {
+  font-size: 12px; color: var(--text-2); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.order-kanban-products {
+  font-size: 12px; color: var(--text); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; word-break: break-word;
+}
+.order-kanban-total {
+  margin-top: 4px; color: var(--gold); font-size: 15px; font-weight: 800;
+}
 
 .admin-modal-wide { max-width: 640px; }
 .order-detail-grid { display: grid; gap: 10px; }
