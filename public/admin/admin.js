@@ -276,7 +276,8 @@
     const isAdmin = state.user.role === 'admin';
     document.querySelectorAll('.admin-only').forEach((el) => el.classList.toggle('hidden', !isAdmin));
     document.querySelectorAll('.editor-only').forEach((el) => el.classList.toggle('hidden', isAdmin));
-    $('#whoami').textContent = `${state.user.name || state.user.username} · ${isAdmin ? 'admin' : 'editor'}`;
+    const who = $('#whoami');
+    if (who) who.textContent = `${state.user.name || state.user.username} · ${isAdmin ? 'admin' : 'editor'}`;
     loadAll();
     startNotifPolling();
   }
@@ -2379,26 +2380,50 @@
     renderShippingRows();
   }
 
-  function shippingRowHtml(sh) {
+  function shippingRowHtml(sh, index) {
+    const n = (index ?? 0) + 1;
     return `
-        <input class="ship-name" value="${esc(sh.name || '')}" maxlength="60" placeholder="Caixa: Itajaí, Joinville ou Atacado" />
-        <input class="ship-price" type="number" step="0.01" min="0" inputmode="decimal" value="${sh.price ?? ''}" placeholder="R$" />
-        <input class="ship-desc" value="${esc(sh.description || '')}" maxlength="160" placeholder="Detalhe (ex.: Motoboy — entrega rápida)" />
-      <button type="button" class="icon-btn danger" title="Remover">🗑</button>`;
+      <div class="ship-card-head">
+        <strong>Entrega ${n}</strong>
+        <button type="button" class="icon-btn danger ship-remove" title="Remover">🗑</button>
+      </div>
+      <div class="ship-card-grid">
+        <label>Caixa / região
+          <input class="ship-name" value="${esc(sh.name || '')}" maxlength="60" placeholder="Ex.: Itajaí" />
+        </label>
+        <label>Frete (R$)
+          <input class="ship-price" type="number" step="0.01" min="0" inputmode="decimal" value="${sh.price ?? ''}" placeholder="0" />
+        </label>
+        <label>Como aparece no checkout
+          <input class="ship-desc" value="${esc(sh.description || '')}" maxlength="160" placeholder="Ex.: Motoboy — entrega rápida" />
+        </label>
+      </div>`;
+  }
+  function wireShippingCard(card) {
+    card.querySelector('.ship-remove')?.addEventListener('click', () => {
+      card.remove();
+      renumberShippingCards();
+    });
+  }
+  function renumberShippingCards() {
+    [...document.querySelectorAll('#shipping-list .ship-card')].forEach((card, i) => {
+      const title = card.querySelector('.ship-card-head strong');
+      if (title) title.textContent = `Entrega ${i + 1}`;
+    });
   }
   function renderShippingRows() {
-    $('#shipping-list').innerHTML = (state.settings.shipping || [])
-      .map((sh) => `<div class="ship-row">${shippingRowHtml(sh)}</div>`)
+    const list = state.settings.shipping || [];
+    $('#shipping-list').innerHTML = list
+      .map((sh, i) => `<div class="ship-card">${shippingRowHtml(sh, i)}</div>`)
       .join('');
-    $('#shipping-list').querySelectorAll('button').forEach((b) =>
-      b.addEventListener('click', () => b.closest('.ship-row').remove())
-    );
+    $('#shipping-list').querySelectorAll('.ship-card').forEach(wireShippingCard);
   }
   $('#add-shipping-btn').addEventListener('click', () => {
     const div = document.createElement('div');
-    div.className = 'ship-row';
-    div.innerHTML = shippingRowHtml({});
-    div.querySelector('button').addEventListener('click', () => div.remove());
+    div.className = 'ship-card';
+    const n = document.querySelectorAll('#shipping-list .ship-card').length;
+    div.innerHTML = shippingRowHtml({}, n);
+    wireShippingCard(div);
     $('#shipping-list').appendChild(div);
   });
 
@@ -2424,7 +2449,7 @@
 
   $('#settings-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const shipping = [...document.querySelectorAll('#shipping-list .ship-row')]
+    const shipping = [...document.querySelectorAll('#shipping-list .ship-card')]
       .map((row) => ({
         name: row.querySelector('.ship-name').value,
         price: row.querySelector('.ship-price').value,

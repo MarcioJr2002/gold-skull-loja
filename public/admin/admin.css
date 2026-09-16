@@ -66,7 +66,8 @@
 
 /* promoções */
 .promo-admin-list { display: flex; flex-direction: column; gap: 14px; }
-.promo-admin { border: 1px solid var(--line); border-radius: 16px; padding: 14px; background: var(--bg-3); }
+.promo-admin { border: 1px solid var(--line); border-radius: 16px; padding: 14px; background: var(--bg-2); }
+.promo-admin label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
 .promo-admin-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .promo-admin-head strong { font-size: 13.5px; color: var(--gold-2); flex: 1; }
 .promo-admin-grid { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: start; }
@@ -127,6 +128,10 @@
 .btn-sm { padding: 9px 16px; font-size: 13px; }
 .btn-danger { background: rgba(255,82,82,0.12); color: var(--danger); border: 1px solid rgba(255,82,82,0.4); }
 .btn-danger:hover { background: rgba(255,82,82,0.22); }
+.btn-store {
+  background: #1c1b18; color: #f7f3ea; border: 1px solid #1c1b18;
+}
+.btn-store:hover { background: #2e2c27; border-color: #2e2c27; color: #fff; }
 
 .tab-panel { max-width: 1100px; margin: 22px auto 60px; padding: 0 16px; animation: fadeUp 0.25s ease; }
 .toolbar { display: flex; gap: 10px; margin-bottom: 16px; }
@@ -135,9 +140,12 @@
   background: var(--bg-2); color: var(--text); font-size: 16px; outline: none;
 }
 .toolbar-select {
-  padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
-  background: var(--bg-2); color: var(--text); font-size: 16px; outline: none;
-  min-width: 140px;
+  padding: 12px 40px 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+  background-color: var(--bg-2); color: var(--text); font-size: 16px; outline: none;
+  min-width: 140px; font-family: inherit; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b6558' d='M1.1 1.1L6 6l4.9-4.9L12 2.2 6 8.2 0 2.2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center;
 }
 .toolbar input:focus, .toolbar-select:focus { border-color: var(--gold); }
 .toolbar .btn { flex-shrink: 0; }
@@ -206,13 +214,24 @@
 .settings-form h3 { font-family: var(--font-display); font-size: 15px; color: var(--gold-2); margin: 8px 0 2px; }
 .settings-form h3:first-child { margin-top: 0; }
 .settings-form label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
-.settings-form input, .settings-form textarea, .admin-modal input, .admin-modal textarea, .admin-modal select {
+.settings-form input, .settings-form textarea, .settings-form select,
+.admin-modal input, .admin-modal textarea, .admin-modal select,
+.coupon-admin input, .coupon-admin select,
+.promo-admin input, .promo-admin select {
   padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--bg-3); color: var(--text); font-size: 16px; outline: none; font-family: inherit;
-  resize: vertical;
+  resize: vertical; width: 100%; box-sizing: border-box;
 }
-.settings-form input:focus, .settings-form textarea:focus,
-.admin-modal input:focus, .admin-modal textarea:focus, .admin-modal select:focus { border-color: var(--gold); }
+.settings-form select, .admin-modal select, .coupon-admin select, .promo-admin select,
+#u-role, #p-category, #pb-action, #pb-value {
+  padding-right: 40px; cursor: pointer; appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b6558' d='M1.1 1.1L6 6l4.9-4.9L12 2.2 6 8.2 0 2.2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; background-color: var(--bg-3);
+}
+.settings-form input:focus, .settings-form textarea:focus, .settings-form select:focus,
+.admin-modal input:focus, .admin-modal textarea:focus, .admin-modal select:focus,
+.coupon-admin input:focus, .coupon-admin select:focus,
+.promo-admin input:focus, .promo-admin select:focus { border-color: var(--gold); }
 /* labels que são botão ou interruptor não viram coluna */
 .settings-form label.switch { display: inline-flex; flex-direction: row; align-items: center; width: fit-content; color: var(--text); }
 .settings-form label.btn { display: inline-flex; flex-direction: row; align-items: center; width: fit-content; }
@@ -224,17 +243,48 @@
 .coupon-admin-list { display: flex; flex-direction: column; gap: 14px; }
 .coupon-admin {
   border: 1px solid var(--line); border-radius: 16px; padding: 14px;
-  background: var(--bg-3);
+  background: var(--bg-2);
 }
+.coupon-admin label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
 .coupon-admin-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .coupon-admin-head strong { font-size: 13.5px; color: var(--gold-2); flex: 1; }
 .coupon-admin .cp-usage { margin: 8px 0 0; }
+.coupon-admin .check-row {
+  flex-direction: row; align-items: center; gap: 8px; width: fit-content;
+  color: var(--text); font-weight: 600; cursor: pointer;
+}
+.coupon-admin .check-row input[type="checkbox"] {
+  width: 18px; height: 18px; padding: 0; accent-color: var(--gold-2); cursor: pointer;
+}
 .muted { color: var(--text-3); font-weight: 400; font-size: 13px; }
 .banner-row { display: flex; flex-direction: column; gap: 10px; }
 .banner-preview { max-width: 320px; border-radius: 12px; border: 1px solid var(--line); }
-.ship-row { display: grid; grid-template-columns: 1fr 100px 1fr 40px; gap: 8px; align-items: center; margin-bottom: 8px; }
-.ship-row input { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-3); color: var(--text); font-size: 13.5px; outline: none; }
-.ship-row input:focus { border-color: var(--gold); }
+
+.shipping-list { display: flex; flex-direction: column; gap: 12px; }
+.ship-card {
+  border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+  background: var(--bg-3); display: flex; flex-direction: column; gap: 12px;
+}
+.ship-card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.ship-card-head strong { font-size: 13px; color: var(--gold-2); font-weight: 800; }
+.ship-card-grid {
+  display: grid; grid-template-columns: 1fr; gap: 12px;
+}
+@media (min-width: 700px) {
+  .ship-card-grid { grid-template-columns: 1.2fr 0.7fr 1.6fr; align-items: end; }
+}
+.ship-card label {
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 12.5px; font-weight: 600; color: var(--text-2);
+}
+.ship-card input {
+  padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg-2); color: var(--text); font-size: 15px; outline: none; font-family: inherit;
+  width: 100%; box-sizing: border-box;
+}
+.ship-card input:focus { border-color: var(--gold); }
 
 /* product modal */
 .admin-modal-backdrop {
@@ -300,8 +350,6 @@
   .toolbar { flex-wrap: wrap; }
   .toolbar .btn { display: none; }
   .tab-panel { margin-bottom: 24px; }
-  .ship-row { grid-template-columns: 1fr 40px; }
-  .ship-row .ship-price, .ship-row .ship-desc { grid-column: 1 / -1; }
   .admin-modal-backdrop { padding: 0; align-items: stretch; }
   .admin-modal {
     max-width: none; max-height: none; height: 100dvh; border-radius: 0;
@@ -413,13 +461,12 @@
 .profit-empty { text-align: center; color: var(--text-2); padding: 28px 12px; font-weight: 600; }
 
 /* sininho de pedidos novos */
-.notif-bell { position: fixed; top: 10px; right: 12px; z-index: 90; }
-@media (max-width: 640px) { .notif-bell { top: calc(10px + env(safe-area-inset-top)); right: 10px; } }
+.notif-bell { position: relative; z-index: 60; }
 .notif-bell-btn {
   position: relative; width: 40px; height: 40px; border-radius: 50%;
   background: var(--bg-2); border: 1px solid var(--line); font-size: 18px; line-height: 1;
   display: inline-flex; align-items: center; justify-content: center;
-  box-shadow: var(--shadow); cursor: pointer;
+  box-shadow: none; cursor: pointer;
 }
 .notif-bell-btn:hover { border-color: var(--gold); }
 .notif-bell-btn.ring { animation: notifRing 0.6s ease; }
@@ -436,7 +483,7 @@
   display: flex; align-items: center; justify-content: center; line-height: 1;
 }
 .notif-panel {
-  position: absolute; top: 48px; right: 0; width: 320px; max-width: calc(100vw - 24px);
+  position: absolute; top: calc(100% + 8px); right: 0; width: 320px; max-width: calc(100vw - 24px);
   max-height: 70vh; overflow-y: auto; background: var(--bg-2); border: 1px solid var(--line);
   border-radius: 16px; box-shadow: var(--shadow); padding: 10px;
 }

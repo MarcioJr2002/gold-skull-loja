@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=18" />
+  <link rel="stylesheet" href="/admin/admin.css?v=19" />
 </head>
 <body class="admin-body">
 
@@ -128,36 +128,28 @@
     <header class="admin-header">
       <div class="admin-header-inner">
         <button type="button" class="btn btn-ghost btn-sm admin-menu-btn" id="sidebar-open" aria-label="Abrir menu">☰</button>
-        <span class="brand"><span class="brand-name">PAINEL</span></span>
-        <nav class="header-shortcuts" aria-label="Atalhos">
-          <button class="tab active" data-tab="products">Produtos</button>
-          <button class="tab" data-tab="profit">Lucro</button>
-        </nav>
         <div class="admin-header-actions">
-          <span class="whoami" id="whoami"></span>
+          <div class="notif-bell" id="notif-bell">
+            <button type="button" class="notif-bell-btn" id="notif-bell-btn" title="Pedidos novos" aria-label="Pedidos novos">
+              🔔<span class="notif-badge hidden" id="notif-badge">0</span>
+            </button>
+            <div class="notif-panel hidden" id="notif-panel">
+              <div class="notif-panel-head">
+                <strong>Pedidos novos</strong>
+                <div class="notif-panel-actions">
+                  <button type="button" class="btn btn-ghost btn-sm" id="notif-open-orders">Ver todos</button>
+                  <button type="button" class="btn btn-ghost btn-sm" id="notif-mark-read">Marcar como lidos</button>
+                </div>
+              </div>
+              <div class="notif-list" id="notif-list"></div>
+            </div>
+          </div>
           <button type="button" class="btn btn-gold btn-sm" id="header-orders-btn" data-tab="orders">Pedidos</button>
-          <a href="/" target="_blank" rel="noopener" class="btn btn-gold btn-sm">Ver loja</a>
-          <button id="logout-btn" class="btn btn-ghost btn-sm">Sair</button>
+          <a href="/" target="_blank" rel="noopener" class="btn btn-store btn-sm">Ver loja</a>
+          <button id="logout-btn" class="btn btn-danger btn-sm">Sair</button>
         </div>
       </div>
     </header>
-
-    <!-- SININHO DE PEDIDOS NOVOS -->
-    <div class="notif-bell" id="notif-bell">
-      <button type="button" class="notif-bell-btn" id="notif-bell-btn" title="Pedidos novos" aria-label="Pedidos novos">
-        🔔<span class="notif-badge hidden" id="notif-badge">0</span>
-      </button>
-      <div class="notif-panel hidden" id="notif-panel">
-      <div class="notif-panel-head">
-          <strong>Pedidos novos</strong>
-          <div class="notif-panel-actions">
-            <button type="button" class="btn btn-ghost btn-sm" id="notif-open-orders">Ver todos</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="notif-mark-read">Marcar como lidos</button>
-          </div>
-        </div>
-        <div class="notif-list" id="notif-list"></div>
-      </div>
-    </div>
 
     <!-- PRODUCTS TAB (catálogo + estoque por caixa) -->
     <section id="tab-products" class="tab-panel">
@@ -339,8 +331,8 @@
         <textarea id="s-payments" rows="3" placeholder="Pix (solicite a chave no atendimento)&#10;Cartão via link de pagamento"></textarea>
 
         <h3>Formas de entrega</h3>
-        <p class="hint">Três caixas: Itajaí, Joinville e Atacado (Brasil). Na entrada da loja o cliente vê Itajaí e região, Joinville e região e Brasil, sem valores.</p>
-        <div id="shipping-list"></div>
+        <p class="hint">Cada card é uma opção de frete na loja. Use as caixas <b>Itajaí</b>, <b>Joinville</b> e <b>Atacado</b> (Brasil). O preço aparece no checkout; na escolha da região o cliente só vê o nome.</p>
+        <div id="shipping-list" class="shipping-list"></div>
         <button type="button" class="btn btn-ghost btn-sm" id="add-shipping-btn">+ Adicionar entrega</button>
 
         <h3>Banner do topo</h3>
@@ -606,6 +598,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=25"></script>
+  <script src="/admin/admin.js?v=26"></script>
 </body>
 </html>
