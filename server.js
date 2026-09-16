@@ -2002,8 +2002,26 @@ function sanitizeOrderItems(raw) {
       qty: Math.max(1, Math.min(999, Math.round(Number(it && it.qty)) || 1)),
       option: str(it && it.option, 80),
       price: Math.max(0, Number(it && it.price) || 0),
+      image: str(it && it.image, 300),
     }))
     .filter((it) => it.name);
+}
+
+/** Foto do sabor (se houver) ou do produto — para conferência no painel. */
+function resolveOrderItemImage(db, item) {
+  if (item && item.image) return str(item.image, 300);
+  const product = resolveOrderProduct(db, item || {});
+  if (!product) return "";
+  const optName = String(item && item.option || "").trim().toLowerCase();
+  if (optName) {
+    const opt = (product.options || []).find((o) => String(o.title || "").trim().toLowerCase() === optName);
+    if (opt && opt.image) return str(opt.image, 300);
+  }
+  return str(product.image, 300);
+}
+
+function attachOrderItemImages(db, items) {
+  return (items || []).map((it) => ({ ...it, image: resolveOrderItemImage(db, it) || it.image || "" }));
 }
 
 function orderFromAuditEntry(e) {
@@ -2117,7 +2135,8 @@ function reverseOrderStockMoves(db, order) {
  */
 app.post("/api/public/order/notify", publicLimiter, (req, res) => {
   const b = req.body || {};
-  const items = sanitizeOrderItems(b.items);
+  const db = getDb();
+  const items = attachOrderItemImages(db, sanitizeOrderItems(b.items));
   if (!items.length) return res.status(400).json({ error: "Pedido sem itens." });
 
   const name = str(b.name, 80) || "Cliente";
@@ -2163,7 +2182,6 @@ app.post("/api/public/order/notify", publicLimiter, (req, res) => {
     stockRestored: false,
   };
 
-  const db = getDb();
   db.orders.unshift(order);
   saveDb(db);
 
@@ -2266,7 +2284,14 @@ app.get("/api/orders", requireAuth, (req, res) => {
     approvedTotal: activeMoney.reduce((s, o) => s + (Number(o.total) || 0), 0),
   };
 
-  res.json({ orders: list.slice(offset, offset + limit), total: list.length, stats });
+  res.json({
+    orders: list.slice(offset, offset + limit).map((o) => ({
+      ...o,
+      items: attachOrderItemImages(db, o.items),
+    })),
+    total: list.length,
+    stats,
+  });
 });
 
 function approveOrderCore(req, db, order) {

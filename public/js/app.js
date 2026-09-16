@@ -1713,13 +1713,17 @@
           subtotal,
           total: checkoutMeta ? checkoutMeta.total : total,
           cashbackUsed,
-          items: items.map((i) => ({
-            productId: i.product.id,
-            name: i.product.name,
-            qty: i.qty,
-            option: i.option || '',
-            price: i.product.price,
-          })),
+          items: items.map((i) => {
+            const flavor = (i.product.options || []).find((o) => o.title === i.option);
+            return {
+              productId: i.product.id,
+              name: i.product.name,
+              qty: i.qty,
+              option: i.option || '',
+              price: i.product.price,
+              image: (flavor && flavor.image) || i.product.image || '',
+            };
+          }),
         }),
       }).catch(() => {});
     }

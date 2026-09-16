@@ -1434,6 +1434,21 @@
     });
   }
 
+  function orderItemImage(it) {
+    if (it && it.image) return it.image;
+    const byId = it.productId ? state.products.find((p) => p.id === it.productId) : null;
+    const byName = !byId
+      ? state.products.find((p) => fold(p.name) === fold(it.name))
+      : null;
+    const p = byId || byName;
+    if (!p) return '';
+    if (it.option) {
+      const opt = (p.options || []).find((o) => fold(o.title) === fold(it.option));
+      if (opt && opt.image) return opt.image;
+    }
+    return p.image || '';
+  }
+
   function closeOrderModal() {
     state.orderModalId = null;
     $('#order-modal')?.classList.add('hidden');
@@ -1451,12 +1466,21 @@
 
     if (title) title.textContent = `Pedido · ${orderStatusLabel(order.status)}`;
     const items = (order.items || [])
-      .map(
-        (it) => `<div class="order-detail-item">
-          <span>${it.qty}x ${esc(it.name)}${it.option ? ` (${esc(it.option)})` : ''}</span>
-          <strong>${money(it.price * it.qty)}</strong>
-        </div>`
-      )
+      .map((it) => {
+        const img = orderItemImage(it);
+        return `<div class="order-detail-item">
+          <div class="order-detail-thumb">
+            ${img
+              ? `<img class="img-hide-on-error" src="${esc(img)}" alt="" loading="lazy" />`
+              : `<span class="order-detail-thumb-empty">?</span>`}
+          </div>
+          <div class="order-detail-item-main">
+            <strong>${it.qty}x ${esc(it.name)}</strong>
+            ${it.option ? `<span class="order-detail-opt">${esc(it.option)}</span>` : ''}
+          </div>
+          <strong class="order-detail-price">${money(it.price * it.qty)}</strong>
+        </div>`;
+      })
       .join('');
     const timeline = [
       order.createdAt ? `Recebido · ${formatOrderWhen(order.createdAt)}` : '',
