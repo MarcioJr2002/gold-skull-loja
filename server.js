@@ -32,8 +32,52 @@ const SMTP_USER = String(process.env.SMTP_USER || "").trim();
 const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
 const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "noreply@localhost").trim();
 const PUBLIC_URL = String(process.env.PUBLIC_URL || "").trim().replace(/\/$/, "");
-const VAPID_SUBJECT = String(process.env.VAPID_SUBJECT || "mailto:admin@localhost").trim();
 const PUSH_MAX_SUBS = 8;
+
+/** Apple (web.push.apple.com) rejeita VAPID com @localhost → 403 BadJwtToken. Android/FCM costuma aceitar. */
+function isBadVapidSubject(subject) {
+  const s = String(subject || "").trim();
+  if (!s) return true;
+  if (/^mailto:/i.test(s)) {
+    const email = s.slice(7).trim();
+    if (!email || /@localhost$/i.test(email) || /\.local$/i.test(email)) return true;
+    return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+  if (/^https:\/\//i.test(s)) {
+    try {
+      const u = new URL(s);
+      return !u.hostname || /^(localhost|127\.0\.0\.1)$/i.test(u.hostname);
+    } catch {
+      return true;
+    }
+  }
+  return true;
+}
+
+function resolveVapidSubject() {
+  const fromEnv = String(process.env.VAPID_SUBJECT || "").trim();
+  if (fromEnv && !isBadVapidSubject(fromEnv)) return fromEnv;
+
+  const smtpMail = String(SMTP_FROM || SMTP_USER || "").match(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/);
+  if (smtpMail && !isBadVapidSubject(`mailto:${smtpMail[0]}`)) return `mailto:${smtpMail[0]}`;
+
+  if (PUBLIC_URL) {
+    try {
+      const host = new URL(PUBLIC_URL).hostname;
+      if (host && !/^(localhost|127\.0\.0\.1)$/i.test(host)) {
+        const httpsSub = `https://${host}`;
+        if (!isBadVapidSubject(httpsSub)) return httpsSub;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Domínio com TLD real (Apple valida sintaxe; não precisa ser e-mail da conta Apple)
+  return "mailto:push@goldskull.app";
+}
+
+const VAPID_SUBJECT = resolveVapidSubject();
 
 // IPs liberados para o painel (vazio = liberado para todos)
 const ADMIN_ALLOW_IPS = String(process.env.ADMIN_ALLOW_IPS || "")
@@ -310,8 +354,9 @@ function getMailTransport() {
 function ensureVapidKeys(db) {
   const envPub = String(process.env.VAPID_PUBLIC_KEY || "").trim();
   const envPriv = String(process.env.VAPID_PRIVATE_KEY || "").trim();
+  const subject = VAPID_SUBJECT;
   if (envPub && envPriv) {
-    return { publicKey: envPub, privateKey: envPriv, subject: VAPID_SUBJECT };
+    return { publicKey: envPub, privateKey: envPriv, subject };
   }
   if (!db.settings || typeof db.settings !== "object") db.settings = {};
   if (!db.settings.pushVapid || !db.settings.pushVapid.publicKey || !db.settings.pushVapid.privateKey) {
@@ -319,23 +364,56 @@ function ensureVapidKeys(db) {
     db.settings.pushVapid = {
       publicKey: keys.publicKey,
       privateKey: keys.privateKey,
-      subject: VAPID_SUBJECT,
+      subject,
       createdAt: new Date().toISOString(),
     };
     saveDb(db);
     console.log("[push] Chaves VAPID geradas e salvas em settings.pushVapid");
+  } else if (isBadVapidSubject(db.settings.pushVapid.subject) || db.settings.pushVapid.subject !== subject) {
+    // Corrige subject antigo (ex.: mailto:admin@localhost) sem trocar as chaves
+    db.settings.pushVapid.subject = subject;
+    saveDb(db);
+    console.log("[push] VAPID subject atualizado para", subject);
   }
   return {
     publicKey: db.settings.pushVapid.publicKey,
     privateKey: db.settings.pushVapid.privateKey,
-    subject: db.settings.pushVapid.subject || VAPID_SUBJECT,
+    subject: db.settings.pushVapid.subject || subject,
   };
 }
 
 function configureWebPush(db) {
   const vapid = ensureVapidKeys(db);
-  webpush.setVapidDetails(vapid.subject || VAPID_SUBJECT, vapid.publicKey, vapid.privateKey);
-  return vapid;
+  const subject = isBadVapidSubject(vapid.subject) ? VAPID_SUBJECT : vapid.subject;
+  webpush.setVapidDetails(subject, vapid.publicKey, vapid.privateKey);
+  return { ...vapid, subject };
+}
+
+function pushEndpointHost(endpoint) {
+  try {
+    return new URL(endpoint).hostname;
+  } catch {
+    return "";
+  }
+}
+
+function describePushError(err) {
+  const code = err && (err.statusCode || err.status);
+  let body = "";
+  try {
+    body = typeof err.body === "string" ? err.body : err.body ? JSON.stringify(err.body) : "";
+  } catch {
+    body = "";
+  }
+  let reason = "";
+  try {
+    const parsed = body ? JSON.parse(body) : null;
+    reason = (parsed && (parsed.reason || parsed.error)) || "";
+  } catch {
+    reason = body.slice(0, 120);
+  }
+  const msg = String((err && err.message) || "falha no push");
+  return { code: code || 0, reason: reason || msg, message: msg };
 }
 
 async function sendOrderEmail(to, order, baseUrl) {
@@ -379,7 +457,7 @@ async function sendOrderPush(sub, order, baseUrl) {
       keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth },
     },
     payload,
-    { TTL: 60 * 60 }
+    { TTL: 60 * 60, urgency: "high" }
   );
 }
 
@@ -3780,14 +3858,15 @@ app.post("/api/push/subscribe", requireAuth, (req, res) => {
     return res.status(400).json({ error: "Inscrição de push inválida." });
   }
   configureWebPush(db);
-  const endpoint = str(sub.endpoint, 800);
+  const endpoint = str(sub.endpoint, 2048);
   const next = {
     endpoint,
     keys: {
-      p256dh: str(sub.keys.p256dh, 200),
-      auth: str(sub.keys.auth, 100),
+      p256dh: str(sub.keys.p256dh, 512),
+      auth: str(sub.keys.auth, 256),
     },
-    userAgent: str(req.get("user-agent"), 180),
+    userAgent: str(req.get("user-agent"), 240),
+    host: pushEndpointHost(endpoint),
     createdAt: new Date().toISOString(),
   };
   user.pushSubscriptions = (user.pushSubscriptions || []).filter((s) => s.endpoint !== endpoint);
@@ -3807,7 +3886,7 @@ app.post("/api/push/unsubscribe", requireAuth, (req, res) => {
   const { db, user } = currentUser(req);
   if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
   normalizeUserNotify(user);
-  const endpoint = str(req.body && req.body.endpoint, 800);
+  const endpoint = str(req.body && req.body.endpoint, 2048);
   const before = user.pushSubscriptions.length;
   if (endpoint) {
     user.pushSubscriptions = user.pushSubscriptions.filter((s) => s.endpoint !== endpoint);
@@ -3825,25 +3904,33 @@ app.post("/api/push/test", requireAuth, async (req, res) => {
   const { db, user } = currentUser(req);
   if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
   normalizeUserNotify(user);
-  configureWebPush(db);
-  const subs = (user.pushSubscriptions || []).filter(
+  const vapid = configureWebPush(db);
+  let subs = (user.pushSubscriptions || []).filter(
     (s) => s && s.endpoint && s.keys && s.keys.p256dh && s.keys.auth
   );
+  const onlyEndpoint = str(req.body && req.body.endpoint, 2048);
+  if (onlyEndpoint) {
+    subs = subs.filter((s) => s.endpoint === onlyEndpoint);
+  }
   if (!subs.length) {
     return res.status(400).json({
-      error: "Nenhum aparelho ativado. Toque em «Ativar neste aparelho» primeiro.",
+      error: onlyEndpoint
+        ? "Este aparelho ainda não está ativado. Toque em «Ativar neste aparelho»."
+        : "Nenhum aparelho ativado. Toque em «Ativar neste aparelho» primeiro.",
     });
   }
-  const baseUrl = `${req.protocol}://${req.get("host") || ""}`.replace(/\/$/, "");
+  const baseUrl = publicBaseUrl(req) || `${req.protocol}://${req.get("host") || ""}`.replace(/\/$/, "");
   const payload = JSON.stringify({
     title: "Teste Gold Skull",
     body: "Se você viu isto, o push do painel está funcionando.",
     url: `${baseUrl}/admin`,
   });
   let ok = 0;
-  const keep = [];
+  const keepAll = [...(user.pushSubscriptions || [])];
+  const results = [];
   let dirty = false;
   for (const sub of subs) {
+    const host = pushEndpointHost(sub.endpoint) || "push";
     try {
       await webpush.sendNotification(
         {
@@ -3851,31 +3938,43 @@ app.post("/api/push/test", requireAuth, async (req, res) => {
           keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth },
         },
         payload,
-        { TTL: 60 * 10 }
+        { TTL: 60 * 10, urgency: "high" }
       );
-      keep.push(sub);
       ok += 1;
+      results.push({ host, ok: true });
     } catch (err) {
-      const code = err && (err.statusCode || err.status);
-      if (code === 404 || code === 410) {
+      const info = describePushError(err);
+      console.warn(`[push/test] ${host} → ${info.code} ${info.reason}`);
+      results.push({ host, ok: false, ...info });
+      if (info.code === 404 || info.code === 410) {
         dirty = true;
-        continue;
+        const idx = keepAll.findIndex((s) => s && s.endpoint === sub.endpoint);
+        if (idx >= 0) keepAll.splice(idx, 1);
       }
-      console.warn("[push/test] falha:", err.message || err);
-      keep.push(sub);
     }
   }
-  if (dirty || keep.length !== subs.length) {
-    user.pushSubscriptions = keep;
+  if (dirty) {
+    user.pushSubscriptions = keepAll;
     saveDb(db);
   }
   if (!ok) {
+    const appleFail = results.find((r) => !r.ok && /apple\.com/i.test(r.host || ""));
+    const first = results.find((r) => !r.ok) || {};
+    let error = "Não foi possível enviar o teste. Reative o push neste aparelho.";
+    if (appleFail && (appleFail.code === 403 || /BadJwt/i.test(String(appleFail.reason || "")))) {
+      error =
+        "A Apple recusou o aviso (VAPID). Atualize o painel, remova e ative de novo neste iPhone.";
+    } else if (first.code) {
+      error = `Falha no push (${first.host || "servidor"} · ${first.code}${first.reason ? " · " + first.reason : ""}).`;
+    }
     return res.status(502).json({
-      error: "Não foi possível enviar o teste. Reative o push neste aparelho.",
+      error,
+      results,
+      vapidSubject: vapid.subject,
     });
   }
-  logAction(req, "push.test", { detail: `${ok} envio(s)` });
-  res.json({ ok: true, sent: ok });
+  logAction(req, "push.test", { detail: `${ok}/${subs.length} envio(s)` });
+  res.json({ ok: true, sent: ok, results, vapidSubject: vapid.subject });
 });
 
 app.put("/api/push/prefs", requireAuth, (req, res) => {
@@ -4274,6 +4373,12 @@ const server = app.listen(PORT, HOST, () => {
       `IPs do painel: ${ADMIN_ALLOW_IPS.length ? ADMIN_ALLOW_IPS.join(", ") : "todos"}`
   );
   console.log(`Dados: ${DB_PATH}`);
+  try {
+    const vapid = configureWebPush(getDb());
+    console.log(`[push] VAPID subject: ${vapid.subject}`);
+  } catch (err) {
+    console.warn("[push] não foi possível preparar VAPID:", err.message || err);
+  }
 });
 
 server.on("error", (err) => {

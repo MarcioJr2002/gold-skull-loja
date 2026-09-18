@@ -503,8 +503,23 @@
 
   async function ensureAdminServiceWorker() {
     if (!('serviceWorker' in navigator)) throw new Error('Este navegador não suporta service worker.');
-    const reg = await navigator.serviceWorker.register('/sw.js');
+    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     await navigator.serviceWorker.ready;
+    // iOS PWA: na 1ª abertura o SW ativa mas ainda não controla a página — sem isso o subscribe falha em silêncio
+    if (!navigator.serviceWorker.controller) {
+      await new Promise((resolve) => {
+        const done = () => resolve();
+        const t = setTimeout(done, 2500);
+        navigator.serviceWorker.addEventListener(
+          'controllerchange',
+          () => {
+            clearTimeout(t);
+            done();
+          },
+          { once: true }
+        );
+      });
+    }
     return reg;
   }
 
@@ -725,6 +740,15 @@
       const reg = await ensureAdminServiceWorker();
       const { publicKey } = await api('/api/push/vapid-public-key');
       let sub = await reg.pushManager.getSubscription();
+      // No iPhone, reinscreve para garantir endpoint Apple fresco após instalar o app
+      if (sub && isIosDevice()) {
+        try {
+          await sub.unsubscribe();
+        } catch {
+          /* ignore */
+        }
+        sub = null;
+      }
       if (!sub) {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
@@ -772,7 +796,12 @@
         }
         return toast('Push indisponível neste navegador.');
       }
-      await api('/api/push/test', { method: 'POST', json: {} });
+      const reg = await ensureAdminServiceWorker();
+      const sub = await reg.pushManager.getSubscription();
+      await api('/api/push/test', {
+        method: 'POST',
+        json: { endpoint: sub ? sub.endpoint : '' },
+      });
       toast('Teste enviado — confira a notificação neste aparelho');
     } catch (err) {
       toast(err.message || 'Falha no teste de push');
