@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=21" />
+  <link rel="stylesheet" href="/admin/admin.css?v=22" />
 </head>
 <body class="admin-body">
 
@@ -449,6 +449,10 @@
             <label>Sua senha atual<input type="password" id="rc-password" autocomplete="current-password" /></label>
             <button type="submit" class="btn btn-ghost" style="width:fit-content">Gerar novos códigos de recuperação</button>
           </form>
+          <div class="twofa-disable-box">
+            <p class="hint">Para desligar a verificação em duas etapas, confirme com a sua senha.</p>
+            <button type="button" class="btn btn-danger" id="twofa-disable-btn" style="width:fit-content">Desligar 2FA</button>
+          </div>
         </div>
       </div>
     </section>
@@ -598,6 +602,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=28"></script>
+  <script src="/admin/admin.js?v=29"></script>
 </body>
 </html>

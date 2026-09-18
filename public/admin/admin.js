@@ -561,6 +561,30 @@
     }
   });
 
+  $('#twofa-disable-btn')?.addEventListener('click', async () => {
+    const { ok, password } = await askConfirm({
+      title: 'Desligar verificação em duas etapas',
+      text: 'No próximo login o painel não vai mais pedir o código do autenticador. Confirme com a sua senha.',
+      password: true,
+      okLabel: 'Desligar 2FA',
+      danger: true,
+    });
+    if (!ok || !password) return;
+    try {
+      const data = await api('/api/2fa/disable', { method: 'POST', json: { password } });
+      if (data.user) state.user = { ...state.user, ...data.user };
+      toast('2FA desligada');
+      if (data.needs2faSetup) {
+        toast('Esta loja exige 2FA — configure de novo para continuar.');
+        location.reload();
+        return;
+      }
+      loadTwoFactorStatus();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
   async function resetUserTwoFactor(id) {
     const u = state.users.find((x) => x.id === id);
     const { ok, password } = await askConfirm({

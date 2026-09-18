@@ -559,6 +559,7 @@ const AUDIT_ACTIONS = {
   "promo.image_delete": "Foto de promoção removida",
   "2fa.setup_started": "Começou a configurar o 2FA",
   "2fa.enabled": "2FA ativado",
+  "2fa.disabled": "2FA desativado",
   "2fa.failed": "Código 2FA errado",
   "2fa.recovery_used": "Entrou com código de recuperação",
   "2fa.recovery_regenerated": "Códigos de recuperação gerados",
@@ -2837,6 +2838,31 @@ app.post("/api/2fa/recovery-codes", requireAuth, async (req, res, next) => {
     saveDb(db);
     logAction(req, "2fa.recovery_regenerated", { severity: "alert" });
     res.json({ recoveryCodes: plain });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** O próprio usuário desliga o 2FA (pede a senha atual). */
+app.post("/api/2fa/disable", requireAuth, async (req, res, next) => {
+  try {
+    const { db, user } = currentUser(req);
+    if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+    if (!(user.totp && user.totp.confirmedAt)) {
+      return res.status(400).json({ error: "A verificação em duas etapas já está desligada." });
+    }
+    if (!(await verifyPassword(String(req.body.password || ""), user))) {
+      logAction(req, "auth.login_failed", { detail: "senha errada ao desligar 2FA", severity: "alert" });
+      return res.status(403).json({ error: "Senha atual incorreta." });
+    }
+    delete user.totp;
+    delete user.totpPending;
+    user.recoveryCodes = [];
+    saveDb(db);
+    const needsSetup = needsTwoFactorSetup(user);
+    req.session.user = { ...req.session.user, needs2faSetup: needsSetup };
+    logAction(req, "2fa.disabled", { severity: "alert" });
+    res.json({ ok: true, user: req.session.user, needs2faSetup: needsSetup });
   } catch (err) {
     next(err);
   }
