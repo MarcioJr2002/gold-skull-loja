@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=23" />
+  <link rel="stylesheet" href="/admin/admin.css?v=24" />
 </head>
 <body class="admin-body">
 
@@ -354,19 +354,16 @@
           <label>Usuário<input id="u-username" placeholder="usuario" autocapitalize="none" spellcheck="false" maxlength="40" required /></label>
         </div>
         <div class="grid-2">
-          <label>E-mail<input id="u-email" type="email" placeholder="pessoa@email.com" maxlength="120" autocomplete="email" required /></label>
           <label>Senha<input id="u-password" type="password" placeholder="mínimo 8 caracteres" autocomplete="new-password" required /></label>
-        </div>
-        <div class="grid-2">
           <label>Permissão
             <select id="u-role">
               <option value="editor">Editor (produtos e estoque)</option>
               <option value="admin">Administrador (tudo)</option>
             </select>
           </label>
-          <label class="switch" style="margin-top:28px"><input type="checkbox" id="u-notify-email" checked /><span></span>Avisar pedidos por e-mail</label>
         </div>
-        <p class="hint">O editor não vê Acessos, Loja nem Logs. Quando você redefine a senha de alguém, essa pessoa é obrigada a criar uma nova no próximo login.</p>
+        <label class="switch"><input type="checkbox" id="u-notify-push" checked /><span></span>Pode receber aviso de pedidos no celular/PC (push)</label>
+        <p class="hint">O editor não vê Acessos, Loja nem Logs. A pessoa ainda precisa ativar o push em Minha conta neste aparelho.</p>
         <button type="submit" class="btn btn-gold" style="width:fit-content">Criar acesso</button>
       </form>
       <div class="settings-form">
@@ -413,20 +410,19 @@
           <label>Nome de exibição<input id="profile-name" maxlength="60" autocomplete="name" required /></label>
           <label>Usuário de login<input id="profile-username" maxlength="40" autocapitalize="none" spellcheck="false" autocomplete="username" required /></label>
         </div>
-        <label>E-mail<input id="profile-email" type="email" maxlength="120" placeholder="voce@email.com" autocomplete="email" /></label>
-        <label class="switch"><input type="checkbox" id="profile-notify-email" /><span></span>Receber e-mail quando chegar pedido novo</label>
-        <p class="hint" id="profile-mail-hint">Para o e-mail funcionar, o servidor precisa ter SMTP configurado (variáveis SMTP_*).</p>
         <button type="submit" class="btn btn-gold" style="width:fit-content">Salvar perfil</button>
       </form>
 
-      <div class="settings-form">
-        <h3>Notificação no celular / PC</h3>
-        <p class="hint">Ative para receber um aviso na hora, mesmo com o painel fechado (o navegador precisa estar aberto ou com permissão de segundo plano).</p>
+      <div class="settings-form push-prefs-box">
+        <h3>Avisos de pedido (push)</h3>
+        <p class="hint">Receba um alerta na hora em que chegar pedido novo — no celular ou no computador, mesmo com o painel fechado.</p>
+        <label class="switch"><input type="checkbox" id="profile-notify-push" /><span></span>Quero receber avisos de pedidos</label>
         <p class="twofa-status" id="push-status">Carregando...</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button type="button" class="btn btn-gold" id="push-enable-btn" style="width:fit-content">Ativar notificações push</button>
-          <button type="button" class="btn btn-ghost" id="push-disable-btn" style="width:fit-content">Desativar neste aparelho</button>
+        <div class="push-prefs-actions">
+          <button type="button" class="btn btn-gold" id="push-enable-btn">Ativar neste aparelho</button>
+          <button type="button" class="btn btn-ghost" id="push-disable-btn">Remover deste aparelho</button>
         </div>
+        <p class="hint">1) Ligue a flag acima · 2) Toque em <b>Ativar neste aparelho</b> e aceite a permissão do navegador.</p>
       </div>
 
       <form id="editor-password-form" class="settings-form">
@@ -619,6 +615,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=30"></script>
+  <script src="/admin/admin.js?v=31"></script>
 </body>
 </html>

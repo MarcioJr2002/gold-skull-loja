@@ -62,6 +62,10 @@
   margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--line);
   display: flex; flex-direction: column; gap: 10px;
 }
+.push-prefs-box { border-color: rgba(212, 168, 67, 0.45); }
+.push-prefs-box h3 { font-size: 16px; }
+.push-prefs-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.push-prefs-actions .btn { width: fit-content; }
 .user-2fa {
   display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 700;
   color: #1f7a3d; background: rgba(37, 211, 102, 0.14);

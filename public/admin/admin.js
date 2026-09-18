@@ -510,6 +510,8 @@
 
   async function updatePushStatusUi(data) {
     const el = $('#push-status');
+    const flag = $('#profile-notify-push');
+    if (flag && data) flag.checked = !!data.notifyPushOrders;
     if (!el) return;
     const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
     if (!supported) {
@@ -525,31 +527,24 @@
       /* ignore */
     }
     const perm = Notification.permission;
+    const want = !!(data && data.notifyPushOrders);
     const serverOn = !!(data && data.pushEnabled);
-    if (perm === 'denied') {
+    if (!want) {
+      el.textContent = 'Preferência desligada — você não recebe avisos de pedido.';
+    } else if (perm === 'denied') {
       el.textContent = 'Permissão bloqueada no navegador. Libere notificações nas configurações do site.';
     } else if (localSub && serverOn) {
-      el.textContent = `Ativas neste aparelho${data.pushCount > 1 ? ` · ${data.pushCount} aparelho(s) salvos` : ''}.`;
+      el.textContent = `Pronto neste aparelho${data.pushCount > 1 ? ` · ${data.pushCount} aparelho(s) salvos` : ''}.`;
     } else if (serverOn) {
-      el.textContent = `Há ${data.pushCount} aparelho(s) salvos. Neste aparelho ainda não está ativo — toque em Ativar.`;
+      el.textContent = `Há ${data.pushCount} aparelho(s) salvos. Neste aparelho ainda falta ativar.`;
     } else {
-      el.textContent = 'Desativadas. Toque em Ativar para pedir permissão.';
+      el.textContent = 'Flag ligada. Falta ativar neste aparelho e aceitar a permissão.';
     }
   }
 
   async function loadNotifyPrefs() {
     try {
       const data = await api('/api/push/status');
-      const email = $('#profile-email');
-      const notify = $('#profile-notify-email');
-      if (email) email.value = data.email || state.user?.email || '';
-      if (notify) notify.checked = !!data.notifyEmailOrders;
-      const hint = $('#profile-mail-hint');
-      if (hint) {
-        hint.textContent = data.mailConfigured
-          ? 'SMTP configurado — os e-mails de pedido saem quando a flag estiver ligada.'
-          : 'SMTP ainda não configurado no servidor (SMTP_HOST, SMTP_USER, SMTP_PASS). A preferência fica salva mesmo assim.';
-      }
       await updatePushStatusUi(data);
     } catch {
       const el = $('#push-status');
@@ -561,12 +556,10 @@
     if (!state.user) return;
     const name = $('#profile-name');
     const user = $('#profile-username');
-    const email = $('#profile-email');
-    const notify = $('#profile-notify-email');
     if (name) name.value = state.user.name || '';
     if (user) user.value = state.user.username || '';
-    if (email && state.user.email != null) email.value = state.user.email || '';
-    if (notify && state.user.notifyEmailOrders != null) notify.checked = !!state.user.notifyEmailOrders;
+    const pushFlag = $('#profile-notify-push');
+    if (pushFlag && state.user.notifyPushOrders != null) pushFlag.checked = !!state.user.notifyPushOrders;
   }
 
   $('#profile-form')?.addEventListener('submit', async (e) => {
@@ -577,16 +570,27 @@
         json: {
           name: $('#profile-name').value.trim(),
           username: $('#profile-username').value.trim(),
-          email: $('#profile-email')?.value.trim() || '',
-          notifyEmailOrders: !!$('#profile-notify-email')?.checked,
         },
       });
       if (data.session) state.user = { ...state.user, ...data.session };
-      else if (data.user) state.user = { ...state.user, name: data.user.name, username: data.user.username, email: data.user.email, notifyEmailOrders: data.user.notifyEmailOrders };
+      else if (data.user) state.user = { ...state.user, name: data.user.name, username: data.user.username };
       showPanel();
       toast('Perfil atualizado');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  $('#profile-notify-push')?.addEventListener('change', async (e) => {
+    const on = !!e.target.checked;
+    try {
+      const data = await api('/api/push/prefs', { method: 'PUT', json: { notifyPushOrders: on } });
+      if (data.session) state.user = { ...state.user, ...data.session };
+      else if (data.user) state.user = { ...state.user, notifyPushOrders: data.user.notifyPushOrders };
+      toast(on ? 'Avisos de pedido ligados' : 'Avisos de pedido desligados');
       loadNotifyPrefs();
     } catch (err) {
+      e.target.checked = !on;
       toast(err.message);
     }
   });
@@ -609,10 +613,17 @@
       }
       const data = await api('/api/push/subscribe', {
         method: 'POST',
-        json: { subscription: sub.toJSON() },
+        json: { subscription: sub.toJSON(), notifyPushOrders: true },
       });
-      if (data.user) state.user = { ...state.user, pushEnabled: data.user.pushEnabled };
-      toast('Notificações push ativadas');
+      if (data.user) {
+        state.user = {
+          ...state.user,
+          pushEnabled: data.user.pushEnabled,
+          notifyPushOrders: data.user.notifyPushOrders,
+        };
+      }
+      if ($('#profile-notify-push')) $('#profile-notify-push').checked = true;
+      toast('Push ativado neste aparelho');
       loadNotifyPrefs();
     } catch (err) {
       toast(err.message || 'Falha ao ativar push');
@@ -626,7 +637,7 @@
       const endpoint = sub ? sub.endpoint : '';
       if (sub) await sub.unsubscribe().catch(() => {});
       await api('/api/push/unsubscribe', { method: 'POST', json: { endpoint } });
-      toast('Push desativado neste aparelho');
+      toast('Push removido deste aparelho');
       loadNotifyPrefs();
     } catch (err) {
       toast(err.message || 'Falha ao desativar');
@@ -3023,17 +3034,15 @@
         (u) => `
       <div class="cat-row">
         <span class="cat-name">${esc(u.name)} <small class="user-tag">@${esc(u.username)}</small>${
-          u.email ? `<small class="user-tag">${esc(u.email)}</small>` : '<small class="user-warn">sem e-mail</small>'
-        }${
           u.mustChangePassword ? '<small class="user-warn">senha pendente</small>' : ''
         }${
           u.twoFactor
             ? `<small class="user-2fa">2FA ativo · ${u.recoveryLeft} código(s)</small>`
             : '<small class="user-warn">2FA pendente</small>'
         }${
-          u.notifyEmailOrders ? '<small class="user-2fa">e-mail pedidos</small>' : ''
+          u.notifyPushOrders ? '<small class="user-2fa">push pedidos</small>' : ''
         }${
-          u.pushEnabled ? '<small class="user-2fa">push</small>' : ''
+          u.pushEnabled ? '<small class="user-2fa">aparelho ativo</small>' : ''
         }</span>
         <span class="cat-count">${u.role === 'admin' ? 'Administrador' : 'Editor'}</span>
         ${
@@ -3103,17 +3112,15 @@
         json: {
           name: $('#u-name').value,
           username: $('#u-username').value,
-          email: $('#u-email').value,
           password: $('#u-password').value,
           role: $('#u-role').value,
-          notifyEmailOrders: !!$('#u-notify-email')?.checked,
+          notifyPushOrders: !!$('#u-notify-push')?.checked,
         },
       });
       $('#u-name').value = '';
       $('#u-username').value = '';
-      $('#u-email').value = '';
       $('#u-password').value = '';
-      if ($('#u-notify-email')) $('#u-notify-email').checked = true;
+      if ($('#u-notify-push')) $('#u-notify-push').checked = true;
       toast('Acesso criado');
       await loadAll();
     } catch (err) {

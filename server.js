@@ -269,7 +269,8 @@ function normalizeUserNotify(u) {
   if (!u || typeof u !== "object") return u;
   if (typeof u.email !== "string") u.email = "";
   else u.email = str(u.email, 120).toLowerCase();
-  if (typeof u.notifyEmailOrders !== "boolean") u.notifyEmailOrders = !!u.email;
+  if (typeof u.notifyEmailOrders !== "boolean") u.notifyEmailOrders = false;
+  if (typeof u.notifyPushOrders !== "boolean") u.notifyPushOrders = true;
   if (!Array.isArray(u.pushSubscriptions)) u.pushSubscriptions = [];
   return u;
 }
@@ -392,6 +393,7 @@ async function notifyStaffNewOrder(order, baseUrl) {
 
   for (const user of db.users || []) {
     normalizeUserNotify(user);
+    // E-mail fica preparado no backend, mas por enquanto o foco é só push.
     if (user.notifyEmailOrders && user.email && mailConfigured()) {
       try {
         await sendOrderEmail(user.email, order, baseUrl);
@@ -400,6 +402,8 @@ async function notifyStaffNewOrder(order, baseUrl) {
         console.warn(`[email] falha para ${user.email}:`, err.message || err);
       }
     }
+
+    if (!user.notifyPushOrders) continue;
 
     const keep = [];
     for (const sub of user.pushSubscriptions || []) {
@@ -756,6 +760,7 @@ const AUDIT_ACTIONS = {
   "user.profile": "Perfil atualizado",
   "push.subscribe": "Ativou notificação push",
   "push.unsubscribe": "Desativou notificação push",
+  "push.prefs": "Preferência de push alterada",
   "audit.clear": "Logs apagados",
   "audit.export": "Logs exportados",
   "security.unauthorized": "Acesso sem permissão",
@@ -2744,6 +2749,7 @@ function sessionUserOf(user) {
     name: user.name,
     email: user.email || "",
     notifyEmailOrders: !!user.notifyEmailOrders,
+    notifyPushOrders: !!user.notifyPushOrders,
     pushEnabled: Array.isArray(user.pushSubscriptions) && user.pushSubscriptions.length > 0,
     role: user.role === "admin" ? "admin" : "editor",
     mustChangePassword: !!user.mustChangePassword,
@@ -3633,6 +3639,7 @@ const publicUser = (u) => {
     name: u.name,
     email: u.email || "",
     notifyEmailOrders: !!u.notifyEmailOrders,
+    notifyPushOrders: !!u.notifyPushOrders,
     pushEnabled: Array.isArray(u.pushSubscriptions) && u.pushSubscriptions.length > 0,
     pushCount: Array.isArray(u.pushSubscriptions) ? u.pushSubscriptions.length : 0,
     role: u.role,
@@ -3654,10 +3661,10 @@ app.post("/api/users", requireAdmin, async (req, res, next) => {
     const password = String(req.body.password || "");
     const name = str(req.body.name, 60) || username;
     const role = req.body.role === "admin" ? "admin" : "editor";
-    const email = normalizeEmail(req.body.email);
+    const emailRaw = req.body.email;
+    const email = emailRaw == null || emailRaw === "" ? "" : normalizeEmail(emailRaw);
     if (email === null) return res.status(400).json({ error: "E-mail inválido." });
-    if (!email) return res.status(400).json({ error: "Informe o e-mail da pessoa." });
-    const notifyEmailOrders = req.body.notifyEmailOrders === false || req.body.notifyEmailOrders === "false" ? false : true;
+    const notifyPushOrders = !(req.body.notifyPushOrders === false || req.body.notifyPushOrders === "false");
 
     if (!/^[a-z0-9._-]{3,40}$/.test(username)) {
       return res.status(400).json({ error: "Usuário: 3 a 40 caracteres, use letras, números, ponto, hífen ou _." });
@@ -3674,8 +3681,9 @@ app.post("/api/users", requireAdmin, async (req, res, next) => {
       id: uid("u"),
       username,
       name,
-      email,
-      notifyEmailOrders,
+      email: email || "",
+      notifyEmailOrders: false,
+      notifyPushOrders,
       pushSubscriptions: [],
       role,
       ...pass,
@@ -3701,8 +3709,6 @@ app.put("/api/users/me/profile", requireAuth, async (req, res, next) => {
 
     const name = str(req.body.name, 60);
     const usernameRaw = str(req.body.username, 40).toLowerCase().replace(/\s+/g, "");
-    const email = normalizeEmail(req.body.email);
-    if (email === null) return res.status(400).json({ error: "E-mail inválido." });
     if (!name) return res.status(400).json({ error: "Informe o nome de exibição." });
     if (!/^[a-z0-9._-]{3,40}$/.test(usernameRaw)) {
       return res.status(400).json({ error: "Usuário: 3 a 40 caracteres (letras, números, ponto, hífen ou _)." });
@@ -3711,17 +3717,19 @@ app.put("/api/users/me/profile", requireAuth, async (req, res, next) => {
       return res.status(400).json({ error: "Esse usuário já existe." });
     }
 
-    const before = { name: user.name, username: user.username, email: user.email };
+    const before = { name: user.name, username: user.username };
     user.name = name;
     user.username = usernameRaw;
-    user.email = email || "";
-    if (typeof req.body.notifyEmailOrders === "boolean") {
-      user.notifyEmailOrders = req.body.notifyEmailOrders;
-    } else if (req.body.notifyEmailOrders === "true" || req.body.notifyEmailOrders === "false") {
-      user.notifyEmailOrders = req.body.notifyEmailOrders === "true";
+    // E-mail permanece no backend para uso futuro; o front não envia por enquanto.
+    if (Object.prototype.hasOwnProperty.call(req.body, "email")) {
+      const email = normalizeEmail(req.body.email);
+      if (email === null) return res.status(400).json({ error: "E-mail inválido." });
+      user.email = email || "";
     }
-    if (user.notifyEmailOrders && !user.email) {
-      return res.status(400).json({ error: "Para receber e-mail de pedidos, informe um e-mail." });
+    if (typeof req.body.notifyPushOrders === "boolean") {
+      user.notifyPushOrders = req.body.notifyPushOrders;
+    } else if (req.body.notifyPushOrders === "true" || req.body.notifyPushOrders === "false") {
+      user.notifyPushOrders = req.body.notifyPushOrders === "true";
     }
     saveDb(db);
     req.session.user = {
@@ -3729,12 +3737,13 @@ app.put("/api/users/me/profile", requireAuth, async (req, res, next) => {
       name: user.name,
       username: user.username,
       email: user.email,
+      notifyPushOrders: !!user.notifyPushOrders,
     };
     logAction(req, "user.profile", {
       targetType: "user",
       targetId: user.id,
       targetName: `${user.name} (@${user.username})`,
-      detail: `antes: ${before.name} (@${before.username}) ${before.email || ""}`,
+      detail: `antes: ${before.name} (@${before.username})`,
     });
     res.json({ user: publicUser(user), session: req.session.user });
   } catch (err) {
@@ -3755,6 +3764,7 @@ app.get("/api/push/status", requireAuth, (req, res) => {
   res.json({
     pushEnabled: user.pushSubscriptions.length > 0,
     pushCount: user.pushSubscriptions.length,
+    notifyPushOrders: !!user.notifyPushOrders,
     email: user.email || "",
     notifyEmailOrders: !!user.notifyEmailOrders,
     mailConfigured: mailConfigured(),
@@ -3785,6 +3795,9 @@ app.post("/api/push/subscribe", requireAuth, (req, res) => {
   if (user.pushSubscriptions.length > PUSH_MAX_SUBS) {
     user.pushSubscriptions = user.pushSubscriptions.slice(0, PUSH_MAX_SUBS);
   }
+  if (req.body.notifyPushOrders !== false && req.body.notifyPushOrders !== "false") {
+    user.notifyPushOrders = true;
+  }
   saveDb(db);
   logAction(req, "push.subscribe", { detail: endpoint.slice(0, 80) });
   res.json({ ok: true, user: publicUser(user) });
@@ -3806,6 +3819,23 @@ app.post("/api/push/unsubscribe", requireAuth, (req, res) => {
     logAction(req, "push.unsubscribe", { detail: endpoint ? endpoint.slice(0, 80) : "all" });
   }
   res.json({ ok: true, user: publicUser(user) });
+});
+
+app.put("/api/push/prefs", requireAuth, (req, res) => {
+  const { db, user } = currentUser(req);
+  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  normalizeUserNotify(user);
+  if (typeof req.body.notifyPushOrders === "boolean") {
+    user.notifyPushOrders = req.body.notifyPushOrders;
+  } else if (req.body.notifyPushOrders === "true" || req.body.notifyPushOrders === "false") {
+    user.notifyPushOrders = req.body.notifyPushOrders === "true";
+  } else {
+    return res.status(400).json({ error: "Informe notifyPushOrders." });
+  }
+  saveDb(db);
+  req.session.user = { ...req.session.user, notifyPushOrders: !!user.notifyPushOrders };
+  logAction(req, "push.prefs", { detail: user.notifyPushOrders ? "on" : "off" });
+  res.json({ ok: true, user: publicUser(user), session: req.session.user });
 });
 
 app.put("/api/users/:id/password", requireAuth, async (req, res, next) => {
