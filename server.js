@@ -3821,6 +3821,63 @@ app.post("/api/push/unsubscribe", requireAuth, (req, res) => {
   res.json({ ok: true, user: publicUser(user) });
 });
 
+app.post("/api/push/test", requireAuth, async (req, res) => {
+  const { db, user } = currentUser(req);
+  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  normalizeUserNotify(user);
+  configureWebPush(db);
+  const subs = (user.pushSubscriptions || []).filter(
+    (s) => s && s.endpoint && s.keys && s.keys.p256dh && s.keys.auth
+  );
+  if (!subs.length) {
+    return res.status(400).json({
+      error: "Nenhum aparelho ativado. Toque em «Ativar neste aparelho» primeiro.",
+    });
+  }
+  const baseUrl = `${req.protocol}://${req.get("host") || ""}`.replace(/\/$/, "");
+  const payload = JSON.stringify({
+    title: "Teste Gold Skull",
+    body: "Se você viu isto, o push do painel está funcionando.",
+    url: `${baseUrl}/admin`,
+  });
+  let ok = 0;
+  const keep = [];
+  let dirty = false;
+  for (const sub of subs) {
+    try {
+      await webpush.sendNotification(
+        {
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth },
+        },
+        payload,
+        { TTL: 60 * 10 }
+      );
+      keep.push(sub);
+      ok += 1;
+    } catch (err) {
+      const code = err && (err.statusCode || err.status);
+      if (code === 404 || code === 410) {
+        dirty = true;
+        continue;
+      }
+      console.warn("[push/test] falha:", err.message || err);
+      keep.push(sub);
+    }
+  }
+  if (dirty || keep.length !== subs.length) {
+    user.pushSubscriptions = keep;
+    saveDb(db);
+  }
+  if (!ok) {
+    return res.status(502).json({
+      error: "Não foi possível enviar o teste. Reative o push neste aparelho.",
+    });
+  }
+  logAction(req, "push.test", { detail: `${ok} envio(s)` });
+  res.json({ ok: true, sent: ok });
+});
+
 app.put("/api/push/prefs", requireAuth, (req, res) => {
   const { db, user } = currentUser(req);
   if (!user) return res.status(404).json({ error: "Usuário não encontrado." });

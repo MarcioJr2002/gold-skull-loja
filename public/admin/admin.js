@@ -525,12 +525,83 @@
     return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
   }
 
+  function refreshAdminInstallUi() {
+    const card = $('#admin-install-card');
+    const hint = $('#admin-install-hint');
+    const btn = $('#admin-install-btn');
+    if (!card) return;
+    if (isStandaloneApp()) {
+      card.classList.add('hidden');
+      return;
+    }
+    card.classList.remove('hidden');
+    if (isIosDevice()) {
+      if (hint) {
+        hint.textContent =
+          'No iPhone use o Safari: toque em Instalar app e siga Compartilhar → Adicionar à Tela de Início. Depois abra pelo ícone GS Painel.';
+      }
+      if (btn) btn.textContent = 'Como instalar';
+    } else if (hint) {
+      hint.textContent =
+        'Instale como aplicativo para abrir sem digitar o link e receber avisos mesmo com o painel fechado.';
+    }
+  }
+
+  function initAdminInstall() {
+    refreshAdminInstallUi();
+    const btn = $('#admin-install-btn');
+    if (!btn) return;
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      refreshAdminInstallUi();
+      if (btn) btn.textContent = 'Instalar app';
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredPrompt = null;
+      refreshAdminInstallUi();
+      toast('Painel instalado. Abra pelo ícone e ative o push.');
+    });
+
+    btn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice.catch(() => null);
+        deferredPrompt = null;
+        if (choice && choice.outcome === 'accepted') {
+          toast('Instalado! Abra pelo ícone e toque em Ativar neste aparelho.');
+          refreshAdminInstallUi();
+        }
+        return;
+      }
+      if (isIosDevice()) {
+        const iosHint = $('#push-ios-hint');
+        if (iosHint) {
+          iosHint.classList.remove('hidden');
+          iosHint.innerHTML =
+            'No iPhone o push <b>só funciona pelo app da Tela de Início</b>:<br>' +
+            '1. Abra este painel no <b>Safari</b> (não no Chrome)<br>' +
+            '2. Toque em <b>Compartilhar</b> → <b>Adicionar à Tela de Início</b><br>' +
+            '3. Se já tinha um ícone antigo, apague e adicione de novo<br>' +
+            '4. Abra pelo ícone <b>GS Painel</b> → Ativar neste aparelho → Enviar teste';
+        }
+        toast('No Safari: Compartilhar → Adicionar à Tela de Início');
+        return;
+      }
+      toast('No menu do navegador, escolha «Instalar aplicativo» ou «Adicionar à tela inicial».');
+    });
+  }
+
   async function updatePushStatusUi(data) {
     const el = $('#push-status');
     const hint = $('#push-ios-hint');
     const flag = $('#profile-notify-push');
     const enableBtn = $('#push-enable-btn');
     if (flag && data) flag.checked = !!data.notifyPushOrders;
+    refreshAdminInstallUi();
     if (!el) return;
 
     const ios = isIosDevice();
@@ -541,16 +612,12 @@
       if (ios && !standalone) {
         hint.classList.remove('hidden');
         hint.innerHTML =
-          'No iPhone o push <b>não funciona na aba</b> do Safari/Chrome. Faça assim:<br>' +
-          '1. Abra o painel no <b>Safari</b><br>' +
-          '2. Toque em <b>Compartilhar</b> → <b>Adicionar à Tela de Início</b><br>' +
-          '3. Abra pelo ícone <b>GS Painel</b> e volte aqui para ativar<br>' +
-          '4. Precisa de iOS <b>16.4</b> ou superior';
+          'No iPhone o push <b>não funciona na aba</b> do Safari/Chrome. Use o botão <b>Instalar app</b> acima (Safari → Tela de Início), abra pelo ícone e ative aqui.';
       } else if (ios && standalone && !supported) {
         hint.classList.remove('hidden');
         hint.textContent =
           'App instalado, mas este iOS ainda não libera Push. Atualize para iOS 16.4 ou mais novo.';
-      } else {
+      } else if (!ios || standalone) {
         hint.classList.add('hidden');
         hint.textContent = '';
       }
@@ -696,6 +763,23 @@
       toast(err.message || 'Falha ao desativar');
     }
   });
+
+  $('#push-test-btn')?.addEventListener('click', async () => {
+    try {
+      if (!pushApiAvailable()) {
+        if (isIosDevice() && !isStandaloneApp()) {
+          return toast('Abra o painel pelo ícone da Tela de Início para testar o push.');
+        }
+        return toast('Push indisponível neste navegador.');
+      }
+      await api('/api/push/test', { method: 'POST', json: {} });
+      toast('Teste enviado — confira a notificação neste aparelho');
+    } catch (err) {
+      toast(err.message || 'Falha no teste de push');
+    }
+  });
+
+  initAdminInstall();
 
   $('#twofa-enable-btn')?.addEventListener('click', async () => {
     $('#twofa-off-actions')?.classList.add('hidden');

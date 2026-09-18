@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=25" />
+  <link rel="stylesheet" href="/admin/admin.css?v=26" />
 </head>
 <body class="admin-body">
 
@@ -423,16 +423,26 @@
 
       <div class="settings-form push-prefs-box">
         <h3>Avisos de pedido (push)</h3>
-        <p class="hint">Receba um alerta na hora em que chegar pedido novo — no celular ou no computador, mesmo com o painel fechado.</p>
+        <p class="hint">Estilo iFood no navegador: o painel precisa estar instalado como app e o push ativado neste aparelho.</p>
+
+        <div class="admin-install-card" id="admin-install-card">
+          <img src="/img/icon-192.png" alt="" width="48" height="48" />
+          <div class="admin-install-text">
+            <strong>Instalar painel no celular</strong>
+            <p id="admin-install-hint">Instale como aplicativo para liberar notificações no iPhone e abrir sem digitar o link.</p>
+          </div>
+          <button type="button" class="btn btn-gold" id="admin-install-btn">Instalar app</button>
+        </div>
+
         <label class="switch"><input type="checkbox" id="profile-notify-push" /><span></span>Quero receber avisos de pedidos</label>
         <p class="twofa-status" id="push-status">Carregando...</p>
         <p class="hint hidden" id="push-ios-hint"></p>
         <div class="push-prefs-actions">
           <button type="button" class="btn btn-gold" id="push-enable-btn">Ativar neste aparelho</button>
+          <button type="button" class="btn btn-ghost" id="push-test-btn">Enviar teste</button>
           <button type="button" class="btn btn-ghost" id="push-disable-btn">Remover deste aparelho</button>
         </div>
-        <p class="hint">1) Ligue a flag acima · 2) Toque em <b>Ativar neste aparelho</b> e aceite a permissão do navegador.</p>
-        <p class="hint"><b>iPhone:</b> precisa iOS 16.4+ e abrir o painel pelo ícone da Tela de Início (não pela aba do Safari/Chrome).</p>
+        <p class="hint">Ordem certa: <b>1)</b> Instalar app · <b>2)</b> Abrir pelo ícone · <b>3)</b> Ligar a flag · <b>4)</b> Ativar neste aparelho · <b>5)</b> Enviar teste.</p>
       </div>
 
       <form id="editor-password-form" class="settings-form">
@@ -625,6 +635,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=32"></script>
+  <script src="/admin/admin.js?v=33"></script>
 </body>
 </html>
