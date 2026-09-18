@@ -1,7 +1,7 @@
 /* Service worker da loja: faz o site abrir como app e funcionar mesmo com internet ruim.
    Regras: o painel (/admin) e as respostas privadas NUNCA são guardadas. */
 
-const VERSION = 'gs-v22';
+const VERSION = 'gs-v23';
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 
@@ -89,6 +89,47 @@ self.addEventListener('fetch', (event) => {
         .then((res) => put(url.pathname.startsWith('/uploads/') ? RUNTIME : SHELL, request, res))
         .catch(() => cached);
       return cached || network;
+    })
+  );
+});
+
+/* Avisos de pedido novo (inscritos pelo painel). */
+self.addEventListener('push', (event) => {
+  let data = { title: 'Novo pedido', body: 'Abra o painel para ver', url: '/admin' };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    try {
+      const text = event.data && event.data.text();
+      if (text) data.body = text;
+    } catch {
+      /* ignore */
+    }
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Novo pedido', {
+      body: data.body || '',
+      icon: '/img/icon-192.png',
+      badge: '/img/favicon-32.png',
+      data: { url: data.url || '/admin' },
+      tag: data.orderId ? `order-${data.orderId}` : 'order-new',
+      renotify: true,
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/admin';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes('/admin') && 'focus' in client) {
+          client.focus();
+          return;
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
     })
   );
 });

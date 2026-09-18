@@ -492,12 +492,81 @@
     }
   }
 
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    const out = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+
+  async function ensureAdminServiceWorker() {
+    if (!('serviceWorker' in navigator)) throw new Error('Este navegador não suporta service worker.');
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    return reg;
+  }
+
+  async function updatePushStatusUi(data) {
+    const el = $('#push-status');
+    if (!el) return;
+    const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+    if (!supported) {
+      el.textContent = 'Este navegador não suporta notificações push.';
+      $('#push-enable-btn')?.setAttribute('disabled', 'disabled');
+      return;
+    }
+    let localSub = null;
+    try {
+      const reg = await navigator.serviceWorker.getRegistration('/');
+      localSub = reg ? await reg.pushManager.getSubscription() : null;
+    } catch {
+      /* ignore */
+    }
+    const perm = Notification.permission;
+    const serverOn = !!(data && data.pushEnabled);
+    if (perm === 'denied') {
+      el.textContent = 'Permissão bloqueada no navegador. Libere notificações nas configurações do site.';
+    } else if (localSub && serverOn) {
+      el.textContent = `Ativas neste aparelho${data.pushCount > 1 ? ` · ${data.pushCount} aparelho(s) salvos` : ''}.`;
+    } else if (serverOn) {
+      el.textContent = `Há ${data.pushCount} aparelho(s) salvos. Neste aparelho ainda não está ativo — toque em Ativar.`;
+    } else {
+      el.textContent = 'Desativadas. Toque em Ativar para pedir permissão.';
+    }
+  }
+
+  async function loadNotifyPrefs() {
+    try {
+      const data = await api('/api/push/status');
+      const email = $('#profile-email');
+      const notify = $('#profile-notify-email');
+      if (email) email.value = data.email || state.user?.email || '';
+      if (notify) notify.checked = !!data.notifyEmailOrders;
+      const hint = $('#profile-mail-hint');
+      if (hint) {
+        hint.textContent = data.mailConfigured
+          ? 'SMTP configurado — os e-mails de pedido saem quando a flag estiver ligada.'
+          : 'SMTP ainda não configurado no servidor (SMTP_HOST, SMTP_USER, SMTP_PASS). A preferência fica salva mesmo assim.';
+      }
+      await updatePushStatusUi(data);
+    } catch {
+      const el = $('#push-status');
+      if (el) el.textContent = 'Não foi possível checar as notificações agora.';
+    }
+  }
+
   function fillProfileForm() {
     if (!state.user) return;
     const name = $('#profile-name');
     const user = $('#profile-username');
+    const email = $('#profile-email');
+    const notify = $('#profile-notify-email');
     if (name) name.value = state.user.name || '';
     if (user) user.value = state.user.username || '';
+    if (email && state.user.email != null) email.value = state.user.email || '';
+    if (notify && state.user.notifyEmailOrders != null) notify.checked = !!state.user.notifyEmailOrders;
   }
 
   $('#profile-form')?.addEventListener('submit', async (e) => {
@@ -508,14 +577,59 @@
         json: {
           name: $('#profile-name').value.trim(),
           username: $('#profile-username').value.trim(),
+          email: $('#profile-email')?.value.trim() || '',
+          notifyEmailOrders: !!$('#profile-notify-email')?.checked,
         },
       });
       if (data.session) state.user = { ...state.user, ...data.session };
-      else if (data.user) state.user = { ...state.user, name: data.user.name, username: data.user.username };
+      else if (data.user) state.user = { ...state.user, name: data.user.name, username: data.user.username, email: data.user.email, notifyEmailOrders: data.user.notifyEmailOrders };
       showPanel();
       toast('Perfil atualizado');
+      loadNotifyPrefs();
     } catch (err) {
       toast(err.message);
+    }
+  });
+
+  $('#push-enable-btn')?.addEventListener('click', async () => {
+    try {
+      if (!('Notification' in window) || !('PushManager' in window)) {
+        return toast('Este navegador não suporta push.');
+      }
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return toast('Permissão negada — não dá para ativar.');
+      const reg = await ensureAdminServiceWorker();
+      const { publicKey } = await api('/api/push/vapid-public-key');
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+      }
+      const data = await api('/api/push/subscribe', {
+        method: 'POST',
+        json: { subscription: sub.toJSON() },
+      });
+      if (data.user) state.user = { ...state.user, pushEnabled: data.user.pushEnabled };
+      toast('Notificações push ativadas');
+      loadNotifyPrefs();
+    } catch (err) {
+      toast(err.message || 'Falha ao ativar push');
+    }
+  });
+
+  $('#push-disable-btn')?.addEventListener('click', async () => {
+    try {
+      const reg = await navigator.serviceWorker.getRegistration('/');
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
+      const endpoint = sub ? sub.endpoint : '';
+      if (sub) await sub.unsubscribe().catch(() => {});
+      await api('/api/push/unsubscribe', { method: 'POST', json: { endpoint } });
+      toast('Push desativado neste aparelho');
+      loadNotifyPrefs();
+    } catch (err) {
+      toast(err.message || 'Falha ao desativar');
     }
   });
 
@@ -786,6 +900,7 @@
     if (id === 'account') {
       fillProfileForm();
       loadTwoFactorStatus();
+      loadNotifyPrefs();
     }
     if (id === 'orders') loadOrders();
   }
@@ -2908,11 +3023,17 @@
         (u) => `
       <div class="cat-row">
         <span class="cat-name">${esc(u.name)} <small class="user-tag">@${esc(u.username)}</small>${
+          u.email ? `<small class="user-tag">${esc(u.email)}</small>` : '<small class="user-warn">sem e-mail</small>'
+        }${
           u.mustChangePassword ? '<small class="user-warn">senha pendente</small>' : ''
         }${
           u.twoFactor
             ? `<small class="user-2fa">2FA ativo · ${u.recoveryLeft} código(s)</small>`
             : '<small class="user-warn">2FA pendente</small>'
+        }${
+          u.notifyEmailOrders ? '<small class="user-2fa">e-mail pedidos</small>' : ''
+        }${
+          u.pushEnabled ? '<small class="user-2fa">push</small>' : ''
         }</span>
         <span class="cat-count">${u.role === 'admin' ? 'Administrador' : 'Editor'}</span>
         ${
@@ -2982,13 +3103,17 @@
         json: {
           name: $('#u-name').value,
           username: $('#u-username').value,
+          email: $('#u-email').value,
           password: $('#u-password').value,
           role: $('#u-role').value,
+          notifyEmailOrders: !!$('#u-notify-email')?.checked,
         },
       });
       $('#u-name').value = '';
       $('#u-username').value = '';
+      $('#u-email').value = '';
       $('#u-password').value = '';
+      if ($('#u-notify-email')) $('#u-notify-email').checked = true;
       toast('Acesso criado');
       await loadAll();
     } catch (err) {

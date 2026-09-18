@@ -9,6 +9,8 @@ const multer = require("multer");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const QRCode = require("qrcode");
+const nodemailer = require("nodemailer");
+const webpush = require("web-push");
 
 /* =========================================================================
    CONFIGURAÇÃO
@@ -23,6 +25,15 @@ const TRUST_PROXY = process.env.TRUST_PROXY || (PROD ? "1" : "loopback");
 // Contas que já ligaram o 2FA continuam precisando do código no login.
 // Para obrigar todo mundo a configurar: DISABLE_2FA=false
 const DISABLE_2FA = !/^(0|false|no|off)$/i.test(process.env.DISABLE_2FA || "true");
+
+const SMTP_HOST = String(process.env.SMTP_HOST || "").trim();
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_USER = String(process.env.SMTP_USER || "").trim();
+const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
+const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "noreply@localhost").trim();
+const PUBLIC_URL = String(process.env.PUBLIC_URL || "").trim().replace(/\/$/, "");
+const VAPID_SUBJECT = String(process.env.VAPID_SUBJECT || "mailto:admin@localhost").trim();
+const PUSH_MAX_SUBS = 8;
 
 // IPs liberados para o painel (vazio = liberado para todos)
 const ADMIN_ALLOW_IPS = String(process.env.ADMIN_ALLOW_IPS || "")
@@ -247,6 +258,180 @@ function str(value, max = 200) {
     .slice(0, max);
 }
 
+function normalizeEmail(value) {
+  const email = str(value, 120).toLowerCase();
+  if (!email) return "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  return email;
+}
+
+function normalizeUserNotify(u) {
+  if (!u || typeof u !== "object") return u;
+  if (typeof u.email !== "string") u.email = "";
+  else u.email = str(u.email, 120).toLowerCase();
+  if (typeof u.notifyEmailOrders !== "boolean") u.notifyEmailOrders = !!u.email;
+  if (!Array.isArray(u.pushSubscriptions)) u.pushSubscriptions = [];
+  return u;
+}
+
+function publicBaseUrl(req) {
+  if (PUBLIC_URL) return PUBLIC_URL;
+  const host = String(req.get("x-forwarded-host") || req.get("host") || "").split(",")[0].trim();
+  if (!host) return "";
+  const proto = String(req.get("x-forwarded-proto") || req.protocol || "https")
+    .split(",")[0]
+    .trim();
+  return `${proto}://${host}`;
+}
+
+function moneyBr(v) {
+  return (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function mailConfigured() {
+  return !!(SMTP_HOST && SMTP_USER && SMTP_PASS);
+}
+
+let mailTransport = null;
+function getMailTransport() {
+  if (!mailConfigured()) return null;
+  if (!mailTransport) {
+    mailTransport = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+  }
+  return mailTransport;
+}
+
+function ensureVapidKeys(db) {
+  const envPub = String(process.env.VAPID_PUBLIC_KEY || "").trim();
+  const envPriv = String(process.env.VAPID_PRIVATE_KEY || "").trim();
+  if (envPub && envPriv) {
+    return { publicKey: envPub, privateKey: envPriv, subject: VAPID_SUBJECT };
+  }
+  if (!db.settings || typeof db.settings !== "object") db.settings = {};
+  if (!db.settings.pushVapid || !db.settings.pushVapid.publicKey || !db.settings.pushVapid.privateKey) {
+    const keys = webpush.generateVAPIDKeys();
+    db.settings.pushVapid = {
+      publicKey: keys.publicKey,
+      privateKey: keys.privateKey,
+      subject: VAPID_SUBJECT,
+      createdAt: new Date().toISOString(),
+    };
+    saveDb(db);
+    console.log("[push] Chaves VAPID geradas e salvas em settings.pushVapid");
+  }
+  return {
+    publicKey: db.settings.pushVapid.publicKey,
+    privateKey: db.settings.pushVapid.privateKey,
+    subject: db.settings.pushVapid.subject || VAPID_SUBJECT,
+  };
+}
+
+function configureWebPush(db) {
+  const vapid = ensureVapidKeys(db);
+  webpush.setVapidDetails(vapid.subject || VAPID_SUBJECT, vapid.publicKey, vapid.privateKey);
+  return vapid;
+}
+
+async function sendOrderEmail(to, order, baseUrl) {
+  const transport = getMailTransport();
+  if (!transport) return false;
+  const items = (order.items || [])
+    .map((it) => `• ${it.qty}x ${it.name}${it.option ? ` (${it.option})` : ""} — ${moneyBr(it.price * it.qty)}`)
+    .join("\n");
+  const link = baseUrl ? `${baseUrl}/admin` : "/admin";
+  const text = [
+    `Novo pedido na loja`,
+    "",
+    `Cliente: ${order.customerName || "—"}`,
+    `WhatsApp: ${order.phone || "—"}`,
+    `Cidade: ${order.city || "—"}`,
+    `Total: ${moneyBr(order.total)}`,
+    "",
+    items || "(sem itens)",
+    "",
+    `Abrir painel: ${link}`,
+  ].join("\n");
+  await transport.sendMail({
+    from: SMTP_FROM,
+    to,
+    subject: `Novo pedido · ${order.customerName || "Cliente"} · ${moneyBr(order.total)}`,
+    text,
+  });
+  return true;
+}
+
+async function sendOrderPush(sub, order, baseUrl) {
+  const payload = JSON.stringify({
+    title: "Novo pedido",
+    body: `${order.customerName || "Cliente"} · ${moneyBr(order.total)}`,
+    url: baseUrl ? `${baseUrl}/admin` : "/admin",
+    orderId: order.id || "",
+  });
+  await webpush.sendNotification(
+    {
+      endpoint: sub.endpoint,
+      keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth },
+    },
+    payload,
+    { TTL: 60 * 60 }
+  );
+}
+
+/** Avisa a equipe por e-mail e/ou Web Push. Não bloqueia o checkout. */
+async function notifyStaffNewOrder(order, baseUrl) {
+  const db = getDb();
+  configureWebPush(db);
+  let emailOk = 0;
+  let pushOk = 0;
+  let dirty = false;
+
+  for (const user of db.users || []) {
+    normalizeUserNotify(user);
+    if (user.notifyEmailOrders && user.email && mailConfigured()) {
+      try {
+        await sendOrderEmail(user.email, order, baseUrl);
+        emailOk += 1;
+      } catch (err) {
+        console.warn(`[email] falha para ${user.email}:`, err.message || err);
+      }
+    }
+
+    const keep = [];
+    for (const sub of user.pushSubscriptions || []) {
+      if (!sub || !sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) continue;
+      try {
+        await sendOrderPush(sub, order, baseUrl);
+        keep.push(sub);
+        pushOk += 1;
+      } catch (err) {
+        const code = err && (err.statusCode || err.status);
+        if (code === 404 || code === 410) {
+          dirty = true;
+          continue;
+        }
+        console.warn("[push] falha:", err.message || err);
+        keep.push(sub);
+      }
+    }
+    if (keep.length !== (user.pushSubscriptions || []).length) {
+      user.pushSubscriptions = keep;
+      dirty = true;
+    }
+  }
+
+  if (dirty) saveDb(db);
+  if (emailOk || pushOk) {
+    console.log(`[notify] pedido ${order.id}: ${emailOk} e-mail(s), ${pushOk} push`);
+  } else if (!mailConfigured() && !(db.users || []).some((u) => (u.pushSubscriptions || []).length)) {
+    /* silencioso se ninguém configurou ainda */
+  }
+}
+
 const INVALID = Symbol("invalid");
 
 /** Número opcional. Retorna null (vazio) ou INVALID quando não é número. */
@@ -312,6 +497,7 @@ function normalizeDb(db) {
   if (!Array.isArray(db.customers)) db.customers = [];
   if (!Array.isArray(db.ledger)) db.ledger = [];
   if (!Array.isArray(db.orders)) db.orders = [];
+  db.users.forEach(normalizeUserNotify);
   return db;
 }
 
@@ -568,6 +754,8 @@ const AUDIT_ACTIONS = {
   "user.delete": "Acesso excluído",
   "user.password": "Senha alterada",
   "user.profile": "Perfil atualizado",
+  "push.subscribe": "Ativou notificação push",
+  "push.unsubscribe": "Desativou notificação push",
   "audit.clear": "Logs apagados",
   "audit.export": "Logs exportados",
   "security.unauthorized": "Acesso sem permissão",
@@ -2199,6 +2387,11 @@ app.post("/api/public/order/notify", publicLimiter, (req, res) => {
     saveDb(db);
   }
 
+  const baseUrl = publicBaseUrl(req);
+  setImmediate(() => {
+    notifyStaffNewOrder(order, baseUrl).catch((err) => console.warn("[notify]", err.message || err));
+  });
+
   res.json({ ok: true, orderId: order.id });
 });
 
@@ -2544,10 +2737,14 @@ app.get("/api/csrf", (req, res) => {
 });
 
 function sessionUserOf(user) {
+  normalizeUserNotify(user);
   return {
     id: user.id,
     username: user.username,
     name: user.name,
+    email: user.email || "",
+    notifyEmailOrders: !!user.notifyEmailOrders,
+    pushEnabled: Array.isArray(user.pushSubscriptions) && user.pushSubscriptions.length > 0,
     role: user.role === "admin" ? "admin" : "editor",
     mustChangePassword: !!user.mustChangePassword,
     needs2faSetup: needsTwoFactorSetup(user),
@@ -3428,16 +3625,23 @@ app.delete("/api/ledger/:id", requireAuth, (req, res) => {
    USUÁRIOS
    ========================================================================= */
 
-const publicUser = (u) => ({
-  id: u.id,
-  username: u.username,
-  name: u.name,
-  role: u.role,
-  createdAt: u.createdAt || null,
-  mustChangePassword: !!u.mustChangePassword,
-  twoFactor: !!(u.totp && u.totp.confirmedAt),
-  recoveryLeft: recoveryLeft(u),
-});
+const publicUser = (u) => {
+  normalizeUserNotify(u);
+  return {
+    id: u.id,
+    username: u.username,
+    name: u.name,
+    email: u.email || "",
+    notifyEmailOrders: !!u.notifyEmailOrders,
+    pushEnabled: Array.isArray(u.pushSubscriptions) && u.pushSubscriptions.length > 0,
+    pushCount: Array.isArray(u.pushSubscriptions) ? u.pushSubscriptions.length : 0,
+    role: u.role,
+    createdAt: u.createdAt || null,
+    mustChangePassword: !!u.mustChangePassword,
+    twoFactor: !!(u.totp && u.totp.confirmedAt),
+    recoveryLeft: recoveryLeft(u),
+  };
+};
 
 app.get("/api/users", requireAdmin, (_req, res) => {
   res.json({ users: getDb().users.map(publicUser) });
@@ -3450,6 +3654,10 @@ app.post("/api/users", requireAdmin, async (req, res, next) => {
     const password = String(req.body.password || "");
     const name = str(req.body.name, 60) || username;
     const role = req.body.role === "admin" ? "admin" : "editor";
+    const email = normalizeEmail(req.body.email);
+    if (email === null) return res.status(400).json({ error: "E-mail inválido." });
+    if (!email) return res.status(400).json({ error: "Informe o e-mail da pessoa." });
+    const notifyEmailOrders = req.body.notifyEmailOrders === false || req.body.notifyEmailOrders === "false" ? false : true;
 
     if (!/^[a-z0-9._-]{3,40}$/.test(username)) {
       return res.status(400).json({ error: "Usuário: 3 a 40 caracteres, use letras, números, ponto, hífen ou _." });
@@ -3462,7 +3670,18 @@ app.post("/api/users", requireAdmin, async (req, res, next) => {
     if (db.users.length >= 50) return res.status(400).json({ error: "Limite de acessos atingido." });
 
     const pass = await hashPassword(password);
-    const user = { id: uid("u"), username, name, role, ...pass, mustChangePassword: false, createdAt: new Date().toISOString() };
+    const user = {
+      id: uid("u"),
+      username,
+      name,
+      email,
+      notifyEmailOrders,
+      pushSubscriptions: [],
+      role,
+      ...pass,
+      mustChangePassword: false,
+      createdAt: new Date().toISOString(),
+    };
     db.users.push(user);
     saveDb(db);
     logAction(req, "user.create", { targetType: "user", targetId: user.id, targetName: `${name} (@${username})`, detail: role });
@@ -3478,9 +3697,12 @@ app.put("/api/users/me/profile", requireAuth, async (req, res, next) => {
     const me = req.session.user;
     const user = db.users.find((u) => u.id === me.id);
     if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+    normalizeUserNotify(user);
 
     const name = str(req.body.name, 60);
     const usernameRaw = str(req.body.username, 40).toLowerCase().replace(/\s+/g, "");
+    const email = normalizeEmail(req.body.email);
+    if (email === null) return res.status(400).json({ error: "E-mail inválido." });
     if (!name) return res.status(400).json({ error: "Informe o nome de exibição." });
     if (!/^[a-z0-9._-]{3,40}$/.test(usernameRaw)) {
       return res.status(400).json({ error: "Usuário: 3 a 40 caracteres (letras, números, ponto, hífen ou _)." });
@@ -3489,25 +3711,101 @@ app.put("/api/users/me/profile", requireAuth, async (req, res, next) => {
       return res.status(400).json({ error: "Esse usuário já existe." });
     }
 
-    const before = { name: user.name, username: user.username };
+    const before = { name: user.name, username: user.username, email: user.email };
     user.name = name;
     user.username = usernameRaw;
+    user.email = email || "";
+    if (typeof req.body.notifyEmailOrders === "boolean") {
+      user.notifyEmailOrders = req.body.notifyEmailOrders;
+    } else if (req.body.notifyEmailOrders === "true" || req.body.notifyEmailOrders === "false") {
+      user.notifyEmailOrders = req.body.notifyEmailOrders === "true";
+    }
+    if (user.notifyEmailOrders && !user.email) {
+      return res.status(400).json({ error: "Para receber e-mail de pedidos, informe um e-mail." });
+    }
     saveDb(db);
     req.session.user = {
       ...req.session.user,
       name: user.name,
       username: user.username,
+      email: user.email,
     };
     logAction(req, "user.profile", {
       targetType: "user",
       targetId: user.id,
       targetName: `${user.name} (@${user.username})`,
-      detail: `antes: ${before.name} (@${before.username})`,
+      detail: `antes: ${before.name} (@${before.username}) ${before.email || ""}`,
     });
     res.json({ user: publicUser(user), session: req.session.user });
   } catch (err) {
     next(err);
   }
+});
+
+app.get("/api/push/vapid-public-key", requireAuth, (_req, res) => {
+  const db = getDb();
+  const vapid = configureWebPush(db);
+  res.json({ publicKey: vapid.publicKey, mailConfigured: mailConfigured() });
+});
+
+app.get("/api/push/status", requireAuth, (req, res) => {
+  const { user } = currentUser(req);
+  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  normalizeUserNotify(user);
+  res.json({
+    pushEnabled: user.pushSubscriptions.length > 0,
+    pushCount: user.pushSubscriptions.length,
+    email: user.email || "",
+    notifyEmailOrders: !!user.notifyEmailOrders,
+    mailConfigured: mailConfigured(),
+  });
+});
+
+app.post("/api/push/subscribe", requireAuth, (req, res) => {
+  const { db, user } = currentUser(req);
+  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  normalizeUserNotify(user);
+  const sub = req.body && req.body.subscription;
+  if (!sub || !sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+    return res.status(400).json({ error: "Inscrição de push inválida." });
+  }
+  configureWebPush(db);
+  const endpoint = str(sub.endpoint, 800);
+  const next = {
+    endpoint,
+    keys: {
+      p256dh: str(sub.keys.p256dh, 200),
+      auth: str(sub.keys.auth, 100),
+    },
+    userAgent: str(req.get("user-agent"), 180),
+    createdAt: new Date().toISOString(),
+  };
+  user.pushSubscriptions = (user.pushSubscriptions || []).filter((s) => s.endpoint !== endpoint);
+  user.pushSubscriptions.unshift(next);
+  if (user.pushSubscriptions.length > PUSH_MAX_SUBS) {
+    user.pushSubscriptions = user.pushSubscriptions.slice(0, PUSH_MAX_SUBS);
+  }
+  saveDb(db);
+  logAction(req, "push.subscribe", { detail: endpoint.slice(0, 80) });
+  res.json({ ok: true, user: publicUser(user) });
+});
+
+app.post("/api/push/unsubscribe", requireAuth, (req, res) => {
+  const { db, user } = currentUser(req);
+  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  normalizeUserNotify(user);
+  const endpoint = str(req.body && req.body.endpoint, 800);
+  const before = user.pushSubscriptions.length;
+  if (endpoint) {
+    user.pushSubscriptions = user.pushSubscriptions.filter((s) => s.endpoint !== endpoint);
+  } else {
+    user.pushSubscriptions = [];
+  }
+  saveDb(db);
+  if (user.pushSubscriptions.length !== before) {
+    logAction(req, "push.unsubscribe", { detail: endpoint ? endpoint.slice(0, 80) : "all" });
+  }
+  res.json({ ok: true, user: publicUser(user) });
 });
 
 app.put("/api/users/:id/password", requireAuth, async (req, res, next) => {
