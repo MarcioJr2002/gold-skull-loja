@@ -508,17 +508,67 @@
     return reg;
   }
 
+  function isIosDevice() {
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  function isStandaloneApp() {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: fullscreen)').matches ||
+      !!navigator.standalone
+    );
+  }
+
+  function pushApiAvailable() {
+    return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  }
+
   async function updatePushStatusUi(data) {
     const el = $('#push-status');
+    const hint = $('#push-ios-hint');
     const flag = $('#profile-notify-push');
+    const enableBtn = $('#push-enable-btn');
     if (flag && data) flag.checked = !!data.notifyPushOrders;
     if (!el) return;
-    const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+
+    const ios = isIosDevice();
+    const standalone = isStandaloneApp();
+    const supported = pushApiAvailable();
+
+    if (hint) {
+      if (ios && !standalone) {
+        hint.classList.remove('hidden');
+        hint.innerHTML =
+          'No iPhone o push <b>não funciona na aba</b> do Safari/Chrome. Faça assim:<br>' +
+          '1. Abra o painel no <b>Safari</b><br>' +
+          '2. Toque em <b>Compartilhar</b> → <b>Adicionar à Tela de Início</b><br>' +
+          '3. Abra pelo ícone <b>GS Painel</b> e volte aqui para ativar<br>' +
+          '4. Precisa de iOS <b>16.4</b> ou superior';
+      } else if (ios && standalone && !supported) {
+        hint.classList.remove('hidden');
+        hint.textContent =
+          'App instalado, mas este iOS ainda não libera Push. Atualize para iOS 16.4 ou mais novo.';
+      } else {
+        hint.classList.add('hidden');
+        hint.textContent = '';
+      }
+    }
+
     if (!supported) {
-      el.textContent = 'Este navegador não suporta notificações push.';
-      $('#push-enable-btn')?.setAttribute('disabled', 'disabled');
+      if (ios && !standalone) {
+        el.textContent = 'No iPhone: instale o painel na Tela de Início para liberar o push.';
+      } else if (ios) {
+        el.textContent = 'Push indisponível neste iOS. Use iOS 16.4+ com o app da Tela de Início.';
+      } else {
+        el.textContent = 'Este navegador não ' + 'suporta' + ' notificações push.';
+      }
+      enableBtn?.setAttribute('disabled', 'disabled');
       return;
     }
+    enableBtn?.removeAttribute('disabled');
+
     let localSub = null;
     try {
       const reg = await navigator.serviceWorker.getRegistration('/');
@@ -534,9 +584,9 @@
     } else if (perm === 'denied') {
       el.textContent = 'Permissão bloqueada no navegador. Libere notificações nas configurações do site.';
     } else if (localSub && serverOn) {
-      el.textContent = `Pronto neste aparelho${data.pushCount > 1 ? ` · ${data.pushCount} aparelho(s) salvos` : ''}.`;
+      el.textContent = 'Pronto neste aparelho' + (data.pushCount > 1 ? ' · ' + data.pushCount + ' aparelho(s) salvos' : '') + '.';
     } else if (serverOn) {
-      el.textContent = `Há ${data.pushCount} aparelho(s) salvos. Neste aparelho ainda falta ativar.`;
+      el.textContent = 'Há ' + data.pushCount + ' aparelho(s) salvos. Neste aparelho ainda falta ativar.';
     } else {
       el.textContent = 'Flag ligada. Falta ativar neste aparelho e aceitar a permissão.';
     }
@@ -597,8 +647,11 @@
 
   $('#push-enable-btn')?.addEventListener('click', async () => {
     try {
-      if (!('Notification' in window) || !('PushManager' in window)) {
-        return toast('Este navegador não suporta push.');
+      if (!pushApiAvailable()) {
+        if (isIosDevice() && !isStandaloneApp()) {
+          return toast('No iPhone: adicione o painel à Tela de Início e abra pelo ícone.');
+        }
+        return toast('Este navegador não ' + 'suporta' + ' push.');
       }
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') return toast('Permissão negada — não dá para ativar.');

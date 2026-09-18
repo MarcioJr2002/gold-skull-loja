@@ -6,11 +6,19 @@
   <title>Painel — GOLD SKULL</title>
   <meta name="robots" content="noindex, nofollow" />
   <meta name="referrer" content="same-origin" />
+  <meta name="theme-color" content="#1c1b18" />
+  <link rel="manifest" href="/admin/manifest.webmanifest" />
   <link rel="icon" href="/img/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="GS Painel" />
+  <meta name="application-name" content="GS Painel" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=24" />
+  <link rel="stylesheet" href="/admin/admin.css?v=25" />
 </head>
 <body class="admin-body">
 
@@ -418,11 +426,13 @@
         <p class="hint">Receba um alerta na hora em que chegar pedido novo — no celular ou no computador, mesmo com o painel fechado.</p>
         <label class="switch"><input type="checkbox" id="profile-notify-push" /><span></span>Quero receber avisos de pedidos</label>
         <p class="twofa-status" id="push-status">Carregando...</p>
+        <p class="hint hidden" id="push-ios-hint"></p>
         <div class="push-prefs-actions">
           <button type="button" class="btn btn-gold" id="push-enable-btn">Ativar neste aparelho</button>
           <button type="button" class="btn btn-ghost" id="push-disable-btn">Remover deste aparelho</button>
         </div>
         <p class="hint">1) Ligue a flag acima · 2) Toque em <b>Ativar neste aparelho</b> e aceite a permissão do navegador.</p>
+        <p class="hint"><b>iPhone:</b> precisa iOS 16.4+ e abrir o painel pelo ícone da Tela de Início (não pela aba do Safari/Chrome).</p>
       </div>
 
       <form id="editor-password-form" class="settings-form">
@@ -615,6 +625,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=31"></script>
+  <script src="/admin/admin.js?v=32"></script>
 </body>
 </html>
