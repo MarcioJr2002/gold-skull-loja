@@ -829,6 +829,145 @@
   });
 
   let notifyChannelsState = null;
+  let notifyGuidePending = null; // { channel: 'ntfy'|'whatsapp', activate: boolean }
+
+  function closeNotifyGuide(activate) {
+    const modal = $('#notify-guide-modal');
+    if (modal) modal.classList.add('hidden');
+    const pending = notifyGuidePending;
+    notifyGuidePending = null;
+    if (!pending) return;
+    if (activate && pending.activate) {
+      return confirmNotifyGuide(pending.channel);
+    }
+    // cancelou ativação: desliga o switch visual
+    if (pending.activate) {
+      if (pending.channel === 'ntfy' && $('#ntfy-enabled')) $('#ntfy-enabled').checked = false;
+      if (pending.channel === 'whatsapp' && $('#wa-notify-enabled')) $('#wa-notify-enabled').checked = false;
+    }
+  }
+
+  async function confirmNotifyGuide(channel) {
+    try {
+      if (channel === 'ntfy') {
+        await saveNotifyChannels({ ntfyEnabled: true });
+        toast('ntfy ligado — use Testar ntfy para conferir');
+      } else if (channel === 'whatsapp') {
+        const phone = ($('#wa-notify-phone')?.value || '').replace(/\D/g, '');
+        const key = ($('#wa-notify-key')?.value || '').trim();
+        const patch = { whatsappEnabled: true, whatsappPhone: phone };
+        if (key) patch.whatsappApiKey = key;
+        await saveNotifyChannels(patch);
+        if ($('#wa-notify-key')) $('#wa-notify-key').value = '';
+        toast('WhatsApp de avisos ligado — use Testar WhatsApp');
+      }
+    } catch (err) {
+      if (channel === 'ntfy' && $('#ntfy-enabled')) $('#ntfy-enabled').checked = false;
+      if (channel === 'whatsapp' && $('#wa-notify-enabled')) $('#wa-notify-enabled').checked = false;
+      toast(err.message || 'Não foi possível ativar');
+    }
+  }
+
+  function openNotifyGuide(channel, { activate = false } = {}) {
+    const modal = $('#notify-guide-modal');
+    const title = $('#notify-guide-title');
+    const body = $('#notify-guide-body');
+    const confirmBtn = $('#notify-guide-confirm');
+    const cancelBtn = $('#notify-guide-cancel');
+    if (!modal || !body) return;
+
+    notifyGuidePending = { channel, activate: !!activate };
+    if (confirmBtn) {
+      confirmBtn.textContent = activate ? 'Já configurei — ativar' : 'Entendi';
+      confirmBtn.classList.toggle('hidden', false);
+    }
+    if (cancelBtn) {
+      cancelBtn.textContent = activate ? 'Agora não' : 'Fechar';
+      cancelBtn.classList.toggle('hidden', !activate);
+    }
+
+    if (channel === 'ntfy') {
+      if (title) title.textContent = 'Configurar avisos com ntfy (iPhone)';
+      const topic = (notifyChannelsState && notifyChannelsState.ntfyTopic) || '—';
+      const url = (notifyChannelsState && notifyChannelsState.ntfySubscribeUrl) || '';
+      body.innerHTML = `
+        <p class="notify-guide-intro">O ntfy é um app grátis que recebe o aviso de pedido e mostra na tela de bloqueio do iPhone — como um app nativo.</p>
+        <ol class="notify-guide-steps">
+          <li>
+            <span class="step-num">1</span>
+            <div>
+              <strong>Instale o app ntfy</strong>
+              <p>No iPhone, abra a <b>App Store</b>, procure por <b>ntfy</b> (autor: Philipp C. Heckel) e instale.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">2</span>
+            <div>
+              <strong>Abra o app e permita notificações</strong>
+              <p>Na primeira abertura, o iPhone pergunta se pode enviar avisos. Toque em <b>Permitir</b>. Se já recusou: Ajustes → Notificações → ntfy → Permitir.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">3</span>
+            <div>
+              <strong>Assine o tópico da loja</strong>
+              <p>No ntfy, toque em <b>+</b> (ou Subscribe) e cole exatamente este tópico:</p>
+              <code>${esc(topic)}</code>
+              ${url ? `<p style="margin-top:8px">Ou toque em <b>Abrir / assinar no celular</b> no painel — o link já leva ao tópico certo.</p>` : ''}
+            </div>
+          </li>
+          <li>
+            <span class="step-num">4</span>
+            <div>
+              <strong>Volte aqui e ative</strong>
+              <p>Confirme neste modal (ou ligue o interruptor <b>Ligar ntfy</b>). Depois use <b>Testar ntfy</b> — deve aparecer um aviso no iPhone em poucos segundos.</p>
+            </div>
+          </li>
+        </ol>
+        <p class="notify-guide-note">Dica: o app ntfy pode ficar fechado. Quando chegar pedido, o servidor avisa o ntfy e o iPhone mostra a notificação.</p>
+      `;
+    } else {
+      if (title) title.textContent = 'Configurar avisos no WhatsApp (iPhone)';
+      body.innerHTML = `
+        <p class="notify-guide-intro">Igual ao Kyte: cada pedido novo chega como mensagem no WhatsApp. O iPhone notifica pelo próprio WhatsApp.</p>
+        <ol class="notify-guide-steps">
+          <li>
+            <span class="step-num">1</span>
+            <div>
+              <strong>Abra o WhatsApp no iPhone</strong>
+              <p>Use o mesmo número que você quer receber os avisos de pedido.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">2</span>
+            <div>
+              <strong>Autorize o CallMeBot (só uma vez)</strong>
+              <p>Crie uma conversa com o número <b>+34 644 66 46 29</b> e envie exatamente esta frase:</p>
+              <code>I allow callmebot to send me messages</code>
+              <p style="margin-top:8px">O bot responde com uma <b>API key</b> (um código). Guarde esse código.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">3</span>
+            <div>
+              <strong>Preencha no painel</strong>
+              <p>Em Minha conta → WhatsApp: coloque seu número com <b>55 + DDD + número</b> (ex.: 5547999990000) e a <b>API key</b> que o bot mandou. Toque em <b>Salvar WhatsApp</b>.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">4</span>
+            <div>
+              <strong>Ative e teste</strong>
+              <p>Confirme neste modal (ou ligue <b>Ligar WhatsApp</b>). Depois use <b>Testar WhatsApp</b> — a mensagem de teste deve chegar no chat.</p>
+            </div>
+          </li>
+        </ol>
+        <p class="notify-guide-note">Importante: o CallMeBot é um serviço externo gratuito. Se o bot não responder, tente de novo em alguns minutos ou use o ntfy.</p>
+      `;
+    }
+
+    modal.classList.remove('hidden');
+  }
 
   async function loadNotifyChannels() {
     const status = $('#notify-channels-status');
@@ -876,14 +1015,22 @@
       e.target.checked = !e.target.checked;
       return toast('Só admin liga/desliga o ntfy.');
     }
+    if (e.target.checked) {
+      // não salva ainda — abre o guia; ativa só se confirmar
+      e.target.checked = true;
+      openNotifyGuide('ntfy', { activate: true });
+      return;
+    }
     try {
-      await saveNotifyChannels({ ntfyEnabled: !!e.target.checked });
-      toast(e.target.checked ? 'ntfy ligado' : 'ntfy desligado');
+      await saveNotifyChannels({ ntfyEnabled: false });
+      toast('ntfy desligado');
     } catch (err) {
-      e.target.checked = !e.target.checked;
+      e.target.checked = true;
       toast(err.message);
     }
   });
+
+  $('#ntfy-guide-btn')?.addEventListener('click', () => openNotifyGuide('ntfy', { activate: false }));
 
   $('#ntfy-open-btn')?.addEventListener('click', () => {
     const url = notifyChannelsState && notifyChannelsState.ntfySubscribeUrl;
@@ -917,14 +1064,21 @@
       e.target.checked = !e.target.checked;
       return toast('Só admin liga/desliga o WhatsApp.');
     }
+    if (e.target.checked) {
+      e.target.checked = true;
+      openNotifyGuide('whatsapp', { activate: true });
+      return;
+    }
     try {
-      await saveNotifyChannels({ whatsappEnabled: !!e.target.checked });
-      toast(e.target.checked ? 'WhatsApp de avisos ligado' : 'WhatsApp de avisos desligado');
+      await saveNotifyChannels({ whatsappEnabled: false });
+      toast('WhatsApp de avisos desligado');
     } catch (err) {
-      e.target.checked = !e.target.checked;
+      e.target.checked = true;
       toast(err.message);
     }
   });
+
+  $('#wa-notify-guide-btn')?.addEventListener('click', () => openNotifyGuide('whatsapp', { activate: false }));
 
   $('#wa-notify-save-btn')?.addEventListener('click', async () => {
     if (!(state.user && state.user.role === 'admin')) return toast('Só admin salva.');
@@ -950,6 +1104,17 @@
     } catch (err) {
       toast(err.message || 'Falha no teste WhatsApp');
     }
+  });
+
+  $('#notify-guide-close')?.addEventListener('click', () => closeNotifyGuide(false));
+  $('#notify-guide-cancel')?.addEventListener('click', () => closeNotifyGuide(false));
+  $('#notify-guide-confirm')?.addEventListener('click', () => {
+    const pending = notifyGuidePending;
+    const activate = !!(pending && pending.activate);
+    closeNotifyGuide(activate);
+  });
+  $('#notify-guide-modal')?.addEventListener('click', (e) => {
+    if (e.target === $('#notify-guide-modal')) closeNotifyGuide(false);
   });
 
   initAdminInstall();
@@ -3594,6 +3759,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!$('#confirm-modal').classList.contains('hidden')) return closeConfirm({ ok: false });
+    if (!$('#notify-guide-modal')?.classList.contains('hidden')) return closeNotifyGuide(false);
     if (!$('#order-modal')?.classList.contains('hidden')) return closeOrderModal();
     if (!$('#flavors-modal').classList.contains('hidden')) return closeFlavors();
     if (!$('#product-modal').classList.contains('hidden')) return closeProductModal();

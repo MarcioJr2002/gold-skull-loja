@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=27" />
+  <link rel="stylesheet" href="/admin/admin.css?v=28" />
 </head>
 <body class="admin-body">
 
@@ -439,6 +439,7 @@
           </div>
           <div class="push-prefs-actions" style="flex-direction:column;align-items:stretch">
             <label class="switch"><input type="checkbox" id="ntfy-enabled" /><span></span>Ligar ntfy</label>
+            <button type="button" class="btn btn-ghost" id="ntfy-guide-btn">Como configurar</button>
             <button type="button" class="btn btn-gold" id="ntfy-open-btn">Abrir / assinar no celular</button>
             <button type="button" class="btn btn-ghost" id="ntfy-test-btn">Testar ntfy</button>
             <button type="button" class="btn btn-ghost hidden" id="ntfy-rotate-btn">Gerar novo tópico</button>
@@ -459,6 +460,7 @@
           </div>
           <div class="push-prefs-actions" style="flex-direction:column;align-items:stretch">
             <label class="switch"><input type="checkbox" id="wa-notify-enabled" /><span></span>Ligar WhatsApp</label>
+            <button type="button" class="btn btn-ghost" id="wa-notify-guide-btn">Como configurar</button>
             <button type="button" class="btn btn-gold" id="wa-notify-save-btn">Salvar WhatsApp</button>
             <button type="button" class="btn btn-ghost" id="wa-notify-test-btn">Testar WhatsApp</button>
           </div>
@@ -680,6 +682,21 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=35"></script>
+  <!-- Guia passo a passo: ntfy / WhatsApp -->
+  <div class="admin-modal-backdrop hidden" id="notify-guide-modal">
+    <div class="admin-modal admin-modal-wide">
+      <div class="admin-modal-head">
+        <h3 id="notify-guide-title">Como configurar</h3>
+        <button type="button" class="modal-close" id="notify-guide-close" aria-label="Fechar">×</button>
+      </div>
+      <div class="admin-modal-body" id="notify-guide-body"></div>
+      <div class="admin-modal-foot">
+        <button type="button" class="btn btn-ghost" id="notify-guide-cancel">Agora não</button>
+        <button type="button" class="btn btn-gold" id="notify-guide-confirm">Já configurei — ativar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js?v=36"></script>
 </body>
 </html>
