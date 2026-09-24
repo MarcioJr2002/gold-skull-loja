@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=26" />
+  <link rel="stylesheet" href="/admin/admin.css?v=27" />
 </head>
 <body class="admin-body">
 
@@ -422,8 +422,53 @@
       </form>
 
       <div class="settings-form push-prefs-box">
-        <h3>Avisos de pedido (push)</h3>
-        <p class="hint">Estilo iFood no navegador: o painel precisa estar instalado como app e o push ativado neste aparelho.</p>
+        <h3>Avisos no iPhone (recomendado)</h3>
+        <p class="hint">
+          O Kyte no iPhone <b>não</b> depende só do navegador: usa o <b>app da App Store</b> e/ou
+          <b>resumo no WhatsApp</b>. Aqui temos o mesmo caminho confiável — sem e-mail.
+        </p>
+
+        <div class="admin-install-card" id="ntfy-card">
+          <div class="admin-install-text" style="flex:1 1 220px">
+            <strong>1) App ntfy (push de verdade no iPhone)</strong>
+            <p>
+              Instale o app <b>ntfy</b> na App Store, assine o tópico abaixo e ligue o canal.
+              Chega na tela de bloqueio como app nativo.
+            </p>
+            <p class="hint" id="ntfy-topic-line" style="margin-top:8px">Carregando tópico…</p>
+          </div>
+          <div class="push-prefs-actions" style="flex-direction:column;align-items:stretch">
+            <label class="switch"><input type="checkbox" id="ntfy-enabled" /><span></span>Ligar ntfy</label>
+            <button type="button" class="btn btn-gold" id="ntfy-open-btn">Abrir / assinar no celular</button>
+            <button type="button" class="btn btn-ghost" id="ntfy-test-btn">Testar ntfy</button>
+            <button type="button" class="btn btn-ghost hidden" id="ntfy-rotate-btn">Gerar novo tópico</button>
+          </div>
+        </div>
+
+        <div class="admin-install-card" id="wa-notify-card" style="margin-top:10px">
+          <div class="admin-install-text" style="flex:1 1 220px">
+            <strong>2) WhatsApp (igual ao Kyte)</strong>
+            <p>
+              No WhatsApp, mande <b>I allow callmebot to send me messages</b> para o número
+              <b>+34 644 66 46 29</b>, pegue a API key e cole abaixo. Cada pedido novo chega no seu WhatsApp.
+            </p>
+            <div class="grid-2" style="margin-top:8px" id="wa-notify-fields">
+              <label>Seu WhatsApp (55…)<input id="wa-notify-phone" inputmode="numeric" maxlength="20" placeholder="5547999990000" /></label>
+              <label>API key CallMeBot<input id="wa-notify-key" maxlength="40" placeholder="só admin vê/salva" autocomplete="off" /></label>
+            </div>
+          </div>
+          <div class="push-prefs-actions" style="flex-direction:column;align-items:stretch">
+            <label class="switch"><input type="checkbox" id="wa-notify-enabled" /><span></span>Ligar WhatsApp</label>
+            <button type="button" class="btn btn-gold" id="wa-notify-save-btn">Salvar WhatsApp</button>
+            <button type="button" class="btn btn-ghost" id="wa-notify-test-btn">Testar WhatsApp</button>
+          </div>
+        </div>
+        <p class="hint" id="notify-channels-status"></p>
+      </div>
+
+      <div class="settings-form push-prefs-box">
+        <h3>Avisos pelo navegador (Android / desktop)</h3>
+        <p class="hint">No Android funciona bem. No iPhone a Apple restringe muito o Web Push — use ntfy ou WhatsApp acima.</p>
 
         <div class="admin-install-card" id="admin-install-card">
           <img src="/img/icon-192.png" alt="" width="48" height="48" />
@@ -434,15 +479,15 @@
           <button type="button" class="btn btn-gold" id="admin-install-btn">Instalar app</button>
         </div>
 
-        <label class="switch"><input type="checkbox" id="profile-notify-push" /><span></span>Quero receber avisos de pedidos</label>
+        <label class="switch"><input type="checkbox" id="profile-notify-push" /><span></span>Quero receber avisos de pedidos (navegador)</label>
         <p class="twofa-status" id="push-status">Carregando...</p>
         <p class="hint hidden" id="push-ios-hint"></p>
         <div class="push-prefs-actions">
           <button type="button" class="btn btn-gold" id="push-enable-btn">Ativar neste aparelho</button>
-          <button type="button" class="btn btn-ghost" id="push-test-btn">Enviar teste</button>
+          <button type="button" class="btn btn-ghost" id="push-test-btn">Enviar teste remoto</button>
+          <button type="button" class="btn btn-ghost" id="push-local-test-btn">Teste local (só iPhone)</button>
           <button type="button" class="btn btn-ghost" id="push-disable-btn">Remover deste aparelho</button>
         </div>
-        <p class="hint">Ordem certa: <b>1)</b> Instalar app · <b>2)</b> Abrir pelo ícone · <b>3)</b> Ligar a flag · <b>4)</b> Ativar neste aparelho · <b>5)</b> Enviar teste.</p>
       </div>
 
       <form id="editor-password-form" class="settings-form">
@@ -635,6 +680,6 @@
     </form>
   </div>
 
-  <script src="/admin/admin.js?v=34"></script>
+  <script src="/admin/admin.js?v=35"></script>
 </body>
 </html>

@@ -808,6 +808,150 @@
     }
   });
 
+  $('#push-local-test-btn')?.addEventListener('click', async () => {
+    try {
+      if (!('Notification' in window)) return toast('Sem API de notificação neste aparelho.');
+      if (!isStandaloneApp() && isIosDevice()) {
+        return toast('No iPhone: abra pelo ícone da Tela de Início para o teste local.');
+      }
+      const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+      if (perm !== 'granted') return toast('Permissão negada.');
+      const reg = await ensureAdminServiceWorker();
+      await reg.showNotification('Teste local Gold Skull', {
+        body: 'Se viu isto, a permissão do iPhone está ok. O problema era só o envio remoto (use ntfy/WhatsApp).',
+        icon: '/img/icon-192.png',
+        tag: 'local-test',
+      });
+      toast('Notificação local disparada');
+    } catch (err) {
+      toast(err.message || 'Falha no teste local');
+    }
+  });
+
+  let notifyChannelsState = null;
+
+  async function loadNotifyChannels() {
+    const status = $('#notify-channels-status');
+    const topicLine = $('#ntfy-topic-line');
+    try {
+      const data = await api('/api/notify-channels');
+      notifyChannelsState = data;
+      if ($('#ntfy-enabled')) $('#ntfy-enabled').checked = !!data.ntfyEnabled;
+      if ($('#wa-notify-enabled')) $('#wa-notify-enabled').checked = !!data.whatsappEnabled;
+      if ($('#wa-notify-phone')) $('#wa-notify-phone').value = data.whatsappPhone || '';
+      if (topicLine) {
+        topicLine.innerHTML = data.ntfySubscribeUrl
+          ? `Tópico: <code style="word-break:break-all">${esc(data.ntfyTopic)}</code>`
+          : 'Tópico ainda não gerado.';
+      }
+      const isAdmin = state.user && state.user.role === 'admin';
+      $('#ntfy-rotate-btn')?.classList.toggle('hidden', !isAdmin);
+      $('#wa-notify-fields')?.classList.toggle('hidden', !isAdmin);
+      $('#wa-notify-save-btn')?.classList.toggle('hidden', !isAdmin);
+      if ($('#ntfy-enabled')) $('#ntfy-enabled').disabled = !isAdmin;
+      if ($('#wa-notify-enabled')) $('#wa-notify-enabled').disabled = !isAdmin;
+      if (status) {
+        const parts = [];
+        if (data.ntfyEnabled) parts.push('ntfy ligado');
+        if (data.whatsappEnabled && data.whatsappConfigured) parts.push('WhatsApp ligado');
+        else if (data.whatsappEnabled) parts.push('WhatsApp ligado (falta API key)');
+        status.textContent = parts.length
+          ? `Canais ativos: ${parts.join(' · ')}`
+          : 'Nenhum canal extra ligado ainda — no iPhone, ligue ntfy ou WhatsApp.';
+      }
+    } catch (err) {
+      if (status) status.textContent = err.message || 'Não deu para carregar os canais.';
+    }
+  }
+
+  async function saveNotifyChannels(patch) {
+    const data = await api('/api/notify-channels', { method: 'PUT', json: patch });
+    notifyChannelsState = data;
+    await loadNotifyChannels();
+    return data;
+  }
+
+  $('#ntfy-enabled')?.addEventListener('change', async (e) => {
+    if (!(state.user && state.user.role === 'admin')) {
+      e.target.checked = !e.target.checked;
+      return toast('Só admin liga/desliga o ntfy.');
+    }
+    try {
+      await saveNotifyChannels({ ntfyEnabled: !!e.target.checked });
+      toast(e.target.checked ? 'ntfy ligado' : 'ntfy desligado');
+    } catch (err) {
+      e.target.checked = !e.target.checked;
+      toast(err.message);
+    }
+  });
+
+  $('#ntfy-open-btn')?.addEventListener('click', () => {
+    const url = notifyChannelsState && notifyChannelsState.ntfySubscribeUrl;
+    if (!url) return toast('Tópico ainda não disponível — atualize a página.');
+    window.open(url, '_blank', 'noopener');
+    toast('Abra o app ntfy e assine esse tópico (ou use o link aberto).');
+  });
+
+  $('#ntfy-test-btn')?.addEventListener('click', async () => {
+    try {
+      await api('/api/notify-channels/test', { method: 'POST', json: { channel: 'ntfy' } });
+      toast('Teste ntfy enviado — confira o app ntfy no iPhone');
+    } catch (err) {
+      toast(err.message || 'Falha no teste ntfy');
+    }
+  });
+
+  $('#ntfy-rotate-btn')?.addEventListener('click', async () => {
+    if (!(state.user && state.user.role === 'admin')) return;
+    if (!confirm('Gerar novo tópico? Quem já assinou o antigo precisa assinar de novo.')) return;
+    try {
+      await saveNotifyChannels({ rotateNtfyTopic: true });
+      toast('Novo tópico gerado');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  $('#wa-notify-enabled')?.addEventListener('change', async (e) => {
+    if (!(state.user && state.user.role === 'admin')) {
+      e.target.checked = !e.target.checked;
+      return toast('Só admin liga/desliga o WhatsApp.');
+    }
+    try {
+      await saveNotifyChannels({ whatsappEnabled: !!e.target.checked });
+      toast(e.target.checked ? 'WhatsApp de avisos ligado' : 'WhatsApp de avisos desligado');
+    } catch (err) {
+      e.target.checked = !e.target.checked;
+      toast(err.message);
+    }
+  });
+
+  $('#wa-notify-save-btn')?.addEventListener('click', async () => {
+    if (!(state.user && state.user.role === 'admin')) return toast('Só admin salva.');
+    try {
+      const patch = {
+        whatsappPhone: $('#wa-notify-phone')?.value || '',
+        whatsappEnabled: !!$('#wa-notify-enabled')?.checked,
+      };
+      const key = ($('#wa-notify-key')?.value || '').trim();
+      if (key) patch.whatsappApiKey = key;
+      await saveNotifyChannels(patch);
+      if ($('#wa-notify-key')) $('#wa-notify-key').value = '';
+      toast('WhatsApp de avisos salvo');
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  $('#wa-notify-test-btn')?.addEventListener('click', async () => {
+    try {
+      await api('/api/notify-channels/test', { method: 'POST', json: { channel: 'whatsapp' } });
+      toast('Teste WhatsApp enviado — confira as mensagens');
+    } catch (err) {
+      toast(err.message || 'Falha no teste WhatsApp');
+    }
+  });
+
   initAdminInstall();
 
   $('#twofa-enable-btn')?.addEventListener('click', async () => {
@@ -1078,6 +1222,7 @@
       fillProfileForm();
       loadTwoFactorStatus();
       loadNotifyPrefs();
+      loadNotifyChannels();
     }
     if (id === 'orders') loadOrders();
   }

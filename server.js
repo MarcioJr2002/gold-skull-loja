@@ -33,6 +33,8 @@ const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
 const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "noreply@localhost").trim();
 const PUBLIC_URL = String(process.env.PUBLIC_URL || "").trim().replace(/\/$/, "");
 const PUSH_MAX_SUBS = 8;
+const NTFY_SERVER_DEFAULT = String(process.env.NTFY_SERVER || "https://ntfy.sh").trim().replace(/\/$/, "") || "https://ntfy.sh";
+const CALLMEBOT_URL = String(process.env.CALLMEBOT_URL || "https://api.callmebot.com/whatsapp.php").trim();
 
 /** Apple (web.push.apple.com) rejeita VAPID com @localhost → 403 BadJwtToken. Android/FCM costuma aceitar. */
 function isBadVapidSubject(subject) {
@@ -444,6 +446,113 @@ async function sendOrderEmail(to, order, baseUrl) {
   return true;
 }
 
+/** Canais extras (estilo Kyte): ntfy no iPhone + WhatsApp via CallMeBot. */
+function ensureNotifyChannels(db) {
+  if (!db.settings || typeof db.settings !== "object") db.settings = {};
+  if (!db.settings.notifyChannels || typeof db.settings.notifyChannels !== "object") {
+    db.settings.notifyChannels = {};
+  }
+  const ch = db.settings.notifyChannels;
+  let dirty = false;
+  if (typeof ch.ntfyEnabled !== "boolean") {
+    ch.ntfyEnabled = false;
+    dirty = true;
+  }
+  if (!ch.ntfyServer || typeof ch.ntfyServer !== "string") {
+    ch.ntfyServer = NTFY_SERVER_DEFAULT;
+    dirty = true;
+  }
+  if (!ch.ntfyTopic || typeof ch.ntfyTopic !== "string" || ch.ntfyTopic.length < 8) {
+    ch.ntfyTopic = `gs-${crypto.randomBytes(10).toString("hex")}`;
+    dirty = true;
+  }
+  if (typeof ch.whatsappEnabled !== "boolean") {
+    ch.whatsappEnabled = false;
+    dirty = true;
+  }
+  if (typeof ch.whatsappPhone !== "string") {
+    ch.whatsappPhone = "";
+    dirty = true;
+  }
+  if (typeof ch.whatsappApiKey !== "string") {
+    ch.whatsappApiKey = "";
+    dirty = true;
+  }
+  // Env sobrescreve (útil no Railway sem abrir o painel)
+  if (process.env.NTFY_TOPIC) ch.ntfyTopic = String(process.env.NTFY_TOPIC).trim();
+  if (process.env.NTFY_SERVER) ch.ntfyServer = String(process.env.NTFY_SERVER).trim().replace(/\/$/, "");
+  if (/^(1|true|yes|on)$/i.test(process.env.NTFY_ENABLED || "")) ch.ntfyEnabled = true;
+  if (process.env.CALLMEBOT_PHONE) ch.whatsappPhone = String(process.env.CALLMEBOT_PHONE).replace(/\D/g, "");
+  if (process.env.CALLMEBOT_APIKEY) ch.whatsappApiKey = String(process.env.CALLMEBOT_APIKEY).trim();
+  if (/^(1|true|yes|on)$/i.test(process.env.CALLMEBOT_ENABLED || "")) ch.whatsappEnabled = true;
+  if (dirty) saveDb(db);
+  return ch;
+}
+
+function publicNotifyChannels(ch) {
+  return {
+    ntfyEnabled: !!ch.ntfyEnabled,
+    ntfyServer: ch.ntfyServer || NTFY_SERVER_DEFAULT,
+    ntfyTopic: ch.ntfyTopic || "",
+    ntfySubscribeUrl: ch.ntfyTopic
+      ? `${(ch.ntfyServer || NTFY_SERVER_DEFAULT).replace(/\/$/, "")}/${ch.ntfyTopic}`
+      : "",
+    whatsappEnabled: !!ch.whatsappEnabled,
+    whatsappPhone: ch.whatsappPhone || "",
+    whatsappConfigured: !!(ch.whatsappPhone && ch.whatsappApiKey),
+  };
+}
+
+function orderNotifyText(order, baseUrl) {
+  const link = baseUrl ? `${baseUrl}/admin` : "/admin";
+  return [
+    `🛒 Novo pedido`,
+    `${order.customerName || "Cliente"} · ${moneyBr(order.total)}`,
+    order.phone ? `WhatsApp: ${order.phone}` : null,
+    order.city ? `Cidade: ${order.city}` : null,
+    `Painel: ${link}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function sendNtfyAlert(ch, title, body, clickUrl) {
+  if (!ch.ntfyEnabled || !ch.ntfyTopic) return false;
+  const server = String(ch.ntfyServer || NTFY_SERVER_DEFAULT).replace(/\/$/, "");
+  const url = `${server}/${encodeURIComponent(ch.ntfyTopic)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Title: String(title || "Gold Skull").slice(0, 120),
+      Priority: "high",
+      Tags: "shopping_bags,loudspeaker",
+      Click: String(clickUrl || "").slice(0, 500),
+    },
+    body: String(body || "").slice(0, 3500),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new Error(`ntfy ${res.status}: ${t.slice(0, 160)}`);
+  }
+  return true;
+}
+
+async function sendCallMeBotWhatsApp(ch, text) {
+  if (!ch.whatsappEnabled || !ch.whatsappPhone || !ch.whatsappApiKey) return false;
+  const phone = String(ch.whatsappPhone).replace(/\D/g, "");
+  const u = new URL(CALLMEBOT_URL);
+  u.searchParams.set("phone", phone);
+  u.searchParams.set("text", String(text || "").slice(0, 3500));
+  u.searchParams.set("apikey", String(ch.whatsappApiKey).trim());
+  const res = await fetch(u.toString(), { method: "GET" });
+  const body = await res.text().catch(() => "");
+  if (!res.ok) throw new Error(`CallMeBot ${res.status}: ${body.slice(0, 160)}`);
+  if (/error|invalid|apikey/i.test(body) && !/success|message queued|sent/i.test(body)) {
+    throw new Error(body.slice(0, 200) || "CallMeBot recusou o envio");
+  }
+  return true;
+}
+
 async function sendOrderPush(sub, order, baseUrl) {
   const payload = JSON.stringify({
     title: "Novo pedido",
@@ -461,17 +570,19 @@ async function sendOrderPush(sub, order, baseUrl) {
   );
 }
 
-/** Avisa a equipe por e-mail e/ou Web Push. Não bloqueia o checkout. */
+/** Avisa a equipe: Web Push, e-mail, ntfy e/ou WhatsApp. Não bloqueia o checkout. */
 async function notifyStaffNewOrder(order, baseUrl) {
   const db = getDb();
   configureWebPush(db);
+  const channels = ensureNotifyChannels(db);
   let emailOk = 0;
   let pushOk = 0;
+  let ntfyOk = 0;
+  let waOk = 0;
   let dirty = false;
 
   for (const user of db.users || []) {
     normalizeUserNotify(user);
-    // E-mail fica preparado no backend, mas por enquanto o foco é só push.
     if (user.notifyEmailOrders && user.email && mailConfigured()) {
       try {
         await sendOrderEmail(user.email, order, baseUrl);
@@ -506,11 +617,24 @@ async function notifyStaffNewOrder(order, baseUrl) {
     }
   }
 
+  const text = orderNotifyText(order, baseUrl);
+  const click = baseUrl ? `${baseUrl}/admin` : "/admin";
+  try {
+    if (await sendNtfyAlert(channels, "Novo pedido", text, click)) ntfyOk = 1;
+  } catch (err) {
+    console.warn("[ntfy] falha:", err.message || err);
+  }
+  try {
+    if (await sendCallMeBotWhatsApp(channels, text)) waOk = 1;
+  } catch (err) {
+    console.warn("[whatsapp-notify] falha:", err.message || err);
+  }
+
   if (dirty) saveDb(db);
-  if (emailOk || pushOk) {
-    console.log(`[notify] pedido ${order.id}: ${emailOk} e-mail(s), ${pushOk} push`);
-  } else if (!mailConfigured() && !(db.users || []).some((u) => (u.pushSubscriptions || []).length)) {
-    /* silencioso se ninguém configurou ainda */
+  if (emailOk || pushOk || ntfyOk || waOk) {
+    console.log(
+      `[notify] pedido ${order.id}: ${emailOk} e-mail(s), ${pushOk} push, ${ntfyOk} ntfy, ${waOk} whatsapp`
+    );
   }
 }
 
@@ -839,6 +963,8 @@ const AUDIT_ACTIONS = {
   "push.subscribe": "Ativou notificação push",
   "push.unsubscribe": "Desativou notificação push",
   "push.prefs": "Preferência de push alterada",
+  "push.test": "Testou notificação push",
+  "notify.channels": "Canais de aviso (ntfy/WhatsApp)",
   "audit.clear": "Logs apagados",
   "audit.export": "Logs exportados",
   "security.unauthorized": "Acesso sem permissão",
@@ -3975,6 +4101,86 @@ app.post("/api/push/test", requireAuth, async (req, res) => {
   }
   logAction(req, "push.test", { detail: `${ok}/${subs.length} envio(s)` });
   res.json({ ok: true, sent: ok, results, vapidSubject: vapid.subject });
+});
+
+app.get("/api/notify-channels", requireAuth, (req, res) => {
+  const db = getDb();
+  const ch = ensureNotifyChannels(db);
+  const isAdmin = req.session.user && req.session.user.role === "admin";
+  const pub = publicNotifyChannels(ch);
+  if (isAdmin) {
+    pub.whatsappApiKeySet = !!ch.whatsappApiKey;
+  }
+  res.json(pub);
+});
+
+app.put("/api/notify-channels", requireAuth, requireAdmin, (req, res) => {
+  const db = getDb();
+  const ch = ensureNotifyChannels(db);
+  const b = req.body || {};
+  if (typeof b.ntfyEnabled === "boolean") ch.ntfyEnabled = b.ntfyEnabled;
+  else if (b.ntfyEnabled === "true" || b.ntfyEnabled === "false") ch.ntfyEnabled = b.ntfyEnabled === "true";
+  if (typeof b.whatsappEnabled === "boolean") ch.whatsappEnabled = b.whatsappEnabled;
+  else if (b.whatsappEnabled === "true" || b.whatsappEnabled === "false") {
+    ch.whatsappEnabled = b.whatsappEnabled === "true";
+  }
+  if (b.whatsappPhone != null) ch.whatsappPhone = str(b.whatsappPhone, 20).replace(/\D/g, "");
+  if (b.whatsappApiKey != null && String(b.whatsappApiKey).trim()) {
+    ch.whatsappApiKey = str(b.whatsappApiKey, 80);
+  }
+  if (b.rotateNtfyTopic === true || b.rotateNtfyTopic === "true") {
+    ch.ntfyTopic = `gs-${crypto.randomBytes(10).toString("hex")}`;
+  }
+  saveDb(db);
+  logAction(req, "notify.channels", { detail: "canais de aviso (ntfy/whatsapp)" });
+  const pub = publicNotifyChannels(ch);
+  pub.whatsappApiKeySet = !!ch.whatsappApiKey;
+  res.json({ ok: true, ...pub });
+});
+
+app.post("/api/notify-channels/test", requireAuth, async (req, res) => {
+  const db = getDb();
+  const ch = ensureNotifyChannels(db);
+  const channel = str(req.body && req.body.channel, 20) || "ntfy";
+  const baseUrl = publicBaseUrl(req);
+  const sample = {
+    id: "teste",
+    customerName: "Teste Gold Skull",
+    total: 99.9,
+    phone: ch.whatsappPhone || "—",
+    city: "—",
+  };
+  try {
+    if (channel === "ntfy") {
+      if (!ch.ntfyTopic) return res.status(400).json({ error: "Tópico ntfy ainda não existe." });
+      // teste não exige enabled — assim o admin valida antes de ligar
+      const prev = ch.ntfyEnabled;
+      ch.ntfyEnabled = true;
+      await sendNtfyAlert(
+        ch,
+        "Teste Gold Skull",
+        orderNotifyText(sample, baseUrl),
+        baseUrl ? `${baseUrl}/admin` : "/admin"
+      );
+      ch.ntfyEnabled = prev;
+      return res.json({ ok: true, channel: "ntfy", subscribeUrl: publicNotifyChannels(ch).ntfySubscribeUrl });
+    }
+    if (channel === "whatsapp") {
+      if (!ch.whatsappPhone || !ch.whatsappApiKey) {
+        return res.status(400).json({
+          error: "Configure o WhatsApp (número + API key do CallMeBot) em Avisos no iPhone.",
+        });
+      }
+      const prev = ch.whatsappEnabled;
+      ch.whatsappEnabled = true;
+      await sendCallMeBotWhatsApp(ch, orderNotifyText(sample, baseUrl));
+      ch.whatsappEnabled = prev;
+      return res.json({ ok: true, channel: "whatsapp" });
+    }
+    return res.status(400).json({ error: "Canal inválido (use ntfy ou whatsapp)." });
+  } catch (err) {
+    return res.status(502).json({ error: err.message || "Falha no teste do canal." });
+  }
 });
 
 app.put("/api/push/prefs", requireAuth, (req, res) => {
