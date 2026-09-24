@@ -942,9 +942,9 @@
             <span class="step-num">2</span>
             <div>
               <strong>Autorize o CallMeBot (só uma vez)</strong>
-              <p>Crie uma conversa com o número <b>+34 644 66 46 29</b> e envie exatamente esta frase:</p>
+              <p>Adicione o contato <b>+34 694 23 41 84</b> e, no WhatsApp, envie exatamente esta frase:</p>
               <code>I allow callmebot to send me messages</code>
-              <p style="margin-top:8px">O bot responde com uma <b>API key</b> (um código). Guarde esse código.</p>
+              <p style="margin-top:8px">O bot responde com uma <b>API key</b> (um código). Guarde esse código. Se não vier em ~2 minutos, tente de novo no dia seguinte.</p>
             </div>
           </li>
           <li>
