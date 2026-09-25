@@ -1603,13 +1603,17 @@
   function productStockControlsHtml(p) {
     if (!state.cityFilter) return '';
     const tracking = p.stockActive && p.stock != null;
-    const qty = tracking ? p.stock : null;
+    const qty = tracking ? Number(p.stock) || 0 : null;
     const lowStock = tracking && qty <= 3;
+    if (!tracking) {
+      return `<div class="inline-stock inline-stock-off" data-stock-id="${esc(p.id)}">
+        <span class="stock-count off">Estoque desligado</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="enable-stock" title="Passa a contar unidades deste produto">Ligar estoque</button>
+      </div>`;
+    }
     return `<div class="inline-stock" data-stock-id="${esc(p.id)}">
-      <span class="stock-count ${!tracking ? 'off' : lowStock ? 'low' : ''}">${
-        tracking ? `${qty} un.` : 'Sem controle'
-      }</span>
-      <div class="qty-step">
+      <span class="stock-count ${lowStock ? 'low' : ''}" title="Quantidade atual">${qty} un.</span>
+      <div class="qty-step" title="Quanto vai entrar ou sair">
         <button type="button" data-act="qty-minus">−</button>
         <span class="move-qty">1</span>
         <button type="button" data-act="qty-plus">+</button>
@@ -1627,14 +1631,14 @@
       const id = row.dataset.stockId;
       const qtyEl = row.querySelector('.move-qty');
       const costInput = row.querySelector('.stock-cost');
-      const readQty = () => Math.max(1, parseInt(qtyEl.textContent, 10) || 1);
+      const readQty = () => Math.max(1, parseInt(qtyEl?.textContent, 10) || 1);
       row.querySelector('[data-act="qty-minus"]')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        qtyEl.textContent = Math.max(1, readQty() - 1);
+        if (qtyEl) qtyEl.textContent = Math.max(1, readQty() - 1);
       });
       row.querySelector('[data-act="qty-plus"]')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        qtyEl.textContent = Math.min(999, readQty() + 1);
+        if (qtyEl) qtyEl.textContent = Math.min(999, readQty() + 1);
       });
       row.querySelector('[data-act="in"]')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -1644,6 +1648,16 @@
         ev.stopPropagation();
         stockMove(id, 'sale', readQty());
       });
+      row.querySelector('[data-act="enable-stock"]')?.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        try {
+          await api(`/api/products/${id}/quick`, { method: 'PATCH', json: { stockActive: true, stock: 0 } });
+          await loadAll();
+          toast('Estoque ligado neste produto');
+        } catch (err) {
+          toast(err.message);
+        }
+      });
       costInput?.addEventListener('change', () => saveCost(id, costInput.value));
     });
   }
@@ -1651,39 +1665,63 @@
   function productRowHtml(p) {
     const st = productFlags(p);
     const flavors = (p.options || []).length;
-    const chips = productCities(p).map((c) => `<span class="city-chip">${esc(cityLabel(c))}</span>`).join('');
+    const stockMode = !!state.cityFilter;
+    const chips = stockMode
+      ? ''
+      : productCities(p).map((c) => `<span class="city-chip">${esc(cityLabel(c))}</span>`).join('');
+    const nameCell = `<td class="t-name">${esc(p.name)}${
+      flavors ? `<small class="t-flavors">${esc(flavorSummary(p))}</small>` : ''
+    }${chips ? `<div class="city-chips">${chips}</div>` : ''}</td>`;
+    const statusCell = `<td><div class="status">
+      <button type="button" class="status-toggle ${st.visible ? 'on' : 'off'}" data-act="toggle-active" data-id="${esc(p.id)}" title="Visível na loja">${st.visible ? 'Visível' : 'Oculto'}</button>
+      <button type="button" class="status-toggle ${st.pin ? 'promo' : ''}" data-act="toggle-pin" data-id="${esc(p.id)}" title="Destaque">${st.pin ? '★ Destaque' : '☆ Normal'}</button>
+      ${!stockMode && st.out ? '<span class="out">Esgotado</span>' : !stockMode && st.tracking ? `<span class="${p.stock <= 3 ? 'out' : 'on'}">${p.stock} un.</span>` : ''}
+    </div></td>`;
+    const acts = `<td><div class="t-actions">
+      <button class="icon-btn" data-act="flavors" data-id="${esc(p.id)}" title="Sabores e fotos">🎨</button>
+      <button class="icon-btn" data-act="edit" data-id="${esc(p.id)}" title="Editar">✏️</button>
+      <button class="icon-btn" data-act="dup" data-id="${esc(p.id)}" title="Duplicar">📋</button>
+      <button class="icon-btn danger" data-act="del" data-id="${esc(p.id)}" title="Tirar">🗑</button>
+    </div></td>`;
+
+    if (stockMode) {
+      return `
+        <tr class="stock-mode-row">
+          <td><img class="t-thumb img-hide-on-error" src="${esc(p.image)}" alt="" loading="lazy" /></td>
+          ${nameCell}
+          <td class="t-stock-cell">${productStockControlsHtml(p)}</td>
+          <td class="t-price">${money(st.promo ? p.promoPrice : p.price)}${st.promo ? `<small>${money(p.price)}</small>` : ''}</td>
+          ${statusCell}
+          ${acts}
+        </tr>`;
+    }
+
     return `
         <tr>
           <td><img class="t-thumb img-hide-on-error" src="${esc(p.image)}" alt="" loading="lazy" /></td>
-          <td class="t-name">${esc(p.name)}${flavors ? `<small class="t-flavors">${esc(flavorSummary(p))}</small>` : ''}<div class="city-chips">${chips}</div>${productStockControlsHtml(p)}</td>
+          ${nameCell}
           <td class="t-cat t-cat-col">${esc(p.category || '—')}</td>
           <td class="t-price">${money(st.promo ? p.promoPrice : p.price)}${st.promo ? `<small>${money(p.price)}</small>` : ''}</td>
-          <td><div class="status">
-            <button type="button" class="status-toggle ${st.visible ? 'on' : 'off'}" data-act="toggle-active" data-id="${esc(p.id)}" title="Visível na loja">${st.visible ? 'Visível' : 'Oculto'}</button>
-            <button type="button" class="status-toggle ${st.pin ? 'promo' : ''}" data-act="toggle-pin" data-id="${esc(p.id)}" title="Destaque">${st.pin ? '★ Destaque' : '☆ Normal'}</button>
-            ${st.out ? '<span class="out">Esgotado</span>' : st.tracking ? `<span class="${p.stock <= 3 ? 'out' : 'on'}">${p.stock} un.</span>` : ''}
-          </div></td>
-          <td><div class="t-actions">
-            <button class="icon-btn" data-act="flavors" data-id="${esc(p.id)}" title="Sabores e fotos">🎨</button>
-            <button class="icon-btn" data-act="edit" data-id="${esc(p.id)}" title="Editar">✏️</button>
-            <button class="icon-btn" data-act="dup" data-id="${esc(p.id)}" title="Duplicar">📋</button>
-            <button class="icon-btn danger" data-act="del" data-id="${esc(p.id)}" title="Tirar">🗑</button>
-          </div></td>
+          ${statusCell}
+          ${acts}
         </tr>`;
   }
 
   function productCardHtml(p) {
     const st = productFlags(p);
     const flavors = flavorSummary(p);
-    const chips = productCities(p).map((c) => `<span class="city-chip">${esc(cityLabel(c))}</span>`).join('');
+    const stockMode = !!state.cityFilter;
+    const chips = stockMode
+      ? ''
+      : productCities(p).map((c) => `<span class="city-chip">${esc(cityLabel(c))}</span>`).join('');
     return `
-          <div class="product-card">
+          <div class="product-card ${stockMode ? 'product-card-stock' : ''}">
             <img class="img-hide-on-error" src="${esc(p.image || '')}" alt="" loading="lazy" />
             <div class="product-card-main">
               <button type="button" class="product-card-open" data-act="edit" data-id="${esc(p.id)}">
                 <span class="product-card-name">${esc(p.name)}</span>
                 <span class="product-card-meta">${esc(p.category || '—')}${st.out ? ' · esgotado' : st.tracking ? ` · ${p.stock} un.` : ''} · ${st.visible ? 'visível' : 'oculto'}</span>
-                <span class="city-chips">${chips}</span>
+                ${chips ? `<span class="city-chips">${chips}</span>` : ''}
                 ${flavors ? `<span class="product-card-flavors">${esc(flavors)}</span>` : ''}
               </button>
               ${productStockControlsHtml(p)}
@@ -1756,14 +1794,18 @@
 
     const renderCatBlocks = (items) => {
       const cats = sortTypeNames([...new Set(items.map((p) => p.category || 'Sem categoria'))]);
+      const stockMode = !!state.cityFilter;
+      const head = stockMode
+        ? '<thead><tr><th></th><th>Produto</th><th>Estoque</th><th>Preço</th><th>Status</th><th></th></tr></thead>'
+        : '<thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Status</th><th></th></tr></thead>';
       return cats
         .map((cat) => {
           const rows = items.filter((p) => (p.category || 'Sem categoria') === cat);
           return `<details class="catalog-cat" open>
             <summary>${esc(cat)} <em>${rows.length}</em></summary>
-            <div class="table-wrap desktop-only">
-              <table class="table">
-                <thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Status</th><th></th></tr></thead>
+            <div class="table-wrap desktop-only ${stockMode ? 'table-wrap-stock' : ''}">
+              <table class="table ${stockMode ? 'table-stock' : ''}">
+                ${head}
                 <tbody>${rows.map(productRowHtml).join('')}</tbody>
               </table>
             </div>
@@ -2359,7 +2401,7 @@
           </div>
           <div class="stock-qty-line">
             <span class="stock-count ${!tracking ? 'off' : lowStock ? 'low' : ''}">${
-              tracking ? `Estoque ${qty}` : 'Sem controle ainda'
+              tracking ? `Estoque ${qty}` : 'Estoque desligado'
             }</span>
             <div class="qty-step">
               <button type="button" data-act="qty-minus">−</button>

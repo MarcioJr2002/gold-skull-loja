@@ -380,16 +380,28 @@
 
 /* stock */
 .inline-stock {
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+  display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center;
+  margin: 0;
 }
+.inline-stock-off { gap: 10px; }
 .inline-stock .qty-step { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-.inline-stock .qty-step button { width: 34px; height: 34px; font-weight: 800; }
-.inline-stock .move-qty { min-width: 28px; text-align: center; font-weight: 800; font-size: 13px; }
-.inline-cost { display: inline-flex; flex-direction: column; gap: 2px; font-size: 11px; font-weight: 700; color: var(--text-2); }
+.inline-stock .qty-step button { width: 32px; height: 32px; font-weight: 800; }
+.inline-stock .move-qty { min-width: 26px; text-align: center; font-weight: 800; font-size: 13px; }
+.inline-cost { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-2); margin: 0; }
 .inline-cost input {
-  width: 88px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
-  background: var(--bg-3); color: var(--text); font-size: 14px;
+  width: 78px; padding: 7px 9px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg-3); color: var(--text); font-size: 13px;
+}
+.table-stock td { vertical-align: top; }
+.table-stock .t-name { max-width: 220px; padding-top: 12px; }
+.table-stock .t-thumb { margin-top: 2px; }
+.table-stock .t-stock-cell { min-width: 280px; max-width: 420px; padding-top: 10px; }
+.table-stock .t-price,
+.table-stock .status,
+.table-stock .t-actions { padding-top: 12px; }
+.table-stock .status { flex-direction: column; align-items: flex-start; }
+.product-card-stock .inline-stock {
+  margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line);
 }
 .product-card-open {
   display: flex; flex-direction: column; gap: 3px; text-align: left; width: 100%;
