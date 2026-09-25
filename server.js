@@ -446,7 +446,7 @@ async function sendOrderEmail(to, order, baseUrl) {
   return true;
 }
 
-/** Canais extras (estilo Kyte): ntfy no iPhone + WhatsApp via CallMeBot. */
+/** Canais extras de aviso: ntfy no iPhone + WhatsApp via CallMeBot. */
 function ensureNotifyChannels(db) {
   if (!db.settings || typeof db.settings !== "object") db.settings = {};
   if (!db.settings.notifyChannels || typeof db.settings.notifyChannels !== "object") {

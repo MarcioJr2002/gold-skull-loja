@@ -255,9 +255,40 @@
 .settings-form label.switch { display: inline-flex; flex-direction: row; align-items: center; width: fit-content; color: var(--text); }
 .settings-form label.btn { display: inline-flex; flex-direction: row; align-items: center; width: fit-content; }
 .grid-2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
-@media (min-width: 640px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 560px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
 .grid-3 { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media (min-width: 768px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } }
+
+/* Minha conta: campos curtos + senha/2FA lado a lado */
+#tab-account .account-short-fields {
+  grid-template-columns: 1fr;
+  max-width: 560px;
+}
+@media (min-width: 520px) {
+  #tab-account .account-short-fields { grid-template-columns: 1fr 1fr; }
+}
+#tab-account .account-profile-form { max-width: 640px; }
+.account-security-grid {
+  display: grid; grid-template-columns: 1fr; gap: 0;
+  align-items: start;
+}
+@media (min-width: 820px) {
+  .account-security-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .account-security-grid > .settings-form { margin-bottom: 22px; }
+}
+.alt-notify-details {
+  margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 12px;
+}
+.alt-notify-details > summary {
+  cursor: pointer; font-size: 13px; font-weight: 700; color: var(--text-2);
+  list-style: none; user-select: none;
+}
+.alt-notify-details > summary::-webkit-details-marker { display: none; }
+.alt-notify-details > summary::before {
+  content: "▸ "; color: var(--gold-2);
+}
+.alt-notify-details[open] > summary::before { content: "▾ "; }
+.alt-notify-details[open] > summary { color: var(--text); margin-bottom: 4px; }
 
 .coupon-admin-list { display: flex; flex-direction: column; gap: 14px; }
 .coupon-admin {

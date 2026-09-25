@@ -929,7 +929,7 @@
     } else {
       if (title) title.textContent = 'Configurar avisos no WhatsApp (iPhone)';
       body.innerHTML = `
-        <p class="notify-guide-intro">Igual ao Kyte: cada pedido novo chega como mensagem no WhatsApp. O iPhone notifica pelo próprio WhatsApp.</p>
+        <p class="notify-guide-intro">Cada pedido novo chega como mensagem no WhatsApp. O iPhone notifica pelo próprio WhatsApp.</p>
         <ol class="notify-guide-steps">
           <li>
             <span class="step-num">1</span>

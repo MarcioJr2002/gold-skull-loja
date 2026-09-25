@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=29" />
+  <link rel="stylesheet" href="/admin/admin.css?v=30" />
 </head>
 <body class="admin-body">
 
@@ -412,9 +412,9 @@
 
     <!-- ACCOUNT TAB -->
     <section id="tab-account" class="tab-panel hidden">
-      <form id="profile-form" class="settings-form">
+      <form id="profile-form" class="settings-form account-profile-form">
         <h3>Meu perfil</h3>
-        <div class="grid-2">
+        <div class="grid-2 account-short-fields">
           <label>Nome de exibição<input id="profile-name" maxlength="60" autocomplete="name" required /></label>
           <label>Usuário de login<input id="profile-username" maxlength="40" autocapitalize="none" spellcheck="false" autocomplete="username" required /></label>
         </div>
@@ -422,116 +422,112 @@
       </form>
 
       <div class="settings-form push-prefs-box">
-        <h3>Avisos no iPhone (recomendado)</h3>
-        <p class="hint">
-          O Kyte no iPhone <b>não</b> depende só do navegador: usa o <b>app da App Store</b> e/ou
-          <b>resumo no WhatsApp</b>. Aqui temos o mesmo caminho confiável — sem e-mail.
-        </p>
-
-        <div class="admin-install-card" id="ntfy-card">
-          <div class="admin-install-text" style="flex:1 1 220px">
-            <strong>1) App ntfy (push de verdade no iPhone)</strong>
-            <p>
-              Instale o app <b>ntfy</b> na App Store, assine o tópico abaixo e ligue o canal.
-              Chega na tela de bloqueio como app nativo.
-            </p>
-            <p class="hint" id="ntfy-topic-line" style="margin-top:8px">Carregando tópico…</p>
-          </div>
-          <div class="push-prefs-actions" style="flex-direction:column;align-items:stretch">
-            <label class="switch"><input type="checkbox" id="ntfy-enabled" /><span></span>Ligar ntfy</label>
-            <button type="button" class="btn btn-ghost" id="ntfy-guide-btn">Como configurar</button>
-            <button type="button" class="btn btn-gold" id="ntfy-open-btn">Abrir / assinar no celular</button>
-            <button type="button" class="btn btn-ghost" id="ntfy-test-btn">Testar ntfy</button>
-            <button type="button" class="btn btn-ghost hidden" id="ntfy-rotate-btn">Gerar novo tópico</button>
-          </div>
-        </div>
-
-        <div class="admin-install-card" id="wa-notify-card" style="margin-top:10px">
-          <div class="admin-install-text" style="flex:1 1 220px">
-            <strong>2) WhatsApp (igual ao Kyte)</strong>
-            <p>
-              No WhatsApp, mande <b>I allow callmebot to send me messages</b> para o número
-              <b>+34 694 23 41 84</b>, pegue a API key e cole abaixo. Cada pedido novo chega no seu WhatsApp.
-            </p>
-            <div class="grid-2" style="margin-top:8px" id="wa-notify-fields">
-              <label>Seu WhatsApp (55…)<input id="wa-notify-phone" inputmode="numeric" maxlength="20" placeholder="5547999990000" /></label>
-              <label>API key CallMeBot<input id="wa-notify-key" maxlength="40" placeholder="só admin vê/salva" autocomplete="off" /></label>
-            </div>
-          </div>
-          <div class="push-prefs-actions" style="flex-direction:column;align-items:stretch">
-            <label class="switch"><input type="checkbox" id="wa-notify-enabled" /><span></span>Ligar WhatsApp</label>
-            <button type="button" class="btn btn-ghost" id="wa-notify-guide-btn">Como configurar</button>
-            <button type="button" class="btn btn-gold" id="wa-notify-save-btn">Salvar WhatsApp</button>
-            <button type="button" class="btn btn-ghost" id="wa-notify-test-btn">Testar WhatsApp</button>
-          </div>
-        </div>
-        <p class="hint" id="notify-channels-status"></p>
-      </div>
-
-      <div class="settings-form push-prefs-box">
-        <h3>Avisos pelo navegador (Android / desktop)</h3>
-        <p class="hint">No Android funciona bem. No iPhone a Apple restringe muito o Web Push — use ntfy ou WhatsApp acima.</p>
+        <h3>Avisos de pedido</h3>
+        <p class="hint">Receba alerta na hora do pedido novo. No iPhone, instale o painel na Tela de Início (Safari) e ative neste aparelho.</p>
 
         <div class="admin-install-card" id="admin-install-card">
           <img src="/img/icon-192.png" alt="" width="48" height="48" />
           <div class="admin-install-text">
             <strong>Instalar painel no celular</strong>
-            <p id="admin-install-hint">Instale como aplicativo para liberar notificações no iPhone e abrir sem digitar o link.</p>
+            <p id="admin-install-hint">Instale como aplicativo para liberar notificações e abrir sem digitar o link.</p>
           </div>
           <button type="button" class="btn btn-gold" id="admin-install-btn">Instalar app</button>
         </div>
 
-        <label class="switch"><input type="checkbox" id="profile-notify-push" /><span></span>Quero receber avisos de pedidos (navegador)</label>
+        <label class="switch"><input type="checkbox" id="profile-notify-push" /><span></span>Quero receber avisos de pedidos</label>
         <p class="twofa-status" id="push-status">Carregando...</p>
         <p class="hint hidden" id="push-ios-hint"></p>
         <div class="push-prefs-actions">
           <button type="button" class="btn btn-gold" id="push-enable-btn">Ativar neste aparelho</button>
-          <button type="button" class="btn btn-ghost" id="push-test-btn">Enviar teste remoto</button>
-          <button type="button" class="btn btn-ghost" id="push-local-test-btn">Teste local (só iPhone)</button>
+          <button type="button" class="btn btn-ghost" id="push-test-btn">Enviar teste</button>
+          <button type="button" class="btn btn-ghost" id="push-local-test-btn">Teste local</button>
           <button type="button" class="btn btn-ghost" id="push-disable-btn">Remover deste aparelho</button>
         </div>
+
+        <details class="alt-notify-details">
+          <summary>Alternativas (se o aviso do navegador falhar)</summary>
+          <p class="hint" style="margin-top:10px">Canais extras para backup — só use se precisar.</p>
+
+          <div class="admin-install-card" id="ntfy-card">
+            <div class="admin-install-text" style="flex:1 1 220px">
+              <strong>App ntfy</strong>
+              <p>App grátis na App Store/Play Store. Assine o tópico e ligue o canal.</p>
+              <p class="hint" id="ntfy-topic-line" style="margin-top:8px">Carregando tópico…</p>
+            </div>
+            <div class="push-prefs-actions" style="flex-direction:column;align-items:stretch">
+              <label class="switch"><input type="checkbox" id="ntfy-enabled" /><span></span>Ligar ntfy</label>
+              <button type="button" class="btn btn-ghost" id="ntfy-guide-btn">Como configurar</button>
+              <button type="button" class="btn btn-gold" id="ntfy-open-btn">Abrir / assinar</button>
+              <button type="button" class="btn btn-ghost" id="ntfy-test-btn">Testar ntfy</button>
+              <button type="button" class="btn btn-ghost hidden" id="ntfy-rotate-btn">Gerar novo tópico</button>
+            </div>
+          </div>
+
+          <div class="admin-install-card" id="wa-notify-card" style="margin-top:10px">
+            <div class="admin-install-text" style="flex:1 1 220px">
+              <strong>WhatsApp (CallMeBot)</strong>
+              <p>
+                Mande <b>I allow callmebot to send me messages</b> para
+                <b>+34 694 23 41 84</b>, cole a API key abaixo e ligue o canal.
+              </p>
+              <div class="grid-2 account-short-fields" style="margin-top:8px" id="wa-notify-fields">
+                <label>Seu WhatsApp (55…)<input id="wa-notify-phone" inputmode="numeric" maxlength="20" placeholder="5547999990000" /></label>
+                <label>API key CallMeBot<input id="wa-notify-key" maxlength="40" placeholder="só admin vê/salva" autocomplete="off" /></label>
+              </div>
+            </div>
+            <div class="push-prefs-actions" style="flex-direction:column;align-items:stretch">
+              <label class="switch"><input type="checkbox" id="wa-notify-enabled" /><span></span>Ligar WhatsApp</label>
+              <button type="button" class="btn btn-ghost" id="wa-notify-guide-btn">Como configurar</button>
+              <button type="button" class="btn btn-gold" id="wa-notify-save-btn">Salvar WhatsApp</button>
+              <button type="button" class="btn btn-ghost" id="wa-notify-test-btn">Testar WhatsApp</button>
+            </div>
+          </div>
+          <p class="hint" id="notify-channels-status"></p>
+        </details>
       </div>
 
-      <form id="editor-password-form" class="settings-form">
-        <h3>Minha senha</h3>
-        <label>Senha atual<input type="password" id="epw-current" autocomplete="current-password" /></label>
-        <label>Nova senha (mínimo 8)<input type="password" id="epw-next" autocomplete="new-password" /></label>
-        <button type="submit" class="btn btn-ghost" style="width:fit-content">Trocar minha senha</button>
-      </form>
+      <div class="account-security-grid">
+        <form id="editor-password-form" class="settings-form">
+          <h3>Minha senha</h3>
+          <label>Senha atual<input type="password" id="epw-current" autocomplete="current-password" /></label>
+          <label>Nova senha (mínimo 8)<input type="password" id="epw-next" autocomplete="new-password" /></label>
+          <button type="submit" class="btn btn-ghost" style="width:fit-content">Trocar minha senha</button>
+        </form>
 
-      <div class="settings-form">
-        <h3>Verificação em duas etapas</h3>
-        <p class="twofa-status" id="twofa-status">Carregando...</p>
-        <div id="twofa-off-actions" class="hidden">
-          <p class="hint">Proteja o painel com um código no celular (Google Authenticator, Authy, etc.).</p>
-          <button type="button" class="btn btn-gold" id="twofa-enable-btn" style="width:fit-content">Ligar verificação em 2 etapas</button>
-        </div>
-        <div id="twofa-setup-box" class="hidden">
-          <p class="hint">Escaneie o QR no autenticador e digite o código de 6 números.</p>
-          <div class="qr-box" style="margin:12px 0">
-            <img id="account-twofa-qr" alt="QR Code 2FA" width="220" height="220" />
+        <div class="settings-form">
+          <h3>Verificação em duas etapas</h3>
+          <p class="twofa-status" id="twofa-status">Carregando...</p>
+          <div id="twofa-off-actions" class="hidden">
+            <p class="hint">Proteja o painel com um código no celular (Google Authenticator, Authy, etc.).</p>
+            <button type="button" class="btn btn-gold" id="twofa-enable-btn" style="width:fit-content">Ligar verificação em 2 etapas</button>
           </div>
-          <button type="button" class="btn-link" id="account-twofa-manual">Não consigo escanear — ver código</button>
-          <div class="qr-secret hidden" id="account-twofa-secret-wrap">
-            <span id="account-twofa-secret"></span>
+          <div id="twofa-setup-box" class="hidden">
+            <p class="hint">Escaneie o QR no autenticador e digite o código de 6 números.</p>
+            <div class="qr-box" style="margin:12px 0">
+              <img id="account-twofa-qr" alt="QR Code 2FA" width="220" height="220" />
+            </div>
+            <button type="button" class="btn-link" id="account-twofa-manual">Não consigo escanear — ver código</button>
+            <div class="qr-secret hidden" id="account-twofa-secret-wrap">
+              <span id="account-twofa-secret"></span>
+            </div>
+            <label>Código do aplicativo
+              <input type="text" id="account-twofa-code" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" />
+            </label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+              <button type="button" class="btn btn-gold" id="account-twofa-activate">Ativar 2FA</button>
+              <button type="button" class="btn btn-ghost" id="account-twofa-cancel">Cancelar</button>
+            </div>
           </div>
-          <label>Código do aplicativo
-            <input type="text" id="account-twofa-code" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" />
-          </label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-            <button type="button" class="btn btn-gold" id="account-twofa-activate">Ativar 2FA</button>
-            <button type="button" class="btn btn-ghost" id="account-twofa-cancel">Cancelar</button>
-          </div>
-        </div>
-        <div id="twofa-on-actions" class="hidden">
-          <p class="hint">Os códigos de recuperação são a sua chave reserva. Se sobrarem poucos, gere uma lista nova — a antiga deixa de funcionar na hora.</p>
-          <form id="recovery-form" class="recovery-form">
-            <label>Sua senha atual<input type="password" id="rc-password" autocomplete="current-password" /></label>
-            <button type="submit" class="btn btn-ghost" style="width:fit-content">Gerar novos códigos de recuperação</button>
-          </form>
-          <div class="twofa-disable-box">
-            <p class="hint">Para desligar a verificação em duas etapas, confirme com a sua senha.</p>
-            <button type="button" class="btn btn-danger" id="twofa-disable-btn" style="width:fit-content">Desligar 2FA</button>
+          <div id="twofa-on-actions" class="hidden">
+            <p class="hint">Os códigos de recuperação são a sua chave reserva. Se sobrarem poucos, gere uma lista nova — a antiga deixa de funcionar na hora.</p>
+            <form id="recovery-form" class="recovery-form">
+              <label>Sua senha atual<input type="password" id="rc-password" autocomplete="current-password" /></label>
+              <button type="submit" class="btn btn-ghost" style="width:fit-content">Gerar novos códigos de recuperação</button>
+            </form>
+            <div class="twofa-disable-box">
+              <p class="hint">Para desligar a verificação em duas etapas, confirme com a sua senha.</p>
+              <button type="button" class="btn btn-danger" id="twofa-disable-btn" style="width:fit-content">Desligar 2FA</button>
+            </div>
           </div>
         </div>
       </div>
@@ -697,6 +693,6 @@
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=38"></script>
+  <script src="/admin/admin.js?v=39"></script>
 </body>
 </html>
