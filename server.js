@@ -1527,6 +1527,32 @@ function migrate() {
   }
   if (recategorizeCatalog(db)) changed = true;
   const cityNames = shippingCities(db.settings);
+
+  // 2h) todos os produtos passam a controlar estoque por padrão
+  let stockOn = 0;
+  for (const p of db.products || []) {
+    let touch = false;
+    if (!p.stockActive) {
+      p.stockActive = true;
+      touch = true;
+    }
+    if (p.stock == null || p.stock === "") {
+      p.stock = 0;
+      touch = true;
+    } else {
+      const n = Number(p.stock);
+      if (!Number.isFinite(n) || n < 0) {
+        p.stock = 0;
+        touch = true;
+      }
+    }
+    if (touch) {
+      stockOn += 1;
+      changed = true;
+    }
+  }
+  if (stockOn) console.log(`[migração] estoque ativado em ${stockOn} produto(s)`);
+
   for (const e of db.ledger || []) {
     const product = db.products.find((p) => p.id === e.productId);
     const cities = normalizeCities(
@@ -3452,8 +3478,8 @@ app.post("/api/products", requireAuth, uploadLimiter, upload.single("image"), (r
     promoPrice: data.promoPrice ?? null,
     category: data.category,
     image: req.file ? uploadedUrl(req) : "",
-    stock: data.stock ?? null,
-    stockActive: !!data.stockActive,
+    stock: data.stock != null ? data.stock : 0,
+    stockActive: data.stockActive !== false,
     cost: data.cost ?? null,
     pin: !!data.pin,
     active: data.active !== false,

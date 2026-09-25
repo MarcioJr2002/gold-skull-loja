@@ -2667,7 +2667,7 @@
     $('#p-active').checked = p ? p.active !== false : true;
     $('#p-pin').checked = p ? !!p.pin : false;
     $('#p-stock').value = p && p.stock != null ? p.stock : '';
-    $('#p-stockActive').checked = p ? !!p.stockActive : false;
+    $('#p-stockActive').checked = p ? !!p.stockActive : true;
     $('#p-image-file').value = '';
     $('#p-image-hint').textContent = p && p.image ? 'manter foto atual' : 'nenhuma foto selecionada';
 
