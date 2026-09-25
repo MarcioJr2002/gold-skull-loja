@@ -414,7 +414,12 @@
   display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center;
   margin: 0;
 }
-.inline-stock-off { gap: 10px; }
+.inline-stock-off { gap: 8px; }
+.stock-edit-link {
+  font-size: 12px; font-weight: 700; color: var(--gold-2); padding: 0; border: 0;
+  background: none; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+.stock-edit-link:hover { color: var(--gold); }
 .inline-stock .qty-step { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .inline-stock .qty-step button { width: 32px; height: 32px; font-weight: 800; }
 .inline-stock .move-qty { min-width: 26px; text-align: center; font-weight: 800; font-size: 13px; }

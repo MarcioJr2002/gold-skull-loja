@@ -1606,9 +1606,9 @@
     const qty = tracking ? Number(p.stock) || 0 : null;
     const lowStock = tracking && qty <= 3;
     if (!tracking) {
-      return `<div class="inline-stock inline-stock-off" data-stock-id="${esc(p.id)}">
-        <span class="stock-count off">Estoque desligado</span>
-        <button type="button" class="btn btn-ghost btn-sm" data-act="enable-stock" title="Passa a contar unidades deste produto">Ligar estoque</button>
+      return `<div class="inline-stock inline-stock-off">
+        <span class="stock-count off">Sem estoque</span>
+        <button type="button" class="btn-link stock-edit-link" data-act="edit" data-id="${esc(p.id)}">Ativar na edição</button>
       </div>`;
     }
     return `<div class="inline-stock" data-stock-id="${esc(p.id)}">
@@ -1627,7 +1627,7 @@
   }
 
   function bindInlineStock(root) {
-    root.querySelectorAll('.inline-stock').forEach((row) => {
+    root.querySelectorAll('.inline-stock[data-stock-id]').forEach((row) => {
       const id = row.dataset.stockId;
       const qtyEl = row.querySelector('.move-qty');
       const costInput = row.querySelector('.stock-cost');
@@ -1647,16 +1647,6 @@
       row.querySelector('[data-act="sale"]')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
         stockMove(id, 'sale', readQty());
-      });
-      row.querySelector('[data-act="enable-stock"]')?.addEventListener('click', async (ev) => {
-        ev.stopPropagation();
-        try {
-          await api(`/api/products/${id}/quick`, { method: 'PATCH', json: { stockActive: true, stock: 0 } });
-          await loadAll();
-          toast('Estoque ligado neste produto');
-        } catch (err) {
-          toast(err.message);
-        }
       });
       costInput?.addEventListener('change', () => saveCost(id, costInput.value));
     });
@@ -2401,7 +2391,7 @@
           </div>
           <div class="stock-qty-line">
             <span class="stock-count ${!tracking ? 'off' : lowStock ? 'low' : ''}">${
-              tracking ? `Estoque ${qty}` : 'Estoque desligado'
+              tracking ? `Estoque ${qty}` : 'Sem estoque — ative na edição'
             }</span>
             <div class="qty-step">
               <button type="button" data-act="qty-minus">−</button>
