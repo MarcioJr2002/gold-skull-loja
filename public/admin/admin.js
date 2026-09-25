@@ -818,7 +818,7 @@
       if (perm !== 'granted') return toast('Permissão negada.');
       const reg = await ensureAdminServiceWorker();
       await reg.showNotification('Teste local Gold Skull', {
-        body: 'Se viu isto, a permissão do iPhone está ok. O problema era só o envio remoto (use ntfy/WhatsApp).',
+        body: 'Se viu isto, a permissão do iPhone está ok. Se o teste remoto falhar, use as alternativas (ntfy/WhatsApp).',
         icon: '/img/icon-192.png',
         tag: 'local-test',
       });
@@ -996,7 +996,7 @@
         else if (data.whatsappEnabled) parts.push('WhatsApp ligado (falta API key)');
         status.textContent = parts.length
           ? `Canais ativos: ${parts.join(' · ')}`
-          : 'Nenhum canal extra ligado ainda — no iPhone, ligue ntfy ou WhatsApp.';
+          : 'Nenhuma alternativa ligada — o aviso principal é o do navegador.';
       }
     } catch (err) {
       if (status) status.textContent = err.message || 'Não deu para carregar os canais.';
