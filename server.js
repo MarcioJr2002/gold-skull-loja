@@ -503,13 +503,43 @@ function publicNotifyChannels(ch) {
   };
 }
 
+function orderItemsShort(order, { maxItems = 2, maxLen = 90 } = {}) {
+  const items = Array.isArray(order && order.items) ? order.items : [];
+  if (!items.length) return "";
+  const parts = items.slice(0, maxItems).map((it) => {
+    const qty = Math.max(1, Number(it.qty) || 1);
+    const name = String(it.name || "Item").trim();
+    const opt = String(it.option || "").trim();
+    return `${qty}x ${name}${opt ? ` (${opt})` : ""}`;
+  });
+  const extra = items.length - parts.length;
+  let text = parts.join(", ");
+  if (extra > 0) text += ` +${extra}`;
+  if (text.length > maxLen) text = `${text.slice(0, maxLen - 1).trim()}…`;
+  return text;
+}
+
+/** Texto curto para push do navegador (iPhone mostra poucas linhas). */
+function orderPushBody(order) {
+  const name = String((order && order.customerName) || "Cliente").trim() || "Cliente";
+  const city = String((order && order.city) || "").trim();
+  const total = moneyBr(order && order.total);
+  const head = [name, city || null, total].filter(Boolean).join(" · ");
+  const items = orderItemsShort(order);
+  if (!items) return head;
+  return `${head}\n${items}`;
+}
+
 function orderNotifyText(order, baseUrl) {
   const link = baseUrl ? `${baseUrl}/admin` : "/admin";
+  const items = orderItemsShort(order, { maxItems: 4, maxLen: 180 });
+  const place = [order.city, order.address].filter(Boolean).join(" · ");
   return [
-    `🛒 Novo pedido`,
-    `${order.customerName || "Cliente"} · ${moneyBr(order.total)}`,
-    order.phone ? `WhatsApp: ${order.phone}` : null,
-    order.city ? `Cidade: ${order.city}` : null,
+    `🛒 Novo pedido · ${moneyBr(order.total)}`,
+    order.customerName || "Cliente",
+    place || null,
+    items ? `Itens: ${items}` : null,
+    order.payment ? `Pagamento: ${order.payment}` : null,
     `Painel: ${link}`,
   ]
     .filter(Boolean)
@@ -556,7 +586,7 @@ async function sendCallMeBotWhatsApp(ch, text) {
 async function sendOrderPush(sub, order, baseUrl) {
   const payload = JSON.stringify({
     title: "Novo pedido",
-    body: `${order.customerName || "Cliente"} · ${moneyBr(order.total)}`,
+    body: orderPushBody(order),
     url: baseUrl ? `${baseUrl}/admin` : "/admin",
     orderId: order.id || "",
   });
@@ -4046,9 +4076,20 @@ app.post("/api/push/test", requireAuth, async (req, res) => {
     });
   }
   const baseUrl = publicBaseUrl(req) || `${req.protocol}://${req.get("host") || ""}`.replace(/\/$/, "");
+  const sample = {
+    customerName: "Cliente teste",
+    city: "Itajaí",
+    address: "Centro",
+    total: 99.9,
+    payment: "Pix",
+    items: [
+      { qty: 1, name: "Pod Exemplo", option: "Menta" },
+      { qty: 2, name: "Refil" },
+    ],
+  };
   const payload = JSON.stringify({
     title: "Teste Gold Skull",
-    body: "Se você viu isto, o push do painel está funcionando.",
+    body: orderPushBody(sample),
     url: `${baseUrl}/admin`,
   });
   let ok = 0;
@@ -4145,10 +4186,16 @@ app.post("/api/notify-channels/test", requireAuth, async (req, res) => {
   const baseUrl = publicBaseUrl(req);
   const sample = {
     id: "teste",
-    customerName: "Teste Gold Skull",
+    customerName: "Cliente teste",
     total: 99.9,
     phone: ch.whatsappPhone || "—",
-    city: "—",
+    city: "Itajaí",
+    address: "Centro",
+    payment: "Pix",
+    items: [
+      { qty: 1, name: "Pod Exemplo", option: "Menta" },
+      { qty: 2, name: "Refil" },
+    ],
   };
   try {
     if (channel === "ntfy") {
