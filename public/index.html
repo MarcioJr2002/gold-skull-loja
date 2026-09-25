@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Unbounded:wght@500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=17" />
-  <link rel="stylesheet" href="/css/store.css?v=25" />
+  <link rel="stylesheet" href="/css/store.css?v=26" />
 </head>
 <body class="store">
   <div id="age-gate" class="age-gate hidden">
@@ -66,7 +66,13 @@
       <div class="search-wrap">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <input id="search" type="search" placeholder="Procurar..." autocomplete="off" />
+        <button type="button" class="search-clear hidden" id="search-clear" aria-label="Limpar busca">×</button>
+        <div class="search-dropdown hidden" id="search-dropdown" role="listbox" aria-label="Resultados da busca"></div>
       </div>
+      <button type="button" class="region-chip hidden" id="region-open" aria-label="Trocar região">
+        <span id="region-label">Região</span>
+        <small>Trocar</small>
+      </button>
       <button class="account-btn" id="account-open" aria-label="Minha conta">
         <span class="account-btn-text" id="account-label">Entrar</span>
       </button>
@@ -75,10 +81,6 @@
         <span class="cart-count hidden" id="cart-count">0</span>
       </button>
     </div>
-    <button type="button" class="region-bar hidden" id="region-open" aria-label="Trocar região">
-      <span id="region-label">Região</span>
-      <small>Trocar</small>
-    </button>
   </header>
 
   <main id="top">
@@ -145,7 +147,7 @@
       <div class="deals-rail reveal" id="deals-rail" style="--d:80ms"></div>
     </section>
 
-    <section class="section" id="howto-section">
+    <section class="section section-howto" id="howto-section">
       <div class="section-head reveal">
         <div>
           <span class="section-eyebrow">Simples assim</span>
@@ -157,9 +159,6 @@
         <div class="howto-step reveal reveal-scale" style="--d:140ms"><b>2</b><span>Escolha o sabor e aperte Comprar</span></div>
         <div class="howto-step reveal reveal-right" style="--d:280ms"><b>3</b><span>Mande o pedido pelo WhatsApp</span></div>
       </div>
-    </section>
-
-    <section class="section">
       <div class="info-strip" id="info-strip">
         <div class="info-item reveal reveal-left"><span>💳</span><p id="payment-note"></p></div>
         <div class="info-item reveal reveal-right" style="--d:140ms"><span>🛵</span><p>Frete por região — você escolhe na hora do pedido</p></div>
@@ -188,8 +187,7 @@
       <div class="footer-brand reveal" style="--d:100ms">
         <strong id="footer-name">GOLD SKULL</strong>
       </div>
-      <p id="footer-address" class="reveal" style="--d:160ms"></p>
-      <div class="footer-links reveal" style="--d:220ms">
+      <div class="footer-links reveal" style="--d:160ms">
         <a id="footer-wa" target="_blank" rel="noopener" class="btn btn-gold">FALAR NO WHATSAPP</a>
         <button type="button" class="btn btn-ghost" id="footer-top">VOLTAR AO TOPO</button>
       </div>
@@ -348,14 +346,14 @@
           <label>PIN (4–6 dígitos)<input id="acc-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" /></label>
           <button type="submit" class="btn btn-gold btn-big" id="account-login-btn">ENTRAR</button>
         </form>
-        <form id="account-register-form" class="checkout-fields hidden">
+        <form id="account-register-form" class="checkout-fields account-register-grid hidden">
           <label>Seu nome<input id="acc-reg-name" type="text" autocomplete="name" maxlength="80" /></label>
           <label>WhatsApp<input id="acc-reg-phone" type="tel" placeholder="47 99999-0000" autocomplete="tel" inputmode="tel" /></label>
-          <label>Endereço padrão<input id="acc-reg-address" type="text" placeholder="Bairro e cidade" autocomplete="street-address" maxlength="200" /></label>
-          <label>Código de indicação (opcional)<input id="acc-reg-ref" type="text" placeholder="Ex.: JOAO1A2" autocapitalize="characters" maxlength="20" /></label>
+          <label class="account-span-2">Endereço padrão<input id="acc-reg-address" type="text" placeholder="Bairro e cidade" autocomplete="street-address" maxlength="200" /></label>
+          <label class="account-span-2">Código de indicação (opcional)<input id="acc-reg-ref" type="text" placeholder="Ex.: JOAO1A2" autocapitalize="characters" maxlength="20" /></label>
           <label>Crie um PIN (4–6 dígitos)<input id="acc-reg-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" /></label>
           <label>Repita o PIN<input id="acc-reg-pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" /></label>
-          <button type="submit" class="btn btn-gold btn-big" id="account-register-btn">CRIAR CONTA</button>
+          <button type="submit" class="btn btn-gold btn-big account-span-2" id="account-register-btn">CRIAR CONTA</button>
         </form>
         <p class="account-error hidden" id="account-error"></p>
         <p class="hint">WhatsApp + PIN. Sem e-mail. Seus dados entram no pedido automaticamente.</p>
@@ -364,6 +362,6 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=31"></script>
+  <script src="/js/app.js?v=32"></script>
 </body>
 </html>

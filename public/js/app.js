@@ -340,7 +340,6 @@
     $('#store-tagline').textContent = s.tagline;
     $('#store-desc').textContent = s.description;
     $('#footer-name').textContent = s.name;
-    $('#footer-address').textContent = s.address;
     $('#payment-note').textContent = s.paymentNote;
     $('#checkout-message').textContent = s.checkoutMessage;
     const bannerSection = $('#banner-section');
@@ -1800,12 +1799,75 @@
 
   /* ---------- events ---------- */
   let searchTimer;
+
+  function hideSearchDropdown() {
+    $('#search-dropdown')?.classList.add('hidden');
+  }
+
+  function renderSearchDropdown() {
+    const box = $('#search-dropdown');
+    const clearBtn = $('#search-clear');
+    const q = String(state.search || '').trim();
+    if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+    if (!box) return;
+    if (q.length < 2) {
+      box.classList.add('hidden');
+      box.innerHTML = '';
+      return;
+    }
+    const list = filtered().slice(0, 8);
+    if (!list.length) {
+      box.innerHTML = `<div class="search-empty">Nenhum produto com “${esc(q)}”</div>`;
+      box.classList.remove('hidden');
+      return;
+    }
+    box.innerHTML = list
+      .map((p) => {
+        const price = p.originalPrice && p.originalPrice > p.price ? p.price : p.price;
+        const meta = [p.category, p.outOfStock ? 'esgotado' : null].filter(Boolean).join(' · ');
+        return `<button type="button" class="search-hit" data-id="${esc(p.id)}" role="option">
+          <img src="${esc(p.image || '/img/logo-160.png')}" alt="" loading="lazy" />
+          <span><strong>${esc(p.name)}</strong><small>${esc(meta)}</small></span>
+          <span class="search-price">${money(price)}</span>
+        </button>`;
+      })
+      .join('');
+    box.querySelectorAll('.search-hit').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        hideSearchDropdown();
+        openModal(id);
+      });
+    });
+    box.classList.remove('hidden');
+  }
+
   $('#search').addEventListener('input', (e) => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
       state.search = e.target.value;
       renderGrid();
-    }, 160);
+      renderSearchDropdown();
+    }, 120);
+  });
+  $('#search').addEventListener('focus', () => {
+    if (String(state.search || '').trim().length >= 2) renderSearchDropdown();
+  });
+  $('#search-clear')?.addEventListener('click', () => {
+    const input = $('#search');
+    if (input) input.value = '';
+    state.search = '';
+    hideSearchDropdown();
+    $('#search-clear')?.classList.add('hidden');
+    renderGrid();
+    input?.focus();
+  });
+  document.addEventListener('click', (e) => {
+    const wrap = document.querySelector('.search-wrap');
+    if (wrap && !wrap.contains(e.target)) hideSearchDropdown();
+  });
+  $('#search')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideSearchDropdown();
   });
   $('#hero-cta').addEventListener('click', scrollToCatalog);
   $('#footer-top').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
