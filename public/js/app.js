@@ -794,16 +794,14 @@
     grid.querySelectorAll('.card').forEach((el) =>
       el.addEventListener('click', () => openModal(el.dataset.id))
     );
-    watchReveals(grid);
   }
 
   const IMG_FALLBACK = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23efede6%22/><rect x=%2210%22 y=%2210%22 width=%2280%22 height=%2280%22 rx=%2212%22 fill=%22%23ffbe0e%22/><text x=%2250%22 y=%2268%22 text-anchor=%22middle%22 font-size=%2248%22 font-weight=%22bold%22 fill=%22%23181200%22 font-family=%22Arial%22>G</text></svg>";
 
-  function cardHtml(p, i) {
+  function cardHtml(p) {
     const promo = p.originalPrice && p.originalPrice > p.price;
-    const dir = i % 3 === 1 ? 'reveal-left' : i % 3 === 2 ? 'reveal-right' : 'reveal-scale';
     return `
-      <article class="card reveal ${dir} ${p.outOfStock ? 'out' : ''}" data-id="${esc(p.id)}" role="button" tabindex="0" style="--d:${Math.min(i * 70, 560)}ms">
+      <article class="card ${p.outOfStock ? 'out' : ''}" data-id="${esc(p.id)}" role="button" tabindex="0">
         <div class="card-img-wrap">
           <img class="card-img" loading="lazy" src="${esc(p.image)}" alt="${esc(p.name)}" />
           ${promo ? '<span class="badge badge-promo">Promoção</span>' : ''}
@@ -1845,10 +1843,12 @@
   $('#search').addEventListener('input', (e) => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
-      state.search = e.target.value;
+      const next = e.target.value;
+      if (next === state.search) return;
+      state.search = next;
       renderGrid();
       renderSearchDropdown();
-    }, 120);
+    }, 220);
   });
   $('#search').addEventListener('focus', () => {
     if (String(state.search || '').trim().length >= 2) renderSearchDropdown();
