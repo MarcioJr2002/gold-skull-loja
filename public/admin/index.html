@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Painel ? GOLD SKULL</title>
+  <title>Painel — GOLD SKULL</title>
   <meta name="robots" content="noindex, nofollow" />
   <meta name="referrer" content="same-origin" />
   <meta name="theme-color" content="#1c1b18" />
@@ -18,51 +18,51 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/base.css?v=13" />
-  <link rel="stylesheet" href="/admin/admin.css?v=32" />
+  <link rel="stylesheet" href="/admin/admin.css?v=33" />
 </head>
 <body class="admin-body">
 
-  <!-- LOGIN (etapa 1: usu?rio e senha) -->
+  <!-- LOGIN (etapa 1: usuário e senha) -->
   <div id="login-view" class="login-wrap hidden">
     <form id="login-form" class="login-box" autocomplete="on">
       <img class="login-logo" src="/img/logo-160.png" alt="" width="160" height="160" />
       <h1>GOLD SKULL</h1>
       <p>Painel da loja</p>
-      <input type="text" id="login-username" placeholder="Usu?rio" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+      <input type="text" id="login-username" placeholder="Usuário" autocomplete="username" autocapitalize="none" spellcheck="false" required />
       <input type="password" id="login-password" placeholder="Senha" autocomplete="current-password" required />
       <button type="submit" class="btn btn-gold btn-big" id="login-submit">Entrar</button>
       <p class="login-error hidden" id="login-error"></p>
     </form>
   </div>
 
-  <!-- LOGIN (etapa 2: c?digo de verifica??o) -->
+  <!-- LOGIN (etapa 2: código de verificação) -->
   <div id="totp-view" class="login-wrap hidden">
     <form id="totp-form" class="login-box">
       <img class="login-logo" src="/img/logo-160.png" alt="" width="160" height="160" />
-      <h1>C?digo de acesso</h1>
-      <p id="totp-hello">Abra o aplicativo autenticador e digite o c?digo de 6 n?meros.</p>
+      <h1>Código de acesso</h1>
+      <p id="totp-hello">Abra o aplicativo autenticador e digite o código de 6 números.</p>
       <input type="text" id="totp-code" class="code-input" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" maxlength="14" required />
       <button type="submit" class="btn btn-gold btn-big" id="totp-submit">Entrar</button>
       <p class="login-error hidden" id="totp-error"></p>
-      <button type="button" class="btn-link" id="totp-recovery">Perdi o celular ? usar c?digo de recupera??o</button>
+      <button type="button" class="btn-link" id="totp-recovery">Perdi o celular — usar código de recuperação</button>
       <button type="button" class="btn btn-ghost btn-sm" id="totp-cancel">Voltar</button>
     </form>
   </div>
 
-  <!-- CONFIGURA??O DO 2FA (primeiro acesso) -->
+  <!-- CONFIGURAÇÃO DO 2FA (primeiro acesso) -->
   <div id="twofa-view" class="login-wrap hidden">
     <form id="twofa-form" class="login-box login-box-wide">
       <h1>Proteja o painel</h1>
-      <p>Antes de continuar, ligue a verifica??o em duas etapas. Sem isso ningu?m entra no painel, nem com a senha certa.</p>
+      <p>Antes de continuar, ligue a verificação em duas etapas. Sem isso ninguém entra no painel, nem com a senha certa.</p>
       <ol class="setup-steps">
         <li>Instale um aplicativo autenticador no celular (Google Authenticator, Microsoft Authenticator ou Authy).</li>
-        <li>Aponte a c?mera do aplicativo para o QR Code abaixo.</li>
-        <li>Digite o c?digo de 6 n?meros que aparecer.</li>
+        <li>Aponte a câmera do aplicativo para o QR Code abaixo.</li>
+        <li>Digite o código de 6 números que aparecer.</li>
       </ol>
       <div class="qr-box">
-        <img id="twofa-qr" alt="QR Code da verifica??o em duas etapas" width="220" height="220" />
+        <img id="twofa-qr" alt="QR Code da verificação em duas etapas" width="220" height="220" />
       </div>
-      <button type="button" class="btn-link" id="twofa-manual-toggle">N?o consigo escanear ? digitar o c?digo ? m?o</button>
+      <button type="button" class="btn-link" id="twofa-manual-toggle">Não consigo escanear — digitar o código à mão</button>
       <div class="qr-secret hidden" id="twofa-secret-wrap">
         <span id="twofa-secret"></span>
         <button type="button" class="btn btn-ghost btn-sm" id="twofa-copy">Copiar</button>
@@ -74,14 +74,14 @@
     </form>
   </div>
 
-  <!-- C?DIGOS DE RECUPERA??O (mostrados uma ?nica vez) -->
+  <!-- CÓDIGOS DE RECUPERAÇÃO (mostrados uma única vez) -->
   <div class="admin-modal-backdrop hidden" id="codes-modal">
     <div class="admin-modal">
       <div class="admin-modal-head">
-        <h3>Guarde seus c?digos de recupera??o</h3>
+        <h3>Guarde seus códigos de recuperação</h3>
       </div>
       <div class="admin-modal-body">
-        <p class="codes-warn">S?o <b>10 c?digos</b> que servem para entrar se voc? perder o celular. Cada um funciona <b>uma ?nica vez</b>. Esta ? a ?nica vez que eles aparecem: imprima ou salve num lugar seguro.</p>
+        <p class="codes-warn">São <b>10 códigos</b> que servem para entrar se você perder o celular. Cada um funciona <b>uma única vez</b>. Esta é a única vez que eles aparecem: imprima ou salve num lugar seguro.</p>
         <div class="codes-grid" id="codes-grid"></div>
         <div class="codes-actions">
           <button type="button" class="btn btn-ghost btn-sm" id="codes-download">Baixar arquivo</button>
@@ -90,19 +90,19 @@
         </div>
       </div>
       <div class="admin-modal-foot">
-        <label class="switch"><input type="checkbox" id="codes-ack" /><span></span>J? guardei em lugar seguro</label>
+        <label class="switch"><input type="checkbox" id="codes-ack" /><span></span>Já guardei em lugar seguro</label>
         <button type="button" class="btn btn-gold" id="codes-done" disabled>Continuar</button>
       </div>
     </div>
   </div>
 
-  <!-- TROCA DE SENHA OBRIGAT?RIA -->
+  <!-- TROCA DE SENHA OBRIGATÓRIA -->
   <div id="pwgate-view" class="login-wrap hidden">
     <form id="pwgate-form" class="login-box">
       <h1>Troque sua senha</h1>
-      <p>Sua senha ? a padr?o (ou muito f?cil). Defina uma nova para liberar o painel.</p>
+      <p>Sua senha é a padrão (ou muito fácil). Defina uma nova para liberar o painel.</p>
       <input type="password" id="pw-current" placeholder="Senha atual" autocomplete="current-password" required />
-      <input type="password" id="pw-next" placeholder="Nova senha (m?nimo 8)" autocomplete="new-password" required />
+      <input type="password" id="pw-next" placeholder="Nova senha (mínimo 8)" autocomplete="new-password" required />
       <input type="password" id="pw-next2" placeholder="Repita a nova senha" autocomplete="new-password" required />
       <button type="submit" class="btn btn-gold btn-big">Salvar nova senha</button>
       <p class="login-error hidden" id="pwgate-error"></p>
@@ -121,7 +121,7 @@
         <button class="side-link active" data-tab="products">Produtos</button>
         <button class="side-link" data-tab="orders">Pedidos</button>
         <button class="side-link" data-tab="profit">Lucro</button>
-        <button class="side-link admin-only" data-tab="promos">Promo??es</button>
+        <button class="side-link admin-only" data-tab="promos">Promoções</button>
         <button class="side-link admin-only" data-tab="coupons">Cupons</button>
         <button class="side-link admin-only" data-tab="categories">Categorias</button>
         <button class="side-link admin-only" data-tab="settings">Loja</button>
@@ -135,11 +135,11 @@
     <div class="admin-main">
     <header class="admin-header">
       <div class="admin-header-inner">
-        <button type="button" class="btn btn-ghost btn-sm admin-menu-btn" id="sidebar-open" aria-label="Abrir menu">?</button>
+        <button type="button" class="btn btn-ghost btn-sm admin-menu-btn" id="sidebar-open" aria-label="Abrir menu">☰</button>
         <div class="admin-header-actions">
           <div class="notif-bell" id="notif-bell">
             <button type="button" class="notif-bell-btn" id="notif-bell-btn" title="Pedidos novos" aria-label="Pedidos novos">
-              ??<span class="notif-badge hidden" id="notif-badge">0</span>
+              🔔<span class="notif-badge hidden" id="notif-badge">0</span>
             </button>
             <div class="notif-panel hidden" id="notif-panel">
               <div class="notif-panel-head">
@@ -159,9 +159,9 @@
       </div>
     </header>
 
-    <!-- PRODUCTS TAB (cat?logo + estoque por caixa) -->
+    <!-- PRODUCTS TAB (catálogo + estoque por caixa) -->
     <section id="tab-products" class="tab-panel">
-      <p class="hint">Toque numa <b>caixa</b> para ver os produtos e controlar o estoque dela. Em ?todas?, voc? organiza o cat?logo. Para contar unidades, abra o produto e ligue <b>Controlar estoque</b>.</p>
+      <p class="hint">Toque numa <b>caixa</b> para ver os produtos e controlar o estoque dela. Em “todas”, você organiza o catálogo. Para contar unidades, abra o produto e ligue <b>Controlar estoque</b>.</p>
       <div id="stock-alert" class="stock-alert hidden"></div>
       <div id="catalog-stats" class="catalog-stats"></div>
       <div class="toolbar toolbar-catalog">
@@ -174,19 +174,19 @@
         </select>
         <select id="admin-status-filter" class="toolbar-select">
           <option value="">Todos os status</option>
-          <option value="visible">Vis?veis</option>
+          <option value="visible">Visíveis</option>
           <option value="hidden">Ocultos</option>
           <option value="pin">Destaque</option>
-          <option value="promo">Promo??o</option>
+          <option value="promo">Promoção</option>
           <option value="low">Estoque baixo</option>
           <option value="out">Esgotados</option>
         </select>
         <select id="admin-sort" class="toolbar-select">
-          <option value="name">A?Z</option>
-          <option value="price-asc">Menor pre?o</option>
-          <option value="price-desc">Maior pre?o</option>
+          <option value="name">A–Z</option>
+          <option value="price-asc">Menor preço</option>
+          <option value="price-desc">Maior preço</option>
           <option value="stock">Mais estoque</option>
-          <option value="status">Vis?veis primeiro</option>
+          <option value="status">Visíveis primeiro</option>
         </select>
         <button class="btn btn-gold" id="add-product-btn">+ Anunciar produto</button>
       </div>
@@ -198,12 +198,12 @@
 
     <!-- ORDERS TAB -->
     <section id="tab-orders" class="tab-panel hidden">
-      <p class="hint">Fluxo: <b>Recebido</b> ? <b>Aceito</b> (baixa estoque) ? <b>Em rota</b> ? <b>Finalizado</b>. <b>Recusar</b> arquiva sem estoque. <b>Devolvido</b> devolve o estoque. Toque no card para detalhes.</p>
+      <p class="hint">Fluxo: <b>Recebido</b> → <b>Aceito</b> (baixa estoque) → <b>Em rota</b> → <b>Finalizado</b>. <b>Recusar</b> arquiva sem estoque. <b>Devolvido</b> devolve o estoque. Toque no card para detalhes.</p>
       <div class="profit-toolbar">
         <div class="period-tabs" id="orders-period">
           <button type="button" class="period-btn active" data-period="today">Hoje</button>
           <button type="button" class="period-btn" data-period="week">7 dias</button>
-          <button type="button" class="period-btn" data-period="month">M?s</button>
+          <button type="button" class="period-btn" data-period="month">Mês</button>
           <button type="button" class="period-btn" data-period="year">Ano</button>
           <button type="button" class="period-btn" data-period="all">Tudo</button>
         </div>
@@ -217,7 +217,7 @@
           <option value="all">Todos</option>
         </select>
         <input type="search" id="orders-search" class="toolbar-select" placeholder="Buscar cliente, WhatsApp, produto..." />
-        <div class="view-toggle" id="orders-view-toggle" role="group" aria-label="Visualiza??o">
+        <div class="view-toggle" id="orders-view-toggle" role="group" aria-label="Visualização">
           <button type="button" class="period-btn active" data-orders-view="list">Lista</button>
           <button type="button" class="period-btn" data-orders-view="kanban">Kanban</button>
         </div>
@@ -234,7 +234,7 @@
         <div class="period-tabs" id="profit-period">
           <button type="button" class="period-btn active" data-period="today">Hoje</button>
           <button type="button" class="period-btn" data-period="week">7 dias</button>
-          <button type="button" class="period-btn" data-period="month">M?s</button>
+          <button type="button" class="period-btn" data-period="month">Mês</button>
           <button type="button" class="period-btn" data-period="all">Tudo</button>
         </div>
         <select id="profit-city-filter" class="toolbar-select" aria-label="Filtrar por caixa">
@@ -244,30 +244,30 @@
           <option value="">Todos os tipos</option>
         </select>
       </div>
-      <p class="hint">Caixa = cidade (Itaja?, Joinville, Atacado). Tipo = produto (Pods, Refis, Baterias, Gomas). Os dois filtros combinam.</p>
+      <p class="hint">Caixa = cidade (Itajaí, Joinville, Atacado). Tipo = produto (Pods, Refis, Baterias, Gomas). Os dois filtros combinam.</p>
       <div class="profit-cards" id="profit-cards"></div>
       <h3 class="section-label">Lucro por caixa</h3>
       <div id="profit-city-cards" class="profit-city-cards"></div>
       <h3 class="section-label">Lucro por tipo</h3>
       <div id="profit-cat-cards" class="profit-city-cards"></div>
-      <h3 class="section-label">Movimenta??es</h3>
+      <h3 class="section-label">Movimentações</h3>
       <div id="profit-list" class="profit-list"></div>
       <div id="profit-pager" class="list-pager"></div>
     </section>
 
     <!-- PROMOS TAB (admin) -->
     <section id="tab-promos" class="tab-panel hidden">
-      <p class="hint">Aqui voc? monta as chamadas de promo??o que aparecem na loja: a faixa amarela do topo e os cards grandes com bot?o. O cliente toca no bot?o e cai direto no que voc? escolher.</p>
+      <p class="hint">Aqui você monta as chamadas de promoção que aparecem na loja: a faixa amarela do topo e os cards grandes com botão. O cliente toca no botão e cai direto no que você escolher.</p>
 
       <form id="promobar-form" class="settings-form">
         <h3>Faixa amarela do topo</h3>
         <label class="switch"><input type="checkbox" id="pb-active" /><span></span>Mostrar a faixa na loja</label>
-        <label>Texto da faixa<input id="pb-text" maxlength="120" placeholder="Ex.: FRETE GR?TIS acima de R$ 300 nesta semana" /></label>
+        <label>Texto da faixa<input id="pb-text" maxlength="120" placeholder="Ex.: FRETE GRÁTIS acima de R$ 300 nesta semana" /></label>
         <div class="grid-2">
-          <label>Texto do bot?o (vazio = sem bot?o)<input id="pb-ctaLabel" maxlength="30" placeholder="Ex.: Ver ofertas" /></label>
-          <label>Para onde o bot?o leva
+          <label>Texto do botão (vazio = sem botão)<input id="pb-ctaLabel" maxlength="30" placeholder="Ex.: Ver ofertas" /></label>
+          <label>Para onde o botão leva
             <select id="pb-action">
-              <option value="catalogo">Rolar at? o cat?logo</option>
+              <option value="catalogo">Rolar até o catálogo</option>
               <option value="categoria">Abrir uma categoria</option>
               <option value="produto">Abrir um produto</option>
               <option value="whatsapp">Abrir o WhatsApp</option>
@@ -281,26 +281,26 @@
       </form>
 
       <div class="settings-form">
-        <h3>Cards de promo??o</h3>
-        <p class="hint">Sugest?o: at? 3 cards. Cada um pode ter foto, selo, t?tulo, explica??o e bot?o.</p>
+        <h3>Cards de promoção</h3>
+        <p class="hint">Sugestão: até 3 cards. Cada um pode ter foto, selo, título, explicação e botão.</p>
         <div id="promo-list" class="promo-admin-list"></div>
-        <button type="button" class="btn btn-gold" id="promo-add" style="width:fit-content">+ Nova promo??o</button>
+        <button type="button" class="btn btn-gold" id="promo-add" style="width:fit-content">+ Nova promoção</button>
       </div>
     </section>
 
     <!-- COUPONS TAB (admin) -->
     <section id="tab-coupons" class="tab-panel hidden">
-      <p class="hint">Cupons que o cliente digita no pedido. Tipos: <b>porcentagem</b> (desconto no subtotal), <b>frete gr?tis</b> ou <b>brinde</b> (ex.: jujuba).</p>
+      <p class="hint">Cupons que o cliente digita no pedido. Tipos: <b>porcentagem</b> (desconto no subtotal), <b>frete grátis</b> ou <b>brinde</b> (ex.: jujuba).</p>
       <div id="coupon-list" class="coupon-admin-list"></div>
       <button type="button" class="btn btn-gold" id="coupon-add" style="width:fit-content;margin-top:12px">+ Novo cupom</button>
 
       <form id="referral-form" class="settings-form" style="margin-top:28px">
-        <h3>Cashback por indica??o</h3>
-        <p class="hint">Cada cliente ganha um c?digo ao se cadastrar. Quem indicar e quem entrar com o c?digo recebem saldo de cashback.</p>
-        <label class="check-row"><input type="checkbox" id="ref-enabled" /> Ativar indica??o e cashback</label>
+        <h3>Cashback por indicação</h3>
+        <p class="hint">Cada cliente ganha um código ao se cadastrar. Quem indicar e quem entrar com o código recebem saldo de cashback.</p>
+        <label class="check-row"><input type="checkbox" id="ref-enabled" /> Ativar indicação e cashback</label>
         <div class="grid-3">
-          <label>B?nus de quem indica (R$)<input id="ref-referrer" type="number" step="0.01" min="0" inputmode="decimal" /></label>
-          <label>B?nus de quem entra com c?digo (R$)<input id="ref-referred" type="number" step="0.01" min="0" inputmode="decimal" /></label>
+          <label>Bônus de quem indica (R$)<input id="ref-referrer" type="number" step="0.01" min="0" inputmode="decimal" /></label>
+          <label>Bônus de quem entra com código (R$)<input id="ref-referred" type="number" step="0.01" min="0" inputmode="decimal" /></label>
           <label>Cashback por pedido (%)<input id="ref-order-pct" type="number" step="0.1" min="0" max="50" inputmode="decimal" /></label>
         </div>
         <button type="submit" class="btn btn-gold" style="width:fit-content">Salvar cashback</button>
@@ -318,28 +318,28 @@
         <input type="text" id="new-category" placeholder="Nome da nova categoria" />
         <button class="btn btn-gold" id="add-category-btn">+ Adicionar</button>
       </div>
-      <p class="hint">Categoria ? o tipo do produto (Pods, Refis, Baterias, Gomas). A cidade de venda fica marcada em cada item, n?o aqui.</p>
+      <p class="hint">Categoria é o tipo do produto (Pods, Refis, Baterias, Gomas). A cidade de venda fica marcada em cada item, não aqui.</p>
       <div id="categories-list" class="cat-list"></div>
     </section>
 
     <!-- SETTINGS TAB (admin) -->
     <section id="tab-settings" class="tab-panel hidden">
       <form id="settings-form" class="settings-form">
-        <h3>Informa??es da loja</h3>
+        <h3>Informações da loja</h3>
         <label>Nome da loja<input id="s-name" maxlength="60" /></label>
         <label>Slogan<input id="s-tagline" maxlength="120" /></label>
         <label>Texto do topo (uma linha por frase)<textarea id="s-extra" rows="4" maxlength="1200"></textarea></label>
         <div class="grid-2">
-          <label>WhatsApp (s? n?meros, com 55 e DDD)<input id="s-whatsapp" inputmode="numeric" maxlength="20" placeholder="5583920027847" /></label>
-          <label>Endere?o / regi?o<input id="s-address" maxlength="160" /></label>
+          <label>WhatsApp (só números, com 55 e DDD)<input id="s-whatsapp" inputmode="numeric" maxlength="20" placeholder="5583920027847" /></label>
+          <label>Endereço / região<input id="s-address" maxlength="160" /></label>
         </div>
-        <label>Mensagem que o cliente v? ap?s o pedido<textarea id="s-checkoutMessage" rows="2" maxlength="400"></textarea></label>
+        <label>Mensagem que o cliente vê após o pedido<textarea id="s-checkoutMessage" rows="2" maxlength="400"></textarea></label>
 
-        <h3>Pagamento (uma op??o por linha)</h3>
-        <textarea id="s-payments" rows="3" placeholder="Pix (solicite a chave no atendimento)&#10;Cart?o via link de pagamento"></textarea>
+        <h3>Pagamento (uma opção por linha)</h3>
+        <textarea id="s-payments" rows="3" placeholder="Pix (solicite a chave no atendimento)&#10;Cartão via link de pagamento"></textarea>
 
         <h3>Formas de entrega</h3>
-        <p class="hint">Cada card ? uma op??o de frete na loja. Use as caixas <b>Itaja?</b>, <b>Joinville</b> e <b>Atacado</b> (Brasil). O pre?o aparece no checkout; na escolha da regi?o o cliente s? v? o nome.</p>
+        <p class="hint">Cada card é uma opção de frete na loja. Use as caixas <b>Itajaí</b>, <b>Joinville</b> e <b>Atacado</b> (Brasil). O preço aparece no checkout; na escolha da região o cliente só vê o nome.</p>
         <div id="shipping-list" class="shipping-list"></div>
         <button type="button" class="btn btn-ghost btn-sm" id="add-shipping-btn">+ Adicionar entrega</button>
 
@@ -349,7 +349,7 @@
           <label class="btn btn-ghost btn-sm" style="width:fit-content">Trocar banner<input type="file" id="s-banner-file" accept="image/jpeg,image/png,image/webp,image/gif" hidden /></label>
         </div>
 
-        <button type="submit" class="btn btn-gold">Salvar altera??es</button>
+        <button type="submit" class="btn btn-gold">Salvar alterações</button>
       </form>
     </section>
 
@@ -359,11 +359,11 @@
         <h3>Criar acesso</h3>
         <div class="grid-2">
           <label>Nome<input id="u-name" placeholder="Nome da pessoa" maxlength="60" required /></label>
-          <label>Usu?rio<input id="u-username" placeholder="usuario" autocapitalize="none" spellcheck="false" maxlength="40" required /></label>
+          <label>Usuário<input id="u-username" placeholder="usuario" autocapitalize="none" spellcheck="false" maxlength="40" required /></label>
         </div>
         <div class="grid-2">
-          <label>Senha<input id="u-password" type="password" placeholder="m?nimo 8 caracteres" autocomplete="new-password" required /></label>
-          <label>Permiss?o
+          <label>Senha<input id="u-password" type="password" placeholder="mínimo 8 caracteres" autocomplete="new-password" required /></label>
+          <label>Permissão
             <select id="u-role">
               <option value="editor">Editor (produtos e estoque)</option>
               <option value="admin">Administrador (tudo)</option>
@@ -371,12 +371,12 @@
           </label>
         </div>
         <label class="switch"><input type="checkbox" id="u-notify-push" checked /><span></span>Pode receber aviso de pedidos no celular/PC (push)</label>
-        <p class="hint">O editor n?o v? Acessos, Loja nem Logs. A pessoa ainda precisa ativar o push em Minha conta neste aparelho.</p>
+        <p class="hint">O editor não vê Acessos, Loja nem Logs. A pessoa ainda precisa ativar o push em Minha conta neste aparelho.</p>
         <button type="submit" class="btn btn-gold" style="width:fit-content">Criar acesso</button>
       </form>
       <div class="settings-form">
         <h3>Acessos ativos</h3>
-        <p class="hint">Se algu?m perdeu o celular do autenticador e tamb?m os c?digos de recupera??o, use <b>Zerar 2FA</b>. A pessoa configura o aplicativo de novo no pr?ximo login.</p>
+        <p class="hint">Se alguém perdeu o celular do autenticador e também os códigos de recuperação, use <b>Zerar 2FA</b>. A pessoa configura o aplicativo de novo no próximo login.</p>
         <div id="users-list" class="cat-list"></div>
         <div id="users-pager" class="list-pager"></div>
       </div>
@@ -384,21 +384,21 @@
 
     <!-- LOGS TAB (admin) -->
     <section id="tab-logs" class="tab-panel hidden">
-      <p class="hint">Registro de tudo que acontece no painel: entradas, edi??es, uploads, exclus?es e tentativas bloqueadas. Os alertas aparecem em vermelho.</p>
+      <p class="hint">Registro de tudo que acontece no painel: entradas, edições, uploads, exclusões e tentativas bloqueadas. Os alertas aparecem em vermelho.</p>
       <div class="log-stats" id="log-stats"></div>
       <div class="toolbar">
-        <input type="search" id="log-search" placeholder="Buscar por produto, usu?rio, IP..." />
-        <select id="log-action" class="toolbar-select"><option value="">Todas as a??es</option></select>
+        <input type="search" id="log-search" placeholder="Buscar por produto, usuário, IP..." />
+        <select id="log-action" class="toolbar-select"><option value="">Todas as ações</option></select>
       </div>
       <div class="log-filters">
-        <select id="log-actor" class="toolbar-select"><option value="">Todos os usu?rios</option></select>
+        <select id="log-actor" class="toolbar-select"><option value="">Todos os usuários</option></select>
         <select id="log-severity" class="toolbar-select">
           <option value="">Alertas e normais</option>
-          <option value="alert">S? alertas</option>
-          <option value="info">S? normais</option>
+          <option value="alert">Só alertas</option>
+          <option value="info">Só normais</option>
         </select>
         <label class="log-date">De<input type="date" id="log-from" /></label>
-        <label class="log-date">At?<input type="date" id="log-to" /></label>
+        <label class="log-date">Até<input type="date" id="log-to" /></label>
       </div>
       <div class="log-actions">
         <button type="button" class="btn btn-ghost btn-sm" id="log-refresh">Atualizar</button>
@@ -415,21 +415,21 @@
       <form id="profile-form" class="settings-form account-profile-form">
         <h3>Meu perfil</h3>
         <div class="grid-2 account-short-fields">
-          <label>Nome de exibi??o<input id="profile-name" maxlength="60" autocomplete="name" required /></label>
-          <label>Usu?rio de login<input id="profile-username" maxlength="40" autocapitalize="none" spellcheck="false" autocomplete="username" required /></label>
+          <label>Nome de exibição<input id="profile-name" maxlength="60" autocomplete="name" required /></label>
+          <label>Usuário de login<input id="profile-username" maxlength="40" autocapitalize="none" spellcheck="false" autocomplete="username" required /></label>
         </div>
         <button type="submit" class="btn btn-gold" style="width:fit-content">Salvar perfil</button>
       </form>
 
       <div class="settings-form push-prefs-box">
         <h3>Avisos de pedido</h3>
-        <p class="hint">Receba alerta na hora do pedido novo. No iPhone, instale o painel na Tela de In?cio (Safari) e ative neste aparelho.</p>
+        <p class="hint">Receba alerta na hora do pedido novo. No iPhone, instale o painel na Tela de Início (Safari) e ative neste aparelho.</p>
 
         <div class="admin-install-card" id="admin-install-card">
           <img src="/img/icon-192.png" alt="" width="48" height="48" />
           <div class="admin-install-text">
             <strong>Instalar painel no celular</strong>
-            <p id="admin-install-hint">Instale como aplicativo para liberar notifica??es e abrir sem digitar o link.</p>
+            <p id="admin-install-hint">Instale como aplicativo para liberar notificações e abrir sem digitar o link.</p>
           </div>
           <button type="button" class="btn btn-gold" id="admin-install-btn">Instalar app</button>
         </div>
@@ -446,20 +446,20 @@
 
         <details class="alt-notify-details">
           <summary>Alternativas (se o aviso do navegador falhar)</summary>
-          <p class="hint" style="margin-top:10px">Canais extras para backup ? s? use se precisar.</p>
+          <p class="hint" style="margin-top:10px">Canais extras para backup — só use se precisar.</p>
 
           <div class="admin-install-card" id="ntfy-card">
             <div class="admin-install-text" style="flex:1 1 220px">
               <strong>App ntfy</strong>
-              <p>App gr?tis na App Store/Play Store. Assine o t?pico e ligue o canal.</p>
-              <p class="hint" id="ntfy-topic-line" style="margin-top:8px">Carregando t?pico?</p>
+              <p>App grátis na App Store/Play Store. Assine o tópico e ligue o canal.</p>
+              <p class="hint" id="ntfy-topic-line" style="margin-top:8px">Carregando tópico…</p>
             </div>
             <div class="push-prefs-actions" style="flex-direction:column;align-items:stretch">
               <label class="switch"><input type="checkbox" id="ntfy-enabled" /><span></span>Ligar ntfy</label>
               <button type="button" class="btn btn-ghost" id="ntfy-guide-btn">Como configurar</button>
               <button type="button" class="btn btn-gold" id="ntfy-open-btn">Abrir / assinar</button>
               <button type="button" class="btn btn-ghost" id="ntfy-test-btn">Testar ntfy</button>
-              <button type="button" class="btn btn-ghost hidden" id="ntfy-rotate-btn">Gerar novo t?pico</button>
+              <button type="button" class="btn btn-ghost hidden" id="ntfy-rotate-btn">Gerar novo tópico</button>
             </div>
           </div>
 
@@ -471,8 +471,8 @@
                 <b>+34 694 23 41 84</b>, cole a API key abaixo e ligue o canal.
               </p>
               <div class="grid-2 account-short-fields" style="margin-top:8px" id="wa-notify-fields">
-                <label>Seu WhatsApp (55?)<input id="wa-notify-phone" inputmode="numeric" maxlength="20" placeholder="5547999990000" /></label>
-                <label>API key CallMeBot<input id="wa-notify-key" maxlength="40" placeholder="s? admin v?/salva" autocomplete="off" /></label>
+                <label>Seu WhatsApp (55…)<input id="wa-notify-phone" inputmode="numeric" maxlength="20" placeholder="5547999990000" /></label>
+                <label>API key CallMeBot<input id="wa-notify-key" maxlength="40" placeholder="só admin vê/salva" autocomplete="off" /></label>
               </div>
             </div>
             <div class="push-prefs-actions" style="flex-direction:column;align-items:stretch">
@@ -490,27 +490,27 @@
         <form id="editor-password-form" class="settings-form">
           <h3>Minha senha</h3>
           <label>Senha atual<input type="password" id="epw-current" autocomplete="current-password" /></label>
-          <label>Nova senha (m?nimo 8)<input type="password" id="epw-next" autocomplete="new-password" /></label>
+          <label>Nova senha (mínimo 8)<input type="password" id="epw-next" autocomplete="new-password" /></label>
           <button type="submit" class="btn btn-ghost" style="width:fit-content">Trocar minha senha</button>
         </form>
 
         <div class="settings-form">
-          <h3>Verifica??o em duas etapas</h3>
+          <h3>Verificação em duas etapas</h3>
           <p class="twofa-status" id="twofa-status">Carregando...</p>
           <div id="twofa-off-actions" class="hidden">
-            <p class="hint">Proteja o painel com um c?digo no celular (Google Authenticator, Authy, etc.).</p>
-            <button type="button" class="btn btn-gold" id="twofa-enable-btn" style="width:fit-content">Ligar verifica??o em 2 etapas</button>
+            <p class="hint">Proteja o painel com um código no celular (Google Authenticator, Authy, etc.).</p>
+            <button type="button" class="btn btn-gold" id="twofa-enable-btn" style="width:fit-content">Ligar verificação em 2 etapas</button>
           </div>
           <div id="twofa-setup-box" class="hidden">
-            <p class="hint">Escaneie o QR no autenticador e digite o c?digo de 6 n?meros.</p>
+            <p class="hint">Escaneie o QR no autenticador e digite o código de 6 números.</p>
             <div class="qr-box" style="margin:12px 0">
               <img id="account-twofa-qr" alt="QR Code 2FA" width="220" height="220" />
             </div>
-            <button type="button" class="btn-link" id="account-twofa-manual">N?o consigo escanear ? ver c?digo</button>
+            <button type="button" class="btn-link" id="account-twofa-manual">Não consigo escanear — ver código</button>
             <div class="qr-secret hidden" id="account-twofa-secret-wrap">
               <span id="account-twofa-secret"></span>
             </div>
-            <label>C?digo do aplicativo
+            <label>Código do aplicativo
               <input type="text" id="account-twofa-code" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" />
             </label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
@@ -519,13 +519,13 @@
             </div>
           </div>
           <div id="twofa-on-actions" class="hidden">
-            <p class="hint">Os c?digos de recupera??o s?o a sua chave reserva. Se sobrarem poucos, gere uma lista nova ? a antiga deixa de funcionar na hora.</p>
+            <p class="hint">Os códigos de recuperação são a sua chave reserva. Se sobrarem poucos, gere uma lista nova — a antiga deixa de funcionar na hora.</p>
             <form id="recovery-form" class="recovery-form">
               <label>Sua senha atual<input type="password" id="rc-password" autocomplete="current-password" /></label>
-              <button type="submit" class="btn btn-ghost" style="width:fit-content">Gerar novos c?digos de recupera??o</button>
+              <button type="submit" class="btn btn-ghost" style="width:fit-content">Gerar novos códigos de recuperação</button>
             </form>
             <div class="twofa-disable-box">
-              <p class="hint">Para desligar a verifica??o em duas etapas, confirme com a sua senha.</p>
+              <p class="hint">Para desligar a verificação em duas etapas, confirme com a sua senha.</p>
               <button type="button" class="btn btn-danger" id="twofa-disable-btn" style="width:fit-content">Desligar 2FA</button>
             </div>
           </div>
@@ -540,7 +540,7 @@
     <form class="admin-modal" id="product-form">
       <div class="admin-modal-head">
         <h3 id="product-form-title">Anunciar produto</h3>
-        <button type="button" class="modal-close" id="product-close">?</button>
+        <button type="button" class="modal-close" id="product-close">✕</button>
       </div>
       <div class="admin-modal-body">
         <div class="img-field">
@@ -552,11 +552,11 @@
         </div>
         <label>Nome do produto *<input id="p-name" maxlength="120" required /></label>
         <div class="grid-2">
-          <label>Pre?o (R$) *<input id="p-price" type="number" step="0.01" min="0" inputmode="decimal" required /></label>
-          <label>Pre?o promocional (opcional)<input id="p-promoPrice" type="number" step="0.01" min="0" inputmode="decimal" /></label>
+          <label>Preço (R$) *<input id="p-price" type="number" step="0.01" min="0" inputmode="decimal" required /></label>
+          <label>Preço promocional (opcional)<input id="p-promoPrice" type="number" step="0.01" min="0" inputmode="decimal" /></label>
         </div>
         <div class="grid-2">
-          <label>Custo (R$) ? o que voc? pagou<input id="p-cost" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Ex.: 120" /></label>
+          <label>Custo (R$) — o que você pagou<input id="p-cost" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Ex.: 120" /></label>
           <label>Estoque (vazio = sem controle)<input id="p-stock" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex.: 10" /></label>
         </div>
         <label>Tipo do produto
@@ -566,13 +566,13 @@
         <fieldset class="city-picks">
           <legend>Cidade onde esse produto aparece *</legend>
           <div id="p-cities" class="city-check-list"></div>
-          <p class="hint">Marque o caixa onde o produto aparece: Itaja? e regi?o, Joinville e regi?o ou Atacado (Brasil).</p>
+          <p class="hint">Marque o caixa onde o produto aparece: Itajaí e região, Joinville e região ou Atacado (Brasil).</p>
         </fieldset>
-        <label>Descri??o<textarea id="p-description" rows="7" maxlength="6000" placeholder="Detalhes do produto..."></textarea></label>
+        <label>Descrição<textarea id="p-description" rows="7" maxlength="6000" placeholder="Detalhes do produto..."></textarea></label>
 
         <h4 class="modal-section">Sabores desta marca</h4>
         <label>Nome do grupo de sabores
-          <input id="p-optionGroup" maxlength="60" placeholder="Ex.: SABOR COSMO ? deixe vazio se n?o tiver sabores" />
+          <input id="p-optionGroup" maxlength="60" placeholder="Ex.: SABOR COSMO — deixe vazio se não tiver sabores" />
         </label>
         <div id="p-options-wrap">
           <label>Sabores iniciais (um por linha)
@@ -581,12 +581,12 @@
           <p class="hint">Depois de salvar, abra <b>Sabores</b> para colocar a foto de cada um.</p>
         </div>
         <div id="p-options-manage" class="hidden">
-          <button type="button" class="btn btn-ghost" id="p-manage-flavors">?? Gerenciar sabores e fotos (<span id="p-flavor-count">0</span>)</button>
+          <button type="button" class="btn btn-ghost" id="p-manage-flavors">🎨 Gerenciar sabores e fotos (<span id="p-flavor-count">0</span>)</button>
         </div>
 
         <div class="switch-row">
           <label class="switch"><input type="checkbox" id="p-stockActive" /><span></span>Controlar estoque</label>
-          <label class="switch"><input type="checkbox" id="p-active" checked /><span></span>Vis?vel na loja</label>
+          <label class="switch"><input type="checkbox" id="p-active" checked /><span></span>Visível na loja</label>
           <label class="switch"><input type="checkbox" id="p-pin" /><span></span>Destaque</label>
         </div>
       </div>
@@ -605,7 +605,7 @@
           <h3>Sabores</h3>
           <p class="flavors-product" id="flavors-product"></p>
         </div>
-        <button type="button" class="modal-close" id="flavors-close">?</button>
+        <button type="button" class="modal-close" id="flavors-close">✕</button>
       </div>
       <div class="admin-modal-body">
         <p class="hint">Toque na miniatura para escolher a foto. Ative <b>Controlar estoque</b> em cada sabor e informe a quantidade; ao chegar a zero, ele fica esgotado automaticamente.</p>
@@ -613,7 +613,7 @@
           <input id="flavor-new" maxlength="80" placeholder="Nome do sabor (ex.: COSMIC BERRY)" />
           <button type="button" class="btn btn-gold btn-sm" id="flavor-add-btn">+ Adicionar</button>
         </div>
-        <button type="button" class="btn-link" id="flavor-bulk-toggle">Colar v?rios de uma vez</button>
+        <button type="button" class="btn-link" id="flavor-bulk-toggle">Colar vários de uma vez</button>
         <div class="flavor-bulk hidden" id="flavor-bulk">
           <textarea id="flavor-bulk-text" rows="5" placeholder="Um sabor por linha"></textarea>
           <button type="button" class="btn btn-ghost btn-sm" id="flavor-bulk-btn">Adicionar todos</button>
@@ -634,7 +634,7 @@
     <button type="button" class="dock-btn" id="dock-more">Mais</button>
   </nav>
   <div class="more-sheet hidden" id="more-sheet">
-    <button type="button" class="more-item admin-only" data-tab="promos">Promo??es</button>
+    <button type="button" class="more-item admin-only" data-tab="promos">Promoções</button>
     <button type="button" class="more-item admin-only" data-tab="coupons">Cupons</button>
     <button type="button" class="more-item admin-only" data-tab="categories">Categorias</button>
     <button type="button" class="more-item admin-only" data-tab="settings">Loja</button>
@@ -652,14 +652,14 @@
     <div class="admin-modal admin-modal-wide">
       <div class="admin-modal-head">
         <h3 id="order-modal-title">Pedido</h3>
-        <button type="button" class="modal-close" id="order-modal-close" aria-label="Fechar">?</button>
+        <button type="button" class="modal-close" id="order-modal-close" aria-label="Fechar">×</button>
       </div>
       <div class="admin-modal-body" id="order-modal-body"></div>
       <div class="admin-modal-foot" id="order-modal-foot"></div>
     </div>
   </div>
 
-  <!-- CONFIRMA??O -->
+  <!-- CONFIRMAÇÃO -->
   <div class="admin-modal-backdrop hidden" id="confirm-modal">
     <form class="admin-modal confirm-box" id="confirm-form">
       <div class="admin-modal-head">
@@ -683,16 +683,16 @@
     <div class="admin-modal admin-modal-wide">
       <div class="admin-modal-head">
         <h3 id="notify-guide-title">Como configurar</h3>
-        <button type="button" class="modal-close" id="notify-guide-close" aria-label="Fechar">?</button>
+        <button type="button" class="modal-close" id="notify-guide-close" aria-label="Fechar">×</button>
       </div>
       <div class="admin-modal-body" id="notify-guide-body"></div>
       <div class="admin-modal-foot">
-        <button type="button" class="btn btn-ghost" id="notify-guide-cancel">Agora n?o</button>
-        <button type="button" class="btn btn-gold" id="notify-guide-confirm">J? configurei ? ativar</button>
+        <button type="button" class="btn btn-ghost" id="notify-guide-cancel">Agora não</button>
+        <button type="button" class="btn btn-gold" id="notify-guide-confirm">Já configurei — ativar</button>
       </div>
     </div>
   </div>
 
-  <script src="/admin/admin.js?v=44"></script>
+  <script src="/admin/admin.js?v=45"></script>
 </body>
 </html>

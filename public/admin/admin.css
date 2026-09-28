@@ -1,4 +1,4 @@
-/* Admin ? GOLD SKULL */
+/* Admin — GOLD SKULL */
 .admin-body { background: var(--bg); min-height: 100vh; }
 
 /* login */
@@ -83,7 +83,7 @@
   border: 1px solid rgba(37, 211, 102, 0.4); border-radius: 999px; padding: 2px 8px;
 }
 
-/* promo??es */
+/* promoções */
 .promo-admin-list { display: flex; flex-direction: column; gap: 14px; }
 .promo-admin { border: 1px solid var(--line); border-radius: 16px; padding: 14px; background: var(--bg-2); }
 .promo-admin label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
@@ -251,7 +251,7 @@
 .admin-modal input:focus, .admin-modal textarea:focus, .admin-modal select:focus,
 .coupon-admin input:focus, .coupon-admin select:focus,
 .promo-admin input:focus, .promo-admin select:focus { border-color: var(--gold); }
-/* labels que s?o bot?o ou interruptor n?o viram coluna */
+/* labels que são botão ou interruptor não viram coluna */
 .settings-form label.switch { display: inline-flex; flex-direction: row; align-items: center; width: fit-content; color: var(--text); }
 .settings-form label.btn { display: inline-flex; flex-direction: row; align-items: center; width: fit-content; }
 .grid-2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
@@ -285,9 +285,9 @@
 }
 .alt-notify-details > summary::-webkit-details-marker { display: none; }
 .alt-notify-details > summary::before {
-  content: "? "; color: var(--gold-2);
+  content: "▸ "; color: var(--gold-2);
 }
-.alt-notify-details[open] > summary::before { content: "? "; }
+.alt-notify-details[open] > summary::before { content: "▾ "; }
 .alt-notify-details[open] > summary { color: var(--text); margin-bottom: 4px; }
 
 .coupon-admin-list { display: flex; flex-direction: column; gap: 14px; }
@@ -780,7 +780,7 @@
   .product-cards.mobile-only { display: flex !important; }
   .fab-add.mobile-only { display: block !important; }
 }
-/* ============ sabores (op??es do produto) ============ */
+/* ============ sabores (opções do produto) ============ */
 .modal-section {
   font-family: var(--font-display); font-size: 14px; color: var(--gold-2);
   margin: 6px 0 -4px; padding-top: 10px; border-top: 1px solid var(--line);
@@ -872,7 +872,7 @@
 .log-changes b { color: var(--text); }
 .log-row-meta { font-size: 10.5px; color: var(--text-2); margin-top: 6px; font-family: ui-monospace, monospace; }
 
-/* ============ confirma??o ============ */
+/* ============ confirmação ============ */
 .confirm-box { max-width: 420px; }
 .confirm-box .admin-modal-body p { font-size: 14px; line-height: 1.5; }
 .confirm-box .admin-modal-body label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--text-2); margin-top: 14px; }
@@ -893,7 +893,7 @@
 .panel.hidden ~ .admin-dock,
 .panel.hidden ~ .more-sheet { display: none !important; }
 
-/* cat?logo organizado por cidade */
+/* catálogo organizado por cidade */
 .catalog-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

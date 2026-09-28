@@ -1,4 +1,4 @@
-/* GOLD SKULL ? painel admin */
+/* GOLD SKULL — painel admin */
 (() => {
   const $ = (s) => document.querySelector(s);
   const money = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -78,22 +78,22 @@
     const to = Math.min(total, page * size);
     el.innerHTML = `
       <button type="button" class="btn btn-ghost btn-sm" data-pager="prev" ${page <= 1 ? 'disabled' : ''}>Anterior</button>
-      <span class="list-pager-info">${from}?${to} de ${total}</span>
-      <button type="button" class="btn btn-ghost btn-sm" data-pager="next" ${page >= pages ? 'disabled' : ''}>Pr?xima</button>
+      <span class="list-pager-info">${from}–${to} de ${total}</span>
+      <button type="button" class="btn btn-ghost btn-sm" data-pager="next" ${page >= pages ? 'disabled' : ''}>Próxima</button>
     `;
     el.querySelector('[data-pager="prev"]')?.addEventListener('click', () => onPage(page - 1));
     el.querySelector('[data-pager="next"]')?.addEventListener('click', () => onPage(page + 1));
   }
 
   const CASHBOXES = [
-    { id: 'Itaja?', title: 'Itaja? e regi?o', check: 'Itaja? e regi?o' },
-    { id: 'Joinville', title: 'Joinville e regi?o', check: 'Joinville e regi?o' },
+    { id: 'Itajaí', title: 'Itajaí e região', check: 'Itajaí e região' },
+    { id: 'Joinville', title: 'Joinville e região', check: 'Joinville e região' },
     { id: 'Atacado', title: 'Atacado', check: 'Atacado (Brasil)' },
   ];
   function cashboxOf(name) {
     const t = fold(name);
     if (t.includes('joinville')) return 'Joinville';
-    if (t.includes('itajai')) return 'Itaja?';
+    if (t.includes('itajai')) return 'Itajaí';
     if (/(brasil|atacado|outras|remoto|transportadora)/.test(t)) return 'Atacado';
     return CASHBOXES.some((c) => c.id === name) ? name : '';
   }
@@ -159,7 +159,7 @@
     toastTimer = setTimeout(() => el.classList.add('hidden'), 3200);
   }
 
-  /* ---------- confirma??o (substitui confirm/prompt) ---------- */
+  /* ---------- confirmação (substitui confirm/prompt) ---------- */
   let confirmResolve = null;
   function askConfirm({ title = 'Confirmar', text = '', danger = true, password = false, passLabel = 'Confirme sua senha', okLabel = 'Confirmar' }) {
     $('#confirm-title').textContent = title;
@@ -194,7 +194,7 @@
       const data = await res.json();
       state.csrf = data.csrf || '';
     } catch {
-      /* sem rede: o pr?ximo pedido mostra o erro */
+      /* sem rede: o próximo pedido mostra o erro */
     }
     return state.csrf;
   }
@@ -227,7 +227,7 @@
       state.csrf = data.csrf || state.csrf;
       if (data.stage === 'totp') showTotpStep('');
       else showLogin();
-      throw new Error(data.error || 'Sess?o encerrada. Entre de novo.');
+      throw new Error(data.error || 'Sessão encerrada. Entre de novo.');
     }
     if (res.status === 423) {
       showPasswordGate();
@@ -235,7 +235,7 @@
     }
     if (res.status === 428) {
       showTwoFactorSetup();
-      throw new Error(data.error || 'Configure a verifica??o em duas etapas.');
+      throw new Error(data.error || 'Configure a verificação em duas etapas.');
     }
     if (!res.ok) throw new Error(data.error || 'Algo deu errado.');
     return data;
@@ -265,8 +265,8 @@
     $('#totp-error').classList.add('hidden');
     $('#totp-code').value = '';
     $('#totp-hello').textContent = name
-      ? `Oi, ${name}. Digite o c?digo de 6 n?meros do seu aplicativo autenticador.`
-      : 'Abra o aplicativo autenticador e digite o c?digo de 6 n?meros.';
+      ? `Oi, ${name}. Digite o código de 6 números do seu aplicativo autenticador.`
+      : 'Abra o aplicativo autenticador e digite o código de 6 números.';
     setTimeout(() => $('#totp-code').focus(), 80);
   }
   function showPanel() {
@@ -277,7 +277,7 @@
     document.querySelectorAll('.admin-only').forEach((el) => el.classList.toggle('hidden', !isAdmin));
     document.querySelectorAll('.editor-only').forEach((el) => el.classList.toggle('hidden', isAdmin));
     const who = $('#whoami');
-    if (who) who.textContent = `${state.user.name || state.user.username} ? ${isAdmin ? 'admin' : 'editor'}`;
+    if (who) who.textContent = `${state.user.name || state.user.username} · ${isAdmin ? 'admin' : 'editor'}`;
     loadAll();
     startNotifPolling();
   }
@@ -313,7 +313,7 @@
     err.classList.add('hidden');
     const next = $('#pw-next').value;
     if (next !== $('#pw-next2').value) {
-      err.textContent = 'As duas senhas novas n?o s?o iguais.';
+      err.textContent = 'As duas senhas novas não são iguais.';
       err.classList.remove('hidden');
       return;
     }
@@ -344,7 +344,7 @@
       state.user = data.user;
       state.csrf = data.csrf || state.csrf;
       if (data.recoveryLeft != null && data.recoveryLeft <= 3) {
-        toast(`Aten??o: restam ${data.recoveryLeft} c?digo(s) de recupera??o. Gere novos em Minha conta.`);
+        toast(`Atenção: restam ${data.recoveryLeft} código(s) de recuperação. Gere novos em Minha conta.`);
       }
       if (data.mustChangePassword) showPasswordGate();
       else showPanel();
@@ -361,7 +361,7 @@
     input.placeholder = 'ABCDE-12345';
     input.value = '';
     input.focus();
-    $('#totp-hello').textContent = 'Digite um dos c?digos de recupera??o que voc? guardou. Cada c?digo funciona uma ?nica vez.';
+    $('#totp-hello').textContent = 'Digite um dos códigos de recuperação que você guardou. Cada código funciona uma única vez.';
   });
   $('#totp-cancel').addEventListener('click', async () => {
     await api('/api/logout', { method: 'POST' }).catch(() => {});
@@ -369,7 +369,7 @@
     showLogin();
   });
 
-  /* ---------- 2FA: configura??o obrigat?ria ---------- */
+  /* ---------- 2FA: configuração obrigatória ---------- */
   async function showTwoFactorSetup() {
     hideAllViews();
     $('#twofa-view').classList.remove('hidden');
@@ -390,7 +390,7 @@
   $('#twofa-copy').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText($('#twofa-secret').textContent);
-      toast('C?digo copiado');
+      toast('Código copiado');
     } catch {
       toast('Copie manualmente: ' + $('#twofa-secret').textContent);
     }
@@ -413,7 +413,7 @@
     }
   });
 
-  /* ---------- c?digos de recupera??o ---------- */
+  /* ---------- códigos de recuperação ---------- */
   let codesDone = null;
   function showRecoveryCodes(codes, onDone) {
     codesDone = onDone || null;
@@ -426,12 +426,12 @@
   function codesText() {
     const who = state.user ? `${state.user.name || state.user.username} (@${state.user.username})` : '';
     return [
-      'GOLD SKULL ? c?digos de recupera??o do painel',
+      'GOLD SKULL — códigos de recuperação do painel',
       who,
       `Gerados em ${new Date().toLocaleString('pt-BR')}`,
       '',
-      'Cada c?digo entra no lugar do aplicativo autenticador UMA ?nica vez.',
-      'Guarde impresso ou num cofre de senhas. N?o mande por WhatsApp.',
+      'Cada código entra no lugar do aplicativo autenticador UMA única vez.',
+      'Guarde impresso ou num cofre de senhas. Não mande por WhatsApp.',
       '',
       ...(state.lastCodes || []).map((c, i) => `${String(i + 1).padStart(2, '0')}. ${c}`),
     ].join('\n');
@@ -450,14 +450,14 @@
   $('#codes-copy').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText((state.lastCodes || []).join('\n'));
-      toast('C?digos copiados');
+      toast('Códigos copiados');
     } catch {
-      toast('N?o deu para copiar. Use "Baixar arquivo".');
+      toast('Não deu para copiar. Use "Baixar arquivo".');
     }
   });
   $('#codes-print').addEventListener('click', () => {
     const win = window.open('', '_blank');
-    if (!win) return toast('O navegador bloqueou a janela de impress?o.');
+    if (!win) return toast('O navegador bloqueou a janela de impressão.');
     win.document.write(`<pre style="font:14px/1.7 monospace">${esc(codesText())}</pre>`);
     win.document.close();
     win.print();
@@ -481,14 +481,14 @@
       const data = await api('/api/2fa/status');
       const left = data.recoveryLeft;
       el.textContent = data.enabled
-        ? `Ativa neste acesso. Voc? tem ${left} c?digo(s) de recupera??o sem uso.`
-        : 'Desligada ? voc? pode ligar abaixo.';
+        ? `Ativa neste acesso. Você tem ${left} código(s) de recuperação sem uso.`
+        : 'Desligada — você pode ligar abaixo.';
       el.classList.toggle('twofa-status-warn', data.enabled && left <= 3);
       off?.classList.toggle('hidden', !!data.enabled);
       on?.classList.toggle('hidden', !data.enabled);
       setup?.classList.add('hidden');
     } catch {
-      el.textContent = 'N?o foi poss?vel checar agora.';
+      el.textContent = 'Não foi possível checar agora.';
     }
   }
 
@@ -502,10 +502,10 @@
   }
 
   async function ensureAdminServiceWorker() {
-    if (!('serviceWorker' in navigator)) throw new Error('Este navegador n?o suporta service worker.');
+    if (!('serviceWorker' in navigator)) throw new Error('Este navegador não suporta service worker.');
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     await navigator.serviceWorker.ready;
-    // iOS PWA: na 1? abertura o SW ativa mas ainda n?o controla a p?gina ? sem isso o subscribe falha em sil?ncio
+    // iOS PWA: na 1ª abertura o SW ativa mas ainda não controla a página — sem isso o subscribe falha em silêncio
     if (!navigator.serviceWorker.controller) {
       await new Promise((resolve) => {
         const done = () => resolve();
@@ -553,7 +553,7 @@
     if (isIosDevice()) {
       if (hint) {
         hint.textContent =
-          'No iPhone use o Safari: toque em Instalar app e siga Compartilhar ? Adicionar ? Tela de In?cio. Depois abra pelo ?cone GS Painel.';
+          'No iPhone use o Safari: toque em Instalar app e siga Compartilhar → Adicionar à Tela de Início. Depois abra pelo ícone GS Painel.';
       }
       if (btn) btn.textContent = 'Como instalar';
     } else if (hint) {
@@ -578,7 +578,7 @@
     window.addEventListener('appinstalled', () => {
       deferredPrompt = null;
       refreshAdminInstallUi();
-      toast('Painel instalado. Abra pelo ?cone e ative o push.');
+      toast('Painel instalado. Abra pelo ícone e ative o push.');
     });
 
     btn.addEventListener('click', async () => {
@@ -587,7 +587,7 @@
         const choice = await deferredPrompt.userChoice.catch(() => null);
         deferredPrompt = null;
         if (choice && choice.outcome === 'accepted') {
-          toast('Instalado! Abra pelo ?cone e toque em Ativar neste aparelho.');
+          toast('Instalado! Abra pelo ícone e toque em Ativar neste aparelho.');
           refreshAdminInstallUi();
         }
         return;
@@ -597,16 +597,16 @@
         if (iosHint) {
           iosHint.classList.remove('hidden');
           iosHint.innerHTML =
-            'No iPhone o push <b>s? funciona pelo app da Tela de In?cio</b>:<br>' +
-            '1. Abra este painel no <b>Safari</b> (n?o no Chrome)<br>' +
-            '2. Toque em <b>Compartilhar</b> ? <b>Adicionar ? Tela de In?cio</b><br>' +
-            '3. Se j? tinha um ?cone antigo, apague e adicione de novo<br>' +
-            '4. Abra pelo ?cone <b>GS Painel</b> ? Ativar neste aparelho ? Enviar teste';
+            'No iPhone o push <b>só funciona pelo app da Tela de Início</b>:<br>' +
+            '1. Abra este painel no <b>Safari</b> (não no Chrome)<br>' +
+            '2. Toque em <b>Compartilhar</b> → <b>Adicionar à Tela de Início</b><br>' +
+            '3. Se já tinha um ícone antigo, apague e adicione de novo<br>' +
+            '4. Abra pelo ícone <b>GS Painel</b> → Ativar neste aparelho → Enviar teste';
         }
-        toast('No Safari: Compartilhar ? Adicionar ? Tela de In?cio');
+        toast('No Safari: Compartilhar → Adicionar à Tela de Início');
         return;
       }
-      toast('No menu do navegador, escolha ?Instalar aplicativo? ou ?Adicionar ? tela inicial?.');
+      toast('No menu do navegador, escolha «Instalar aplicativo» ou «Adicionar à tela inicial».');
     });
   }
 
@@ -627,11 +627,11 @@
       if (ios && !standalone) {
         hint.classList.remove('hidden');
         hint.innerHTML =
-          'No iPhone o push <b>n?o funciona na aba</b> do Safari/Chrome. Use o bot?o <b>Instalar app</b> acima (Safari ? Tela de In?cio), abra pelo ?cone e ative aqui.';
+          'No iPhone o push <b>não funciona na aba</b> do Safari/Chrome. Use o botão <b>Instalar app</b> acima (Safari → Tela de Início), abra pelo ícone e ative aqui.';
       } else if (ios && standalone && !supported) {
         hint.classList.remove('hidden');
         hint.textContent =
-          'App instalado, mas este iOS ainda n?o libera Push. Atualize para iOS 16.4 ou mais novo.';
+          'App instalado, mas este iOS ainda não libera Push. Atualize para iOS 16.4 ou mais novo.';
       } else if (!ios || standalone) {
         hint.classList.add('hidden');
         hint.textContent = '';
@@ -640,11 +640,11 @@
 
     if (!supported) {
       if (ios && !standalone) {
-        el.textContent = 'No iPhone: instale o painel na Tela de In?cio para liberar o push.';
+        el.textContent = 'No iPhone: instale o painel na Tela de Início para liberar o push.';
       } else if (ios) {
-        el.textContent = 'Push indispon?vel neste iOS. Use iOS 16.4+ com o app da Tela de In?cio.';
+        el.textContent = 'Push indisponível neste iOS. Use iOS 16.4+ com o app da Tela de Início.';
       } else {
-        el.textContent = 'Este navegador n?o ' + 'suporta' + ' notifica??es push.';
+        el.textContent = 'Este navegador não ' + 'suporta' + ' notificações push.';
       }
       enableBtn?.setAttribute('disabled', 'disabled');
       return;
@@ -662,15 +662,15 @@
     const want = !!(data && data.notifyPushOrders);
     const serverOn = !!(data && data.pushEnabled);
     if (!want) {
-      el.textContent = 'Prefer?ncia desligada ? voc? n?o recebe avisos de pedido.';
+      el.textContent = 'Preferência desligada — você não recebe avisos de pedido.';
     } else if (perm === 'denied') {
-      el.textContent = 'Permiss?o bloqueada no navegador. Libere notifica??es nas configura??es do site.';
+      el.textContent = 'Permissão bloqueada no navegador. Libere notificações nas configurações do site.';
     } else if (localSub && serverOn) {
-      el.textContent = 'Pronto neste aparelho' + (data.pushCount > 1 ? ' ? ' + data.pushCount + ' aparelho(s) salvos' : '') + '.';
+      el.textContent = 'Pronto neste aparelho' + (data.pushCount > 1 ? ' · ' + data.pushCount + ' aparelho(s) salvos' : '') + '.';
     } else if (serverOn) {
-      el.textContent = 'H? ' + data.pushCount + ' aparelho(s) salvos. Neste aparelho ainda falta ativar.';
+      el.textContent = 'Há ' + data.pushCount + ' aparelho(s) salvos. Neste aparelho ainda falta ativar.';
     } else {
-      el.textContent = 'Flag ligada. Falta ativar neste aparelho e aceitar a permiss?o.';
+      el.textContent = 'Flag ligada. Falta ativar neste aparelho e aceitar a permissão.';
     }
   }
 
@@ -680,7 +680,7 @@
       await updatePushStatusUi(data);
     } catch {
       const el = $('#push-status');
-      if (el) el.textContent = 'N?o foi poss?vel checar as notifica??es agora.';
+      if (el) el.textContent = 'Não foi possível checar as notificações agora.';
     }
   }
 
@@ -731,16 +731,16 @@
     try {
       if (!pushApiAvailable()) {
         if (isIosDevice() && !isStandaloneApp()) {
-          return toast('No iPhone: adicione o painel ? Tela de In?cio e abra pelo ?cone.');
+          return toast('No iPhone: adicione o painel à Tela de Início e abra pelo ícone.');
         }
-        return toast('Este navegador n?o ' + 'suporta' + ' push.');
+        return toast('Este navegador não ' + 'suporta' + ' push.');
       }
       const perm = await Notification.requestPermission();
-      if (perm !== 'granted') return toast('Permiss?o negada ? n?o d? para ativar.');
+      if (perm !== 'granted') return toast('Permissão negada — não dá para ativar.');
       const reg = await ensureAdminServiceWorker();
       const { publicKey } = await api('/api/push/vapid-public-key');
       let sub = await reg.pushManager.getSubscription();
-      // No iPhone, reinscreve para garantir endpoint Apple fresco ap?s instalar o app
+      // No iPhone, reinscreve para garantir endpoint Apple fresco após instalar o app
       if (sub && isIosDevice()) {
         try {
           await sub.unsubscribe();
@@ -792,9 +792,9 @@
     try {
       if (!pushApiAvailable()) {
         if (isIosDevice() && !isStandaloneApp()) {
-          return toast('Abra o painel pelo ?cone da Tela de In?cio para testar o push.');
+          return toast('Abra o painel pelo ícone da Tela de Início para testar o push.');
         }
-        return toast('Push indispon?vel neste navegador.');
+        return toast('Push indisponível neste navegador.');
       }
       const reg = await ensureAdminServiceWorker();
       const sub = await reg.pushManager.getSubscription();
@@ -802,7 +802,7 @@
         method: 'POST',
         json: { endpoint: sub ? sub.endpoint : '' },
       });
-      toast('Teste enviado ? confira a notifica??o neste aparelho');
+      toast('Teste enviado — confira a notificação neste aparelho');
     } catch (err) {
       toast(err.message || 'Falha no teste de push');
     }
@@ -810,19 +810,19 @@
 
   $('#push-local-test-btn')?.addEventListener('click', async () => {
     try {
-      if (!('Notification' in window)) return toast('Sem API de notifica??o neste aparelho.');
+      if (!('Notification' in window)) return toast('Sem API de notificação neste aparelho.');
       if (!isStandaloneApp() && isIosDevice()) {
-        return toast('No iPhone: abra pelo ?cone da Tela de In?cio para o teste local.');
+        return toast('No iPhone: abra pelo ícone da Tela de Início para o teste local.');
       }
       const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
-      if (perm !== 'granted') return toast('Permiss?o negada.');
+      if (perm !== 'granted') return toast('Permissão negada.');
       const reg = await ensureAdminServiceWorker();
       await reg.showNotification('Teste local Gold Skull', {
-        body: 'Se viu isto, a permiss?o do iPhone est? ok. Se o teste remoto falhar, use as alternativas (ntfy/WhatsApp).',
+        body: 'Se viu isto, a permissão do iPhone está ok. Se o teste remoto falhar, use as alternativas (ntfy/WhatsApp).',
         icon: '/img/icon-192.png',
         tag: 'local-test',
       });
-      toast('Notifica??o local disparada');
+      toast('Notificação local disparada');
     } catch (err) {
       toast(err.message || 'Falha no teste local');
     }
@@ -840,7 +840,7 @@
     if (activate && pending.activate) {
       return confirmNotifyGuide(pending.channel);
     }
-    // cancelou ativa??o: desliga o switch visual
+    // cancelou ativação: desliga o switch visual
     if (pending.activate) {
       if (pending.channel === 'ntfy' && $('#ntfy-enabled')) $('#ntfy-enabled').checked = false;
       if (pending.channel === 'whatsapp' && $('#wa-notify-enabled')) $('#wa-notify-enabled').checked = false;
@@ -851,7 +851,7 @@
     try {
       if (channel === 'ntfy') {
         await saveNotifyChannels({ ntfyEnabled: true });
-        toast('ntfy ligado ? use Testar ntfy para conferir');
+        toast('ntfy ligado — use Testar ntfy para conferir');
       } else if (channel === 'whatsapp') {
         const phone = ($('#wa-notify-phone')?.value || '').replace(/\D/g, '');
         const key = ($('#wa-notify-key')?.value || '').trim();
@@ -859,12 +859,12 @@
         if (key) patch.whatsappApiKey = key;
         await saveNotifyChannels(patch);
         if ($('#wa-notify-key')) $('#wa-notify-key').value = '';
-        toast('WhatsApp de avisos ligado ? use Testar WhatsApp');
+        toast('WhatsApp de avisos ligado — use Testar WhatsApp');
       }
     } catch (err) {
       if (channel === 'ntfy' && $('#ntfy-enabled')) $('#ntfy-enabled').checked = false;
       if (channel === 'whatsapp' && $('#wa-notify-enabled')) $('#wa-notify-enabled').checked = false;
-      toast(err.message || 'N?o foi poss?vel ativar');
+      toast(err.message || 'Não foi possível ativar');
     }
   }
 
@@ -878,20 +878,20 @@
 
     notifyGuidePending = { channel, activate: !!activate };
     if (confirmBtn) {
-      confirmBtn.textContent = activate ? 'J? configurei ? ativar' : 'Entendi';
+      confirmBtn.textContent = activate ? 'Já configurei — ativar' : 'Entendi';
       confirmBtn.classList.toggle('hidden', false);
     }
     if (cancelBtn) {
-      cancelBtn.textContent = activate ? 'Agora n?o' : 'Fechar';
+      cancelBtn.textContent = activate ? 'Agora não' : 'Fechar';
       cancelBtn.classList.toggle('hidden', !activate);
     }
 
     if (channel === 'ntfy') {
       if (title) title.textContent = 'Configurar avisos com ntfy (iPhone)';
-      const topic = (notifyChannelsState && notifyChannelsState.ntfyTopic) || '?';
+      const topic = (notifyChannelsState && notifyChannelsState.ntfyTopic) || '—';
       const url = (notifyChannelsState && notifyChannelsState.ntfySubscribeUrl) || '';
       body.innerHTML = `
-        <p class="notify-guide-intro">O ntfy ? um app gr?tis que recebe o aviso de pedido e mostra na tela de bloqueio do iPhone ? como um app nativo.</p>
+        <p class="notify-guide-intro">O ntfy é um app grátis que recebe o aviso de pedido e mostra na tela de bloqueio do iPhone — como um app nativo.</p>
         <ol class="notify-guide-steps">
           <li>
             <span class="step-num">1</span>
@@ -903,66 +903,66 @@
           <li>
             <span class="step-num">2</span>
             <div>
-              <strong>Abra o app e permita notifica??es</strong>
-              <p>Na primeira abertura, o iPhone pergunta se pode enviar avisos. Toque em <b>Permitir</b>. Se j? recusou: Ajustes ? Notifica??es ? ntfy ? Permitir.</p>
+              <strong>Abra o app e permita notificações</strong>
+              <p>Na primeira abertura, o iPhone pergunta se pode enviar avisos. Toque em <b>Permitir</b>. Se já recusou: Ajustes → Notificações → ntfy → Permitir.</p>
             </div>
           </li>
           <li>
             <span class="step-num">3</span>
             <div>
-              <strong>Assine o t?pico da loja</strong>
-              <p>No ntfy, toque em <b>+</b> (ou Subscribe) e cole exatamente este t?pico:</p>
+              <strong>Assine o tópico da loja</strong>
+              <p>No ntfy, toque em <b>+</b> (ou Subscribe) e cole exatamente este tópico:</p>
               <code>${esc(topic)}</code>
-              ${url ? `<p style="margin-top:8px">Ou toque em <b>Abrir / assinar no celular</b> no painel ? o link j? leva ao t?pico certo.</p>` : ''}
+              ${url ? `<p style="margin-top:8px">Ou toque em <b>Abrir / assinar no celular</b> no painel — o link já leva ao tópico certo.</p>` : ''}
             </div>
           </li>
           <li>
             <span class="step-num">4</span>
             <div>
               <strong>Volte aqui e ative</strong>
-              <p>Confirme neste modal (ou ligue o interruptor <b>Ligar ntfy</b>). Depois use <b>Testar ntfy</b> ? deve aparecer um aviso no iPhone em poucos segundos.</p>
+              <p>Confirme neste modal (ou ligue o interruptor <b>Ligar ntfy</b>). Depois use <b>Testar ntfy</b> — deve aparecer um aviso no iPhone em poucos segundos.</p>
             </div>
           </li>
         </ol>
-        <p class="notify-guide-note">Dica: o app ntfy pode ficar fechado. Quando chegar pedido, o servidor avisa o ntfy e o iPhone mostra a notifica??o.</p>
+        <p class="notify-guide-note">Dica: o app ntfy pode ficar fechado. Quando chegar pedido, o servidor avisa o ntfy e o iPhone mostra a notificação.</p>
       `;
     } else {
       if (title) title.textContent = 'Configurar avisos no WhatsApp (iPhone)';
       body.innerHTML = `
-        <p class="notify-guide-intro">Cada pedido novo chega como mensagem no WhatsApp. O iPhone notifica pelo pr?prio WhatsApp.</p>
+        <p class="notify-guide-intro">Cada pedido novo chega como mensagem no WhatsApp. O iPhone notifica pelo próprio WhatsApp.</p>
         <ol class="notify-guide-steps">
           <li>
             <span class="step-num">1</span>
             <div>
               <strong>Abra o WhatsApp no iPhone</strong>
-              <p>Use o mesmo n?mero que voc? quer receber os avisos de pedido.</p>
+              <p>Use o mesmo número que você quer receber os avisos de pedido.</p>
             </div>
           </li>
           <li>
             <span class="step-num">2</span>
             <div>
-              <strong>Autorize o CallMeBot (s? uma vez)</strong>
+              <strong>Autorize o CallMeBot (só uma vez)</strong>
               <p>Adicione o contato <b>+34 694 23 41 84</b> e, no WhatsApp, envie exatamente esta frase:</p>
               <code>I allow callmebot to send me messages</code>
-              <p style="margin-top:8px">O bot responde com uma <b>API key</b> (um c?digo). Guarde esse c?digo. Se n?o vier em ~2 minutos, tente de novo no dia seguinte.</p>
+              <p style="margin-top:8px">O bot responde com uma <b>API key</b> (um código). Guarde esse código. Se não vier em ~2 minutos, tente de novo no dia seguinte.</p>
             </div>
           </li>
           <li>
             <span class="step-num">3</span>
             <div>
               <strong>Preencha no painel</strong>
-              <p>Em Minha conta ? WhatsApp: coloque seu n?mero com <b>55 + DDD + n?mero</b> (ex.: 5547999990000) e a <b>API key</b> que o bot mandou. Toque em <b>Salvar WhatsApp</b>.</p>
+              <p>Em Minha conta → WhatsApp: coloque seu número com <b>55 + DDD + número</b> (ex.: 5547999990000) e a <b>API key</b> que o bot mandou. Toque em <b>Salvar WhatsApp</b>.</p>
             </div>
           </li>
           <li>
             <span class="step-num">4</span>
             <div>
               <strong>Ative e teste</strong>
-              <p>Confirme neste modal (ou ligue <b>Ligar WhatsApp</b>). Depois use <b>Testar WhatsApp</b> ? a mensagem de teste deve chegar no chat.</p>
+              <p>Confirme neste modal (ou ligue <b>Ligar WhatsApp</b>). Depois use <b>Testar WhatsApp</b> — a mensagem de teste deve chegar no chat.</p>
             </div>
           </li>
         </ol>
-        <p class="notify-guide-note">Importante: o CallMeBot ? um servi?o externo gratuito. Se o bot n?o responder, tente de novo em alguns minutos ou use o ntfy.</p>
+        <p class="notify-guide-note">Importante: o CallMeBot é um serviço externo gratuito. Se o bot não responder, tente de novo em alguns minutos ou use o ntfy.</p>
       `;
     }
 
@@ -980,8 +980,8 @@
       if ($('#wa-notify-phone')) $('#wa-notify-phone').value = data.whatsappPhone || '';
       if (topicLine) {
         topicLine.innerHTML = data.ntfySubscribeUrl
-          ? `T?pico: <code style="word-break:break-all">${esc(data.ntfyTopic)}</code>`
-          : 'T?pico ainda n?o gerado.';
+          ? `Tópico: <code style="word-break:break-all">${esc(data.ntfyTopic)}</code>`
+          : 'Tópico ainda não gerado.';
       }
       const isAdmin = state.user && state.user.role === 'admin';
       $('#ntfy-rotate-btn')?.classList.toggle('hidden', !isAdmin);
@@ -995,11 +995,11 @@
         if (data.whatsappEnabled && data.whatsappConfigured) parts.push('WhatsApp ligado');
         else if (data.whatsappEnabled) parts.push('WhatsApp ligado (falta API key)');
         status.textContent = parts.length
-          ? `Canais ativos: ${parts.join(' ? ')}`
-          : 'Nenhuma alternativa ligada ? o aviso principal ? o do navegador.';
+          ? `Canais ativos: ${parts.join(' · ')}`
+          : 'Nenhuma alternativa ligada — o aviso principal é o do navegador.';
       }
     } catch (err) {
-      if (status) status.textContent = err.message || 'N?o deu para carregar os canais.';
+      if (status) status.textContent = err.message || 'Não deu para carregar os canais.';
     }
   }
 
@@ -1013,10 +1013,10 @@
   $('#ntfy-enabled')?.addEventListener('change', async (e) => {
     if (!(state.user && state.user.role === 'admin')) {
       e.target.checked = !e.target.checked;
-      return toast('S? admin liga/desliga o ntfy.');
+      return toast('Só admin liga/desliga o ntfy.');
     }
     if (e.target.checked) {
-      // n?o salva ainda ? abre o guia; ativa s? se confirmar
+      // não salva ainda — abre o guia; ativa só se confirmar
       e.target.checked = true;
       openNotifyGuide('ntfy', { activate: true });
       return;
@@ -1034,15 +1034,15 @@
 
   $('#ntfy-open-btn')?.addEventListener('click', () => {
     const url = notifyChannelsState && notifyChannelsState.ntfySubscribeUrl;
-    if (!url) return toast('T?pico ainda n?o dispon?vel ? atualize a p?gina.');
+    if (!url) return toast('Tópico ainda não disponível — atualize a página.');
     window.open(url, '_blank', 'noopener');
-    toast('Abra o app ntfy e assine esse t?pico (ou use o link aberto).');
+    toast('Abra o app ntfy e assine esse tópico (ou use o link aberto).');
   });
 
   $('#ntfy-test-btn')?.addEventListener('click', async () => {
     try {
       await api('/api/notify-channels/test', { method: 'POST', json: { channel: 'ntfy' } });
-      toast('Teste ntfy enviado ? confira o app ntfy no iPhone');
+      toast('Teste ntfy enviado — confira o app ntfy no iPhone');
     } catch (err) {
       toast(err.message || 'Falha no teste ntfy');
     }
@@ -1050,10 +1050,10 @@
 
   $('#ntfy-rotate-btn')?.addEventListener('click', async () => {
     if (!(state.user && state.user.role === 'admin')) return;
-    if (!confirm('Gerar novo t?pico? Quem j? assinou o antigo precisa assinar de novo.')) return;
+    if (!confirm('Gerar novo tópico? Quem já assinou o antigo precisa assinar de novo.')) return;
     try {
       await saveNotifyChannels({ rotateNtfyTopic: true });
-      toast('Novo t?pico gerado');
+      toast('Novo tópico gerado');
     } catch (err) {
       toast(err.message);
     }
@@ -1062,7 +1062,7 @@
   $('#wa-notify-enabled')?.addEventListener('change', async (e) => {
     if (!(state.user && state.user.role === 'admin')) {
       e.target.checked = !e.target.checked;
-      return toast('S? admin liga/desliga o WhatsApp.');
+      return toast('Só admin liga/desliga o WhatsApp.');
     }
     if (e.target.checked) {
       e.target.checked = true;
@@ -1081,7 +1081,7 @@
   $('#wa-notify-guide-btn')?.addEventListener('click', () => openNotifyGuide('whatsapp', { activate: false }));
 
   $('#wa-notify-save-btn')?.addEventListener('click', async () => {
-    if (!(state.user && state.user.role === 'admin')) return toast('S? admin salva.');
+    if (!(state.user && state.user.role === 'admin')) return toast('Só admin salva.');
     try {
       const patch = {
         whatsappPhone: $('#wa-notify-phone')?.value || '',
@@ -1100,7 +1100,7 @@
   $('#wa-notify-test-btn')?.addEventListener('click', async () => {
     try {
       await api('/api/notify-channels/test', { method: 'POST', json: { channel: 'whatsapp' } });
-      toast('Teste WhatsApp enviado ? confira as mensagens');
+      toast('Teste WhatsApp enviado — confira as mensagens');
     } catch (err) {
       toast(err.message || 'Falha no teste WhatsApp');
     }
@@ -1163,8 +1163,8 @@
 
   $('#twofa-disable-btn')?.addEventListener('click', async () => {
     const { ok, password } = await askConfirm({
-      title: 'Desligar verifica??o em duas etapas',
-      text: 'No pr?ximo login o painel n?o vai mais pedir o c?digo do autenticador. Confirme com a sua senha.',
+      title: 'Desligar verificação em duas etapas',
+      text: 'No próximo login o painel não vai mais pedir o código do autenticador. Confirme com a sua senha.',
       password: true,
       okLabel: 'Desligar 2FA',
       danger: true,
@@ -1175,7 +1175,7 @@
       if (data.user) state.user = { ...state.user, ...data.user };
       toast('2FA desligada');
       if (data.needs2faSetup) {
-        toast('Esta loja exige 2FA ? configure de novo para continuar.');
+        toast('Esta loja exige 2FA — configure de novo para continuar.');
         location.reload();
         return;
       }
@@ -1188,8 +1188,8 @@
   async function resetUserTwoFactor(id) {
     const u = state.users.find((x) => x.id === id);
     const { ok, password } = await askConfirm({
-      title: 'Zerar verifica??o em duas etapas',
-      text: `${u ? u.name : 'Esta pessoa'} vai configurar o aplicativo autenticador de novo no pr?ximo login. Confirme com a SUA senha.`,
+      title: 'Zerar verificação em duas etapas',
+      text: `${u ? u.name : 'Esta pessoa'} vai configurar o aplicativo autenticador de novo no próximo login. Confirme com a SUA senha.`,
       password: true,
       okLabel: 'Zerar 2FA',
     });
@@ -1236,7 +1236,7 @@
     try {
       localStorage.setItem(notifStorageKey(NOTIF_SEEN_KEY), String(ts));
     } catch {
-      /* navega??o privada ou storage bloqueado: segue sem lembrar */
+      /* navegação privada ou storage bloqueado: segue sem lembrar */
     }
   }
   function getDismissedNotifIds() {
@@ -1254,7 +1254,7 @@
       ids.add(String(id));
       localStorage.setItem(notifStorageKey(NOTIF_DISMISSED_KEY), JSON.stringify([...ids].slice(-200)));
     } catch {
-      /* navega??o privada ou storage bloqueado: segue sem lembrar */
+      /* navegação privada ou storage bloqueado: segue sem lembrar */
     }
   }
   function playNotifSound() {
@@ -1276,16 +1276,16 @@
       osc.stop(now + 0.4);
       osc.onended = () => ctx.close();
     } catch {
-      /* som ? s? um extra */
+      /* som é só um extra */
     }
   }
   function notifTimeAgo(iso) {
     const diff = Date.now() - new Date(iso).getTime();
     const min = Math.floor(diff / 60000);
     if (min < 1) return 'agora';
-    if (min < 60) return `h? ${min} min`;
+    if (min < 60) return `há ${min} min`;
     const h = Math.floor(min / 60);
-    if (h < 24) return `h? ${h}h`;
+    if (h < 24) return `há ${h}h`;
     return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   }
   function renderNotifBell() {
@@ -1312,8 +1312,8 @@
           <div class="notif-item-head"><span>${esc(o.targetName || 'Cliente')}</span><span class="notif-item-total">${esc(total)}</span></div>
           <div class="notif-item-detail">${esc(o.detail || '')}</div>
           <div class="notif-item-foot">
-            <span class="notif-item-when">${esc(notifTimeAgo(o.at))}${meta.phone ? ` ? ${esc(meta.phone)}` : ''}</span>
-            <button type="button" class="notif-dismiss" data-dismiss-notif="${esc(o.id)}" title="Excluir notifica??o" aria-label="Excluir notifica??o">?</button>
+            <span class="notif-item-when">${esc(notifTimeAgo(o.at))}${meta.phone ? ` · ${esc(meta.phone)}` : ''}</span>
+            <button type="button" class="notif-dismiss" data-dismiss-notif="${esc(o.id)}" title="Excluir notificação" aria-label="Excluir notificação">×</button>
           </div>
         </div>`;
           })
@@ -1372,7 +1372,7 @@
         toast(`Novo pedido: ${newest.targetName || 'cliente'}`);
       }
     } catch {
-      /* n?o deixa a checagem de pedidos travar o resto do painel */
+      /* não deixa a checagem de pedidos travar o resto do painel */
     }
   }
   function startNotifPolling() {
@@ -1515,7 +1515,7 @@
     const parts = [`${opts.length} sabores`];
     if (noPhoto) parts.push(`${noPhoto} sem foto`);
     if (off) parts.push(`${off} esgotado${off === 1 ? '' : 's'}`);
-    return parts.join(' ? ');
+    return parts.join(' · ');
   }
 
   function cityNames() {
@@ -1524,12 +1524,12 @@
     const fromProducts = state.products.flatMap((p) => (p.cities || []).map(cashboxOf)).filter(Boolean);
     const seen = new Set();
     const out = [];
-    for (const id of ['Itaja?', 'Joinville', 'Atacado', ...fromSettings, ...fromApi, ...fromProducts]) {
+    for (const id of ['Itajaí', 'Joinville', 'Atacado', ...fromSettings, ...fromApi, ...fromProducts]) {
       if (!id || seen.has(id)) continue;
       seen.add(id);
       out.push(id);
     }
-    return out.length ? out : ['Itaja?', 'Joinville', 'Atacado'];
+    return out.length ? out : ['Itajaí', 'Joinville', 'Atacado'];
   }
 
   function productCities(p) {
@@ -1658,13 +1658,13 @@
     if (!tracking) {
       return `<div class="inline-stock inline-stock-off">
         <span class="stock-count off">Sem estoque</span>
-        <button type="button" class="btn-link stock-edit-link" data-act="edit" data-id="${esc(p.id)}">Ativar na edi??o</button>
+        <button type="button" class="btn-link stock-edit-link" data-act="edit" data-id="${esc(p.id)}">Ativar na edição</button>
       </div>`;
     }
     return `<div class="inline-stock" data-stock-id="${esc(p.id)}">
       <span class="stock-count ${lowStock ? 'low' : ''}" title="Quantidade atual">${qty} un.</span>
       <div class="qty-step" title="Quanto vai entrar ou sair">
-        <button type="button" data-act="qty-minus">?</button>
+        <button type="button" data-act="qty-minus">−</button>
         <span class="move-qty">1</span>
         <button type="button" data-act="qty-plus">+</button>
       </div>
@@ -1713,15 +1713,15 @@
       flavors ? `<small class="t-flavors">${esc(flavorSummary(p))}</small>` : ''
     }${chips ? `<div class="city-chips">${chips}</div>` : ''}</td>`;
     const statusCell = `<td><div class="status">
-      <button type="button" class="status-toggle ${st.visible ? 'on' : 'off'}" data-act="toggle-active" data-id="${esc(p.id)}" title="Vis?vel na loja">${st.visible ? 'Vis?vel' : 'Oculto'}</button>
-      <button type="button" class="status-toggle ${st.pin ? 'promo' : ''}" data-act="toggle-pin" data-id="${esc(p.id)}" title="Destaque">${st.pin ? '? Destaque' : '? Normal'}</button>
+      <button type="button" class="status-toggle ${st.visible ? 'on' : 'off'}" data-act="toggle-active" data-id="${esc(p.id)}" title="Visível na loja">${st.visible ? 'Visível' : 'Oculto'}</button>
+      <button type="button" class="status-toggle ${st.pin ? 'promo' : ''}" data-act="toggle-pin" data-id="${esc(p.id)}" title="Destaque">${st.pin ? '★ Destaque' : '☆ Normal'}</button>
       ${!stockMode && st.out ? '<span class="out">Esgotado</span>' : !stockMode && st.tracking ? `<span class="${p.stock <= 3 ? 'out' : 'on'}">${p.stock} un.</span>` : ''}
     </div></td>`;
     const acts = `<td><div class="t-actions">
-      <button class="icon-btn" data-act="flavors" data-id="${esc(p.id)}" title="Sabores e fotos">??</button>
-      <button class="icon-btn" data-act="edit" data-id="${esc(p.id)}" title="Editar">??</button>
-      <button class="icon-btn" data-act="dup" data-id="${esc(p.id)}" title="Duplicar">??</button>
-      <button class="icon-btn danger" data-act="del" data-id="${esc(p.id)}" title="Tirar">??</button>
+      <button class="icon-btn" data-act="flavors" data-id="${esc(p.id)}" title="Sabores e fotos">🎨</button>
+      <button class="icon-btn" data-act="edit" data-id="${esc(p.id)}" title="Editar">✏️</button>
+      <button class="icon-btn" data-act="dup" data-id="${esc(p.id)}" title="Duplicar">📋</button>
+      <button class="icon-btn danger" data-act="del" data-id="${esc(p.id)}" title="Tirar">🗑</button>
     </div></td>`;
 
     if (stockMode) {
@@ -1740,7 +1740,7 @@
         <tr>
           <td><img class="t-thumb img-hide-on-error" src="${esc(p.image)}" alt="" loading="lazy" /></td>
           ${nameCell}
-          <td class="t-cat t-cat-col">${esc(p.category || '?')}</td>
+          <td class="t-cat t-cat-col">${esc(p.category || '—')}</td>
           <td class="t-price">${money(st.promo ? p.promoPrice : p.price)}${st.promo ? `<small>${money(p.price)}</small>` : ''}</td>
           ${statusCell}
           ${acts}
@@ -1760,7 +1760,7 @@
             <div class="product-card-main">
               <button type="button" class="product-card-open" data-act="edit" data-id="${esc(p.id)}">
                 <span class="product-card-name">${esc(p.name)}</span>
-                <span class="product-card-meta">${esc(p.category || '?')}${st.out ? ' ? esgotado' : st.tracking ? ` ? ${p.stock} un.` : ''} ? ${st.visible ? 'vis?vel' : 'oculto'}</span>
+                <span class="product-card-meta">${esc(p.category || '—')}${st.out ? ' · esgotado' : st.tracking ? ` · ${p.stock} un.` : ''} · ${st.visible ? 'visível' : 'oculto'}</span>
                 ${chips ? `<span class="city-chips">${chips}</span>` : ''}
                 ${flavors ? `<span class="product-card-flavors">${esc(flavors)}</span>` : ''}
               </button>
@@ -1768,7 +1768,7 @@
             </div>
             <div class="product-card-side">
               <strong class="product-card-price">${money(st.promo ? p.promoPrice : p.price)}</strong>
-              <button type="button" class="icon-btn" data-act="flavors" data-id="${esc(p.id)}" title="Sabores">??</button>
+              <button type="button" class="icon-btn" data-act="flavors" data-id="${esc(p.id)}" title="Sabores">🎨</button>
             </div>
           </div>`;
   }
@@ -1797,7 +1797,7 @@
         return `<button type="button" class="catalog-stat ${state.cityFilter === city ? 'active' : ''}" data-city="${esc(city)}">
           <strong>${list.length}</strong>
           <span>${esc(cityLabel(city))}</span>
-          <small>${units} un. em estoque${low ? ` ? ${low} baixo` : ''}</small>
+          <small>${units} un. em estoque${low ? ` · ${low} baixo` : ''}</small>
         </button>`;
       })
       .join('');
@@ -1818,8 +1818,8 @@
     const count = $('#catalog-count');
     if (count) {
       count.textContent = state.cityFilter
-        ? `${list.length} produto${list.length === 1 ? '' : 's'} ? estoque de ${cityLabel(state.cityFilter)}`
-        : `${list.length} produto${list.length === 1 ? '' : 's'} ? toque numa caixa para estoque`;
+        ? `${list.length} produto${list.length === 1 ? '' : 's'} · estoque de ${cityLabel(state.cityFilter)}`
+        : `${list.length} produto${list.length === 1 ? '' : 's'} · toque numa caixa para estoque`;
     }
     const board = $('#catalog-board');
     if (!list.length) {
@@ -1836,8 +1836,8 @@
       const cats = sortTypeNames([...new Set(items.map((p) => p.category || 'Sem categoria'))]);
       const stockMode = !!state.cityFilter;
       const head = stockMode
-        ? '<thead><tr><th></th><th>Produto</th><th>Estoque</th><th>Pre?o</th><th>Status</th><th></th></tr></thead>'
-        : '<thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Pre?o</th><th>Status</th><th></th></tr></thead>';
+        ? '<thead><tr><th></th><th>Produto</th><th>Estoque</th><th>Preço</th><th>Status</th><th></th></tr></thead>'
+        : '<thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Status</th><th></th></tr></thead>';
       return cats
         .map((cat) => {
           const rows = items.filter((p) => (p.category || 'Sem categoria') === cat);
@@ -1873,7 +1873,7 @@
         if (!items.length) return '';
         const hidden = items.filter((p) => p.active === false).length;
         return `<details class="catalog-city" open>
-          <summary>${esc(cityLabel(city))} <em>${items.length} produto${items.length === 1 ? '' : 's'}${hidden ? ` ? ${hidden} oculto${hidden === 1 ? '' : 's'}` : ''}</em></summary>
+          <summary>${esc(cityLabel(city))} <em>${items.length} produto${items.length === 1 ? '' : 's'}${hidden ? ` · ${hidden} oculto${hidden === 1 ? '' : 's'}` : ''}</em></summary>
           <div class="catalog-city-body">${renderCatBlocks(items)}</div>
         </details>`;
       })
@@ -1901,7 +1901,7 @@
   async function duplicateProduct(id) {
     try {
       await api(`/api/products/${id}/duplicate`, { method: 'POST' });
-      toast('Produto duplicado (fica oculto at? voc? editar)');
+      toast('Produto duplicado (fica oculto até você editar)');
       await loadAll();
     } catch (err) {
       toast(err.message);
@@ -1975,29 +1975,29 @@
 
   function orderFootHint(o) {
     if (o.status === 'pending') return '';
-    if (o.status === 'approved') return `Aceito por ${esc(o.approvedBy || '?')}`;
-    if (o.status === 'shipped') return `Em rota ? ${esc(o.shippedBy || '?')}`;
-    if (o.status === 'completed') return `Finalizado ? ${esc(o.completedBy || '?')}`;
-    if (o.status === 'cancelled') return `Recusado por ${esc(o.cancelledBy || '?')}`;
-    if (o.status === 'returned') return `Devolvido ? ${esc(o.returnedBy || '?')}`;
+    if (o.status === 'approved') return `Aceito por ${esc(o.approvedBy || '—')}`;
+    if (o.status === 'shipped') return `Em rota · ${esc(o.shippedBy || '—')}`;
+    if (o.status === 'completed') return `Finalizado · ${esc(o.completedBy || '—')}`;
+    if (o.status === 'cancelled') return `Recusado por ${esc(o.cancelledBy || '—')}`;
+    if (o.status === 'returned') return `Devolvido · ${esc(o.returnedBy || '—')}`;
     return '';
   }
 
   function orderCardHtml(o, { compact } = {}) {
     if (compact) {
       const products = (o.items || [])
-        .map((it) => `${it.qty}x ${esc(it.name)}${it.option ? ` ? ${esc(it.option)}` : ''}`)
-        .join(' ? ');
+        .map((it) => `${it.qty}x ${esc(it.name)}${it.option ? ` · ${esc(it.option)}` : ''}`)
+        .join(' · ');
       return `<article class="order-kanban-card status-${esc(o.status)}" data-id="${esc(o.id)}" role="button" tabindex="0" title="Abrir detalhes">
         <strong class="order-kanban-name">${esc(o.customerName || 'Cliente')}</strong>
-        <span class="order-kanban-city">${esc(o.city || '?')}</span>
+        <span class="order-kanban-city">${esc(o.city || '—')}</span>
         <span class="order-kanban-products">${products || 'Sem itens'}</span>
         <strong class="order-kanban-total">${money(o.total)}</strong>
       </article>`;
     }
     const when = formatOrderWhen(o.createdAt);
     const items = (o.items || [])
-      .map((it) => `${it.qty}x ${esc(it.name)}${it.option ? ` (${esc(it.option)})` : ''} ? ${money(it.price * it.qty)}`)
+      .map((it) => `${it.qty}x ${esc(it.name)}${it.option ? ` (${esc(it.option)})` : ''} — ${money(it.price * it.qty)}`)
       .join('<br>');
     const pending = o.status === 'pending';
     const hint = orderFootHint(o);
@@ -2010,8 +2010,8 @@
         <time>${esc(when)}</time>
       </div>
       <div class="order-admin-meta">
-        ${esc(o.city || '?')} ? ${esc(o.address || 'Sem endere?o')}<br>
-        WhatsApp: ${esc(o.phone || '?')} ? ${esc(o.payment || 'Pagamento')}
+        ${esc(o.city || '—')} · ${esc(o.address || 'Sem endereço')}<br>
+        WhatsApp: ${esc(o.phone || '—')} · ${esc(o.payment || 'Pagamento')}
         ${o.couponCode ? `<br>Cupom: ${esc(o.couponCode)}` : ''}
         ${o.note ? `<br>Obs: ${esc(o.note)}` : ''}
       </div>
@@ -2184,7 +2184,7 @@
     const foot = $('#order-modal-foot');
     if (!modal || !body || !foot) return;
 
-    if (title) title.textContent = `Pedido ? ${orderStatusLabel(order.status)}`;
+    if (title) title.textContent = `Pedido · ${orderStatusLabel(order.status)}`;
     const items = (order.items || [])
       .map((it) => {
         const img = orderItemImage(it);
@@ -2203,12 +2203,12 @@
       })
       .join('');
     const timeline = [
-      order.createdAt ? `Recebido ? ${formatOrderWhen(order.createdAt)}` : '',
-      order.approvedAt ? `Aceito por ${order.approvedBy || '?'} ? ${formatOrderWhen(order.approvedAt)}` : '',
-      order.shippedAt ? `Em rota ? ${order.shippedBy || '?'} ? ${formatOrderWhen(order.shippedAt)}` : '',
-      order.completedAt ? `Finalizado ? ${order.completedBy || '?'} ? ${formatOrderWhen(order.completedAt)}` : '',
-      order.cancelledAt ? `Recusado por ${order.cancelledBy || '?'} ? ${formatOrderWhen(order.cancelledAt)}` : '',
-      order.returnedAt ? `Devolvido ? ${order.returnedBy || '?'} ? ${formatOrderWhen(order.returnedAt)}` : '',
+      order.createdAt ? `Recebido · ${formatOrderWhen(order.createdAt)}` : '',
+      order.approvedAt ? `Aceito por ${order.approvedBy || '—'} · ${formatOrderWhen(order.approvedAt)}` : '',
+      order.shippedAt ? `Em rota · ${order.shippedBy || '—'} · ${formatOrderWhen(order.shippedAt)}` : '',
+      order.completedAt ? `Finalizado · ${order.completedBy || '—'} · ${formatOrderWhen(order.completedAt)}` : '',
+      order.cancelledAt ? `Recusado por ${order.cancelledBy || '—'} · ${formatOrderWhen(order.cancelledAt)}` : '',
+      order.returnedAt ? `Devolvido · ${order.returnedBy || '—'} · ${formatOrderWhen(order.returnedAt)}` : '',
     ]
       .filter(Boolean)
       .map((line) => `<div>${esc(line)}</div>`)
@@ -2216,11 +2216,11 @@
 
     body.innerHTML = `
       <div class="order-detail-grid">
-        <div class="order-detail-row"><span>Cliente</span><div>${esc(order.customerName || '?')}</div></div>
-        <div class="order-detail-row"><span>WhatsApp</span><div>${esc(order.phone || '?')}</div></div>
-        <div class="order-detail-row"><span>Cidade</span><div>${esc(order.city || '?')}</div></div>
-        <div class="order-detail-row"><span>Endere?o</span><div>${esc(order.address || '?')}</div></div>
-        <div class="order-detail-row"><span>Pagamento</span><div>${esc(order.payment || '?')}</div></div>
+        <div class="order-detail-row"><span>Cliente</span><div>${esc(order.customerName || '—')}</div></div>
+        <div class="order-detail-row"><span>WhatsApp</span><div>${esc(order.phone || '—')}</div></div>
+        <div class="order-detail-row"><span>Cidade</span><div>${esc(order.city || '—')}</div></div>
+        <div class="order-detail-row"><span>Endereço</span><div>${esc(order.address || '—')}</div></div>
+        <div class="order-detail-row"><span>Pagamento</span><div>${esc(order.payment || '—')}</div></div>
         ${order.couponCode ? `<div class="order-detail-row"><span>Cupom</span><div>${esc(order.couponCode)}</div></div>` : ''}
         ${order.note ? `<div class="order-detail-row"><span>Obs.</span><div>${esc(order.note)}</div></div>` : ''}
         ${order.cashbackUsed ? `<div class="order-detail-row"><span>Cashback</span><div>${money(order.cashbackUsed)}</div></div>` : ''}
@@ -2264,8 +2264,8 @@
   async function runOrderAction(id, act, btn) {
     const confirmMap = {
       undo: { title: 'Desfazer pedido', text: 'O estoque e o Lucro voltam como antes (se houver baixa). O pedido volta para Recebido.', okLabel: 'Desfazer' },
-      return: { title: 'Marcar como devolvido', text: 'O estoque ser? devolvido e a venda sai do Lucro.', okLabel: 'Devolvido' },
-      cancel: { title: 'Recusar pedido', text: 'O pedido ser? arquivado sem mexer no estoque.', okLabel: 'Recusar' },
+      return: { title: 'Marcar como devolvido', text: 'O estoque será devolvido e a venda sai do Lucro.', okLabel: 'Devolvido' },
+      cancel: { title: 'Recusar pedido', text: 'O pedido será arquivado sem mexer no estoque.', okLabel: 'Recusar' },
     };
     if (confirmMap[act]) {
       const { ok } = await askConfirm(confirmMap[act]);
@@ -2288,7 +2288,7 @@
         toast('Pedido finalizado');
       } else if (act === 'return') {
         await api(`/api/orders/${encodeURIComponent(id)}/status`, { method: 'POST', json: { status: 'returned' } });
-        toast('Pedido devolvido ? estoque restaurado');
+        toast('Pedido devolvido · estoque restaurado');
         await loadAll();
       } else if (act === 'undo') {
         await api(`/api/orders/${encodeURIComponent(id)}/undo`, { method: 'POST', json: {} });
@@ -2387,7 +2387,7 @@
         return `<button type="button" class="stock-box-card" data-stock-city="${esc(city)}">
           <h3>${esc(cityLabel(city))}</h3>
           <p><strong>${items.length}</strong> produto${items.length === 1 ? '' : 's'}</p>
-          <p><strong>${units}</strong> un. controladas${low ? ` ? <strong>${low}</strong> baixo` : ''}</p>
+          <p><strong>${units}</strong> un. controladas${low ? ` · <strong>${low}</strong> baixo` : ''}</p>
         </button>`;
       })
       .join('');
@@ -2412,7 +2412,7 @@
     if (hub) hub.classList.add('hidden');
     if (detail) detail.classList.remove('hidden');
     const title = $('#stock-detail-title');
-    if (title) title.textContent = `Estoque ? ${cityLabel(state.stockCity)}`;
+    if (title) title.textContent = `Estoque · ${cityLabel(state.stockCity)}`;
     const list = stockList();
     const wrap = $('#stock-list');
     if (!wrap) return;
@@ -2429,22 +2429,22 @@
           <img class="img-hide-on-error" src="${esc(p.image || '')}" alt="" loading="lazy" />
           <div>
             <div class="stock-card-name">${esc(p.name)}</div>
-            <div class="stock-card-meta">${esc(p.category || '?')} ? <strong>${money(price)}</strong></div>
+            <div class="stock-card-meta">${esc(p.category || '—')} · <strong>${money(price)}</strong></div>
             <div class="${profit == null ? 'unit-profit missing' : 'unit-profit'}">${
               profit == null ? 'Informe o custo para ver o lucro' : `Lucro ${money(profit)} / un.`
             }</div>
           </div>
           <div class="stock-cost-row">
             <label>Custo (R$)
-              <input type="number" min="0" step="0.01" inputmode="decimal" class="stock-cost" value="${p.cost != null ? p.cost : ''}" placeholder="O que voc? pagou" />
+              <input type="number" min="0" step="0.01" inputmode="decimal" class="stock-cost" value="${p.cost != null ? p.cost : ''}" placeholder="O que você pagou" />
             </label>
           </div>
           <div class="stock-qty-line">
             <span class="stock-count ${!tracking ? 'off' : lowStock ? 'low' : ''}">${
-              tracking ? `Estoque ${qty}` : 'Sem estoque ? ative na edi??o'
+              tracking ? `Estoque ${qty}` : 'Sem estoque — ative na edição'
             }</span>
             <div class="qty-step">
-              <button type="button" data-act="qty-minus">?</button>
+              <button type="button" data-act="qty-minus">−</button>
               <span class="move-qty">1</span>
               <button type="button" data-act="qty-plus">+</button>
             </div>
@@ -2577,9 +2577,9 @@
     const totals = saleTotals(sales);
     const filterHint = [state.profitCity ? cityLabel(state.profitCity) : '', state.profitCat]
       .filter(Boolean)
-      .join(' ? ');
+      .join(' · ');
     $('#profit-cards').innerHTML = `
-      <div class="profit-card"><span>Faturamento${filterHint ? ` ? ${esc(filterHint)}` : ''}</span><strong>${money(totals.revenue)}</strong></div>
+      <div class="profit-card"><span>Faturamento${filterHint ? ` · ${esc(filterHint)}` : ''}</span><strong>${money(totals.revenue)}</strong></div>
       <div class="profit-card ok"><span>Lucro</span><strong>${money(totals.profit)}</strong></div>
       <div class="profit-card"><span>Vendas</span><strong>${totals.qty}</strong></div>
     `;
@@ -2621,7 +2621,7 @@
         .join('');
     }
     const warn = totals.missing
-      ? `<p class="hint">${totals.missing} venda${totals.missing === 1 ? '' : 's'} sem custo ? o lucro dessas ficou de fora. Preencha o custo no Estoque.</p>`
+      ? `<p class="hint">${totals.missing} venda${totals.missing === 1 ? '' : 's'} sem custo — o lucro dessas ficou de fora. Preencha o custo no Estoque.</p>`
       : totals.known
         ? `<p class="hint">Custo das vendas: ${money(totals.costSum)}</p>`
         : '';
@@ -2633,12 +2633,12 @@
             const when = new Date(e.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
             const kind = e.type === 'sale' ? 'Venda' : e.type === 'in' ? 'Entrada' : 'Baixa';
             const val =
-              e.type === 'sale' ? money((Number(e.price) || 0) * (e.qty || 0)) : `${e.type === 'in' ? '+' : '?'}${e.qty}`;
+              e.type === 'sale' ? money((Number(e.price) || 0) * (e.qty || 0)) : `${e.type === 'in' ? '+' : '−'}${e.qty}`;
             const extra =
               e.type === 'sale'
                 ? e.cost != null && e.cost !== ''
-                  ? ` ? lucro ${money(((Number(e.price) || 0) - (Number(e.cost) || 0)) * (e.qty || 0))}`
-                  : ' ? sem custo'
+                  ? ` · lucro ${money(((Number(e.price) || 0) - (Number(e.cost) || 0)) * (e.qty || 0))}`
+                  : ' · sem custo'
                 : '';
             const city = ledgerPrimaryCity(e);
             const cat = ledgerCategory(e);
@@ -2646,13 +2646,13 @@
             <div class="profit-row">
               <div class="profit-row-name">${esc(e.productName)}</div>
               <div class="profit-row-value ${esc(e.type)}">${val}</div>
-              <div class="profit-row-meta">${kind} ? ${esc(cityLabel(city))} ? <span class="type-chip">${esc(cat)}</span> ? ${e.qty} un. ? ${when}${extra}${e.userName ? ` ? ${esc(e.userName)}` : ''}
-                <button type="button" class="icon-btn danger undo-btn" data-undo="${esc(e.id)}" title="Desfazer">?</button>
+              <div class="profit-row-meta">${kind} · ${esc(cityLabel(city))} · <span class="type-chip">${esc(cat)}</span> · ${e.qty} un. · ${when}${extra}${e.userName ? ` · ${esc(e.userName)}` : ''}
+                <button type="button" class="icon-btn danger undo-btn" data-undo="${esc(e.id)}" title="Desfazer">↩</button>
               </div>
             </div>`;
           })
           .join('')
-      : '<p class="profit-empty">Nenhuma movimenta??o neste per?odo. Use Vendi no Estoque.</p>';
+      : '<p class="profit-empty">Nenhuma movimentação neste período. Use Vendi no Estoque.</p>';
     $('#profit-list').innerHTML = warn + list;
     $('#profit-list').querySelectorAll('[data-undo]').forEach((b) =>
       b.addEventListener('click', () => undoLedger(b.dataset.undo))
@@ -2665,7 +2665,7 @@
 
   async function undoLedger(id) {
     const { ok } = await askConfirm({
-      title: 'Desfazer movimenta??o',
+      title: 'Desfazer movimentação',
       text: 'O estoque volta como estava antes. Confirmar?',
       okLabel: 'Desfazer',
     });
@@ -2673,7 +2673,7 @@
     try {
       await api(`/api/ledger/${id}`, { method: 'DELETE' });
       await loadAll();
-      toast('Movimenta??o desfeita');
+      toast('Movimentação desfeita');
     } catch (err) {
       toast(err.message);
     }
@@ -2694,7 +2694,7 @@
     sel.innerHTML =
       '<option value="">Sem tipo</option>' +
       state.categories.map((c) => `<option value="${esc(c)}" ${selected === c ? 'selected' : ''}>${esc(c)}</option>`).join('') +
-      '<option value="__new">? Criar novo tipo...</option>';
+      '<option value="__new">➕ Criar novo tipo...</option>';
     $('#p-newcat-wrap').classList.add('hidden');
     $('#p-newcat').value = '';
   }
@@ -2721,7 +2721,7 @@
     $('#p-image-file').value = '';
     $('#p-image-hint').textContent = p && p.image ? 'manter foto atual' : 'nenhuma foto selecionada';
 
-    // Sabores: textarea s? ao criar; ao editar, gerenciador com fotos
+    // Sabores: textarea só ao criar; ao editar, gerenciador com fotos
     $('#p-options-wrap').classList.toggle('hidden', !!p);
     $('#p-options-manage').classList.toggle('hidden', !p);
     if (p) $('#p-flavor-count').textContent = (p.options || []).length;
@@ -2778,7 +2778,7 @@
     fd.append('cities', JSON.stringify(cities));
     fd.append('description', $('#p-description').value);
     fd.append('optionGroup', $('#p-optionGroup').value);
-    // Ao editar, os sabores s?o gerenciados na tela pr?pria (n?o sobrescreve fotos)
+    // Ao editar, os sabores são gerenciados na tela própria (não sobrescreve fotos)
     if (!editing) {
       fd.append(
         'options',
@@ -2819,7 +2819,7 @@
     if (!p) return;
     const { ok } = await askConfirm({
       title: 'Tirar produto',
-      text: `Tirar "${p.name}" da loja? As fotos dos sabores tamb?m s?o apagadas e n?o tem como voltar.`,
+      text: `Tirar "${p.name}" da loja? As fotos dos sabores também são apagadas e não tem como voltar.`,
       okLabel: 'Tirar da loja',
     });
     if (!ok) return;
@@ -2837,7 +2837,7 @@
     if (id) deleteProduct(id);
   });
 
-  /* ---------- sabores (op??es) ---------- */
+  /* ---------- sabores (opções) ---------- */
   function flavorProduct() {
     return state.products.find((p) => p.id === state.flavorProductId);
   }
@@ -2846,7 +2846,7 @@
     const p = state.products.find((x) => x.id === productId);
     if (!p) return;
     state.flavorProductId = productId;
-    $('#flavors-product').textContent = `${p.name}${p.optionGroup ? ` ? ${p.optionGroup}` : ''}`;
+    $('#flavors-product').textContent = `${p.name}${p.optionGroup ? ` · ${p.optionGroup}` : ''}`;
     $('#flavor-new').value = '';
     $('#flavor-bulk-text').value = '';
     $('#flavor-bulk').classList.add('hidden');
@@ -2867,7 +2867,7 @@
     const opts = p.options || [];
     const noPhoto = opts.filter((o) => !o.image).length;
     $('#flavors-count').textContent = opts.length
-      ? `${opts.length} sabor${opts.length === 1 ? '' : 'es'}${noPhoto ? ` ? ${noPhoto} sem foto` : ' ? todos com foto'}`
+      ? `${opts.length} sabor${opts.length === 1 ? '' : 'es'}${noPhoto ? ` · ${noPhoto} sem foto` : ' · todos com foto'}`
       : 'nenhum sabor ainda';
     $('#p-flavor-count').textContent = opts.length;
 
@@ -2887,18 +2887,18 @@
         <div class="flavor-main">
           <input class="flavor-title" value="${esc(o.title)}" maxlength="80" aria-label="Nome do sabor" />
           <div class="flavor-row-actions">
-            <button type="button" class="status-toggle ${soldOut ? 'off' : 'on'}" data-act="avail">${soldOut ? 'Esgotado' : 'Dispon?vel'}</button>
+            <button type="button" class="status-toggle ${soldOut ? 'off' : 'on'}" data-act="avail">${soldOut ? 'Esgotado' : 'Disponível'}</button>
             ${o.image ? '<button type="button" class="btn-link" data-act="rmimg">tirar foto</button>' : ''}
             <span class="flavor-order">
-              <button type="button" class="icon-btn" data-act="up" title="Subir" ${i === 0 ? 'disabled' : ''}>?</button>
-              <button type="button" class="icon-btn" data-act="down" title="Descer" ${i === opts.length - 1 ? 'disabled' : ''}>?</button>
+              <button type="button" class="icon-btn" data-act="up" title="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
+              <button type="button" class="icon-btn" data-act="down" title="Descer" ${i === opts.length - 1 ? 'disabled' : ''}>↓</button>
             </span>
-            <button type="button" class="icon-btn danger" data-act="del" title="Remover sabor">??</button>
+            <button type="button" class="icon-btn danger" data-act="del" title="Remover sabor">🗑</button>
           </div>
           <div class="flavor-stock-row">
             <label class="flavor-stock-toggle"><input type="checkbox" data-act="stock-toggle" ${stockOn ? 'checked' : ''} /> Controlar estoque</label>
             <label class="flavor-stock-input">Quantidade
-              <input type="number" min="0" max="1000000" step="1" inputmode="numeric" value="${stockOn ? stockQty : ''}" placeholder="?" data-act="stock" ${stockOn ? '' : 'disabled'} />
+              <input type="number" min="0" max="1000000" step="1" inputmode="numeric" value="${stockOn ? stockQty : ''}" placeholder="—" data-act="stock" ${stockOn ? '' : 'disabled'} />
             </label>
           </div>
         </div>
@@ -2942,7 +2942,7 @@
     });
   }
 
-  /** Atualiza o produto em mem?ria com a resposta do servidor. */
+  /** Atualiza o produto em memória com a resposta do servidor. */
   function applyFlavors(data) {
     const p = flavorProduct();
     if (!p) return;
@@ -3039,7 +3039,7 @@
     if (!opt) return;
     const { ok } = await askConfirm({
       title: 'Remover sabor',
-      text: `Remover "${opt.title}" de ${p.name}? A foto dele tamb?m sai.`,
+      text: `Remover "${opt.title}" de ${p.name}? A foto dele também sai.`,
       okLabel: 'Remover',
     });
     if (!ok) return;
@@ -3105,7 +3105,7 @@
         <div class="cat-row">
           <span class="cat-name">${esc(c)}</span>
           <span class="cat-count">${count} ${count === 1 ? 'produto' : 'produtos'}</span>
-          <button class="icon-btn danger" data-cat="${esc(c)}" title="Excluir">??</button>
+          <button class="icon-btn danger" data-cat="${esc(c)}" title="Excluir">🗑</button>
         </div>`;
         })
         .join('') || '<p class="hint">Nenhuma categoria ainda.</p>';
@@ -3119,7 +3119,7 @@
         if (!ok) return;
         try {
           await saveCategories(state.categories.filter((c) => c !== b.dataset.cat));
-          toast('Categoria exclu?da');
+          toast('Categoria excluída');
           await loadAll();
         } catch (err) {
           toast(err.message);
@@ -3130,7 +3130,7 @@
   $('#add-category-btn').addEventListener('click', async () => {
     const name = $('#new-category').value.trim();
     if (!name) return;
-    if (state.categories.some((c) => c.toLowerCase() === name.toLowerCase())) return toast('Essa categoria j? existe.');
+    if (state.categories.some((c) => c.toLowerCase() === name.toLowerCase())) return toast('Essa categoria já existe.');
     try {
       await saveCategories([...state.categories, name]);
       $('#new-category').value = '';
@@ -3166,17 +3166,17 @@
     return `
       <div class="ship-card-head">
         <strong>Entrega ${n}</strong>
-        <button type="button" class="icon-btn danger ship-remove" title="Remover">??</button>
+        <button type="button" class="icon-btn danger ship-remove" title="Remover">🗑</button>
       </div>
       <div class="ship-card-grid">
-        <label>Caixa / regi?o
-          <input class="ship-name" value="${esc(sh.name || '')}" maxlength="60" placeholder="Ex.: Itaja?" />
+        <label>Caixa / região
+          <input class="ship-name" value="${esc(sh.name || '')}" maxlength="60" placeholder="Ex.: Itajaí" />
         </label>
         <label>Frete (R$)
           <input class="ship-price" type="number" step="0.01" min="0" inputmode="decimal" value="${sh.price ?? ''}" placeholder="0" />
         </label>
         <label>Como aparece no checkout
-          <input class="ship-desc" value="${esc(sh.description || '')}" maxlength="160" placeholder="Ex.: Motoboy ? entrega r?pida" />
+          <input class="ship-desc" value="${esc(sh.description || '')}" maxlength="160" placeholder="Ex.: Motoboy — entrega rápida" />
         </label>
       </div>`;
   }
@@ -3258,15 +3258,15 @@
     }
   });
 
-  /* ---------- promo??es ---------- */
+  /* ---------- promoções ---------- */
   const PROMO_ACTIONS = [
-    ['catalogo', 'Rolar at? o cat?logo'],
+    ['catalogo', 'Rolar até o catálogo'],
     ['categoria', 'Abrir uma categoria'],
     ['produto', 'Abrir um produto'],
     ['whatsapp', 'Abrir o WhatsApp'],
   ];
 
-  /** Preenche o seletor de destino conforme a a??o escolhida. */
+  /** Preenche o seletor de destino conforme a ação escolhida. */
   function fillTargetSelect(select, action, current) {
     if (action === 'categoria') {
       select.innerHTML = state.categories.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
@@ -3314,7 +3314,7 @@
           },
         },
       });
-      toast('Faixa de promo??o salva');
+      toast('Faixa de promoção salva');
       await loadAll();
       switchTab('promos');
     } catch (err) {
@@ -3329,9 +3329,9 @@
     return `
       <div class="promo-admin" data-id="${esc(p.id || '')}">
         <div class="promo-admin-head">
-          <strong>Promo??o ${i + 1}</strong>
+          <strong>Promoção ${i + 1}</strong>
           <label class="switch"><input type="checkbox" class="pr-active" ${p.active === false ? '' : 'checked'} /><span></span>Ativa</label>
-          <button type="button" class="icon-btn danger" data-act="del" title="Remover">??</button>
+          <button type="button" class="icon-btn danger" data-act="del" title="Remover">🗑</button>
         </div>
         <div class="promo-admin-grid">
           <div class="promo-admin-img">
@@ -3345,12 +3345,12 @@
           <div class="promo-admin-fields">
             <div class="grid-2">
               <label>Selo (opcional)<input class="pr-badge" maxlength="24" value="${esc(p.badge || '')}" placeholder="Ex.: -20% HOJE" /></label>
-              <label>Texto do bot?o<input class="pr-ctaLabel" maxlength="30" value="${esc(p.ctaLabel || '')}" placeholder="Ex.: Aproveitar" /></label>
+              <label>Texto do botão<input class="pr-ctaLabel" maxlength="30" value="${esc(p.ctaLabel || '')}" placeholder="Ex.: Aproveitar" /></label>
             </div>
-            <label>T?tulo *<input class="pr-title" maxlength="70" value="${esc(p.title || '')}" placeholder="Ex.: Leve 3 pods e pague 2" /></label>
-            <label>Explica??o<input class="pr-subtitle" maxlength="160" value="${esc(p.subtitle || '')}" placeholder="Ex.: V?lido at? domingo, s? para Itaja?" /></label>
+            <label>Título *<input class="pr-title" maxlength="70" value="${esc(p.title || '')}" placeholder="Ex.: Leve 3 pods e pague 2" /></label>
+            <label>Explicação<input class="pr-subtitle" maxlength="160" value="${esc(p.subtitle || '')}" placeholder="Ex.: Válido até domingo, só para Itajaí" /></label>
             <div class="grid-2">
-              <label>Para onde o bot?o leva<select class="pr-action">${actionOpts}</select></label>
+              <label>Para onde o botão leva<select class="pr-action">${actionOpts}</select></label>
               <label class="pr-value-wrap hidden">Destino<select class="pr-value"></select></label>
             </div>
           </div>
@@ -3373,7 +3373,7 @@
     const del = row.querySelector('[data-act="del"]');
     if (del) {
       del.addEventListener('click', async () => {
-        const { ok } = await askConfirm({ title: 'Remover promo??o', text: 'Essa promo??o sai da loja.', okLabel: 'Remover' });
+        const { ok } = await askConfirm({ title: 'Remover promoção', text: 'Essa promoção sai da loja.', okLabel: 'Remover' });
         if (!ok) return;
         row.remove();
         savePromos();
@@ -3401,7 +3401,7 @@
       try {
         const data = await api(`/api/settings/promos/${row.dataset.id}/image`, { method: 'POST', body: fd });
         state.settings.promos = data.promos;
-        toast('Foto da promo??o enviada');
+        toast('Foto da promoção enviada');
         renderPromoAdmin();
       } catch (err) {
         toast(err.message);
@@ -3417,7 +3417,7 @@
     const wrap = $('#promo-list');
     wrap.innerHTML = list.length
       ? list.map((p, i) => promoRowHtml(p, i)).join('')
-      : '<p class="hint">Nenhuma promo??o ainda. Toque em <b>+ Nova promo??o</b>.</p>';
+      : '<p class="hint">Nenhuma promoção ainda. Toque em <b>+ Nova promoção</b>.</p>';
     wrap.querySelectorAll('.promo-admin').forEach((row, i) => {
       row.dataset.value = (list[i] && list[i].value) || '';
       wirePromoRow(row);
@@ -3451,7 +3451,7 @@
       const data = await api('/api/settings', { method: 'PUT', json: { promos: collectPromos() } });
       state.settings = data.settings || state.settings;
       renderPromoAdmin();
-      toast('Promo??es salvas');
+      toast('Promoções salvas');
     } catch (err) {
       toast(err.message);
     }
@@ -3459,7 +3459,7 @@
 
   $('#promo-add').addEventListener('click', () => {
     const list = state.settings.promos || [];
-    if (list.length >= 6) return toast('Seis promo??es j? ? bastante. Remova uma antes.');
+    if (list.length >= 6) return toast('Seis promoções já é bastante. Remova uma antes.');
     const wrap = $('#promo-list');
     if (!list.length) wrap.innerHTML = '';
     const div = document.createElement('div');
@@ -3479,7 +3479,7 @@
   /* ---------- cupons ---------- */
   const COUPON_TYPES = [
     { id: 'percent', label: 'Porcentagem (%)' },
-    { id: 'free_shipping', label: 'Frete gr?tis' },
+    { id: 'free_shipping', label: 'Frete grátis' },
     { id: 'gift', label: 'Brinde (jujuba)' },
   ];
 
@@ -3490,10 +3490,10 @@
         <div class="coupon-admin-head">
           <strong>Cupom ${idx + 1}</strong>
           <label class="check-row"><input type="checkbox" class="cp-active" ${c.active !== false ? 'checked' : ''} /> Ativo</label>
-          <button type="button" class="icon-btn danger cp-remove" title="Remover">??</button>
+          <button type="button" class="icon-btn danger cp-remove" title="Remover">🗑</button>
         </div>
         <div class="grid-2">
-          <label>C?digo<input class="cp-code" value="${esc(c.code || '')}" maxlength="30" placeholder="PROMO10" autocapitalize="characters" /></label>
+          <label>Código<input class="cp-code" value="${esc(c.code || '')}" maxlength="30" placeholder="PROMO10" autocapitalize="characters" /></label>
           <label>Tipo<select class="cp-type">${COUPON_TYPES.map((t) => `<option value="${t.id}" ${type === t.id ? 'selected' : ''}>${t.label}</option>`).join('')}</select></label>
         </div>
         <div class="grid-3 cp-fields-percent ${type === 'percent' ? '' : 'hidden'}">
@@ -3501,14 +3501,14 @@
         </div>
         <div class="grid-2 cp-fields-gift ${type === 'gift' ? '' : 'hidden'}">
           <label>Nome do brinde<input class="cp-gift-label" value="${esc(c.giftLabel || 'Jujuba de brinde')}" maxlength="80" /></label>
-          <label>Produto (opcional)<select class="cp-gift-product"><option value="">? S? texto no pedido ?</option>${state.products.map((p) => `<option value="${esc(p.id)}" ${c.giftProductId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
+          <label>Produto (opcional)<select class="cp-gift-product"><option value="">— Só texto no pedido —</option>${state.products.map((p) => `<option value="${esc(p.id)}" ${c.giftProductId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
         </div>
         <div class="grid-3">
-          <label>Pedido m?nimo (R$)<input class="cp-min" type="number" min="0" step="0.01" value="${c.minOrder ?? 0}" /></label>
+          <label>Pedido mínimo (R$)<input class="cp-min" type="number" min="0" step="0.01" value="${c.minOrder ?? 0}" /></label>
           <label>Limite de usos<input class="cp-max" type="number" min="0" step="1" value="${c.maxUses ?? ''}" placeholder="Ilimitado" /></label>
           <label>Validade<input class="cp-expires" type="date" value="${c.expiresAt ? String(c.expiresAt).slice(0, 10) : ''}" /></label>
         </div>
-        <p class="hint cp-usage">${c.usedCount ? `Usado ${c.usedCount} vez(es)` : 'Ainda n?o usado'}</p>
+        <p class="hint cp-usage">${c.usedCount ? `Usado ${c.usedCount} vez(es)` : 'Ainda não usado'}</p>
       </div>`;
   }
 
@@ -3575,7 +3575,7 @@
     $('#customers-list').innerHTML = (state.customers || []).slice(0, 50).map((c) => `
       <div class="cat-row">
         <span class="cat-name">${esc(c.name)} <small class="user-tag">${esc(c.phone)}</small></span>
-        <span class="cat-count">${money(c.cashbackBalance)} ? ${esc(c.referralCode)}</span>
+        <span class="cat-count">${money(c.cashbackBalance)} · ${esc(c.referralCode)}</span>
       </div>`).join('') || '<p class="hint">Nenhum cliente cadastrado ainda.</p>';
   }
 
@@ -3632,7 +3632,7 @@
           u.mustChangePassword ? '<small class="user-warn">senha pendente</small>' : ''
         }${
           u.twoFactor
-            ? `<small class="user-2fa">2FA ativo ? ${u.recoveryLeft} c?digo(s)</small>`
+            ? `<small class="user-2fa">2FA ativo · ${u.recoveryLeft} código(s)</small>`
             : '<small class="user-warn">2FA pendente</small>'
         }${
           u.notifyPushOrders ? '<small class="user-2fa">push pedidos</small>' : ''
@@ -3642,10 +3642,10 @@
         <span class="cat-count">${u.role === 'admin' ? 'Administrador' : 'Editor'}</span>
         ${
           u.id !== state.user.id
-            ? `<button class="icon-btn" data-act="reset" data-id="${esc(u.id)}" title="Redefinir senha">??</button>
-               ${u.twoFactor ? `<button class="icon-btn" data-act="reset2fa" data-id="${esc(u.id)}" title="Zerar 2FA">??</button>` : ''}
-               <button class="icon-btn danger" data-act="del" data-id="${esc(u.id)}" title="Excluir">??</button>`
-            : '<span class="cat-count">voc?</span>'
+            ? `<button class="icon-btn" data-act="reset" data-id="${esc(u.id)}" title="Redefinir senha">🔑</button>
+               ${u.twoFactor ? `<button class="icon-btn" data-act="reset2fa" data-id="${esc(u.id)}" title="Zerar 2FA">📵</button>` : ''}
+               <button class="icon-btn danger" data-act="del" data-id="${esc(u.id)}" title="Excluir">🗑</button>`
+            : '<span class="cat-count">você</span>'
         }
       </div>`
       )
@@ -3667,13 +3667,13 @@
     const u = state.users.find((x) => x.id === id);
     const { ok } = await askConfirm({
       title: 'Excluir acesso',
-      text: `Excluir o acesso de ${u ? u.name : 'usu?rio'}? Ele perde o painel na hora.`,
+      text: `Excluir o acesso de ${u ? u.name : 'usuário'}? Ele perde o painel na hora.`,
       okLabel: 'Excluir',
     });
     if (!ok) return;
     try {
       await api(`/api/users/${id}`, { method: 'DELETE' });
-      toast('Acesso exclu?do');
+      toast('Acesso excluído');
       await loadAll();
     } catch (err) {
       toast(err.message);
@@ -3684,9 +3684,9 @@
     const u = state.users.find((x) => x.id === id);
     const { ok, password } = await askConfirm({
       title: 'Redefinir senha',
-      text: `Defina a senha provis?ria de ${u ? u.name : 'usu?rio'} (m?nimo 8). Essa pessoa ter? que trocar no pr?ximo login.`,
+      text: `Defina a senha provisória de ${u ? u.name : 'usuário'} (mínimo 8). Essa pessoa terá que trocar no próximo login.`,
       password: true,
-      passLabel: 'Senha provis?ria',
+      passLabel: 'Senha provisória',
       danger: false,
       okLabel: 'Redefinir',
     });
@@ -3778,7 +3778,7 @@
     if (actionSel.dataset.filled !== String((meta.actions || []).length)) {
       const current = actionSel.value;
       actionSel.innerHTML =
-        '<option value="">Todas as a??es</option>' +
+        '<option value="">Todas as ações</option>' +
         (meta.actions || []).map((a) => `<option value="${esc(a.action)}">${esc(a.label)}</option>`).join('');
       actionSel.value = current;
       actionSel.dataset.filled = String((meta.actions || []).length);
@@ -3787,7 +3787,7 @@
     if (actorSel.dataset.filled !== String((meta.actors || []).length)) {
       const current = actorSel.value;
       actorSel.innerHTML =
-        '<option value="">Todos os usu?rios</option>' +
+        '<option value="">Todos os usuários</option>' +
         (meta.actors || []).map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
       actorSel.value = current;
       actorSel.dataset.filled = String((meta.actors || []).length);
@@ -3795,11 +3795,11 @@
   }
 
   function fmtValue(v) {
-    if (v === null || v === undefined || v === '') return '?';
-    if (typeof v === 'boolean') return v ? 'sim' : 'n?o';
-    if (Array.isArray(v)) return v.join(', ') || '?';
+    if (v === null || v === undefined || v === '') return '—';
+    if (typeof v === 'boolean') return v ? 'sim' : 'não';
+    if (Array.isArray(v)) return v.join(', ') || '—';
     if (typeof v === 'object') return JSON.stringify(v);
-    return String(v).length > 60 ? `${String(v).slice(0, 60)}?` : String(v);
+    return String(v).length > 60 ? `${String(v).slice(0, 60)}…` : String(v);
   }
 
   function renderLogs() {
@@ -3808,20 +3808,20 @@
     fillLogSelects(meta);
     $('#log-stats').innerHTML = `
       <div class="profit-card"><span>Registros guardados</span><strong>${stats.stored || 0}</strong></div>
-      <div class="profit-card"><span>A??es nas ?ltimas 24h</span><strong>${stats.last24h || 0}</strong></div>
+      <div class="profit-card"><span>Ações nas últimas 24h</span><strong>${stats.last24h || 0}</strong></div>
       <div class="profit-card ${stats.alerts24h ? 'bad' : 'ok'}"><span>Alertas em 24h</span><strong>${stats.alerts24h || 0}</strong></div>
       <div class="profit-card"><span>Logins / falhas (24h)</span><strong>${stats.logins24h || 0} / ${stats.failed24h || 0}</strong></div>`;
 
-    $('#log-total').textContent = `${meta.total || 0} registro(s) no filtro ? mostrando ${state.logs.length}`;
+    $('#log-total').textContent = `${meta.total || 0} registro(s) no filtro · mostrando ${state.logs.length}`;
     $('#log-more').classList.toggle('hidden', (meta.total || 0) <= state.logs.length);
 
     $('#log-list').innerHTML =
       state.logs
         .map((e) => {
           const when = new Date(e.at).toLocaleString('pt-BR');
-          const target = e.targetName ? ` ? ${esc(e.targetName)}` : '';
+          const target = e.targetName ? ` · ${esc(e.targetName)}` : '';
           const changes = (e.changes || [])
-            .map((c) => `<li><b>${esc(c.field)}</b>: ${esc(fmtValue(c.from))} ? ${esc(fmtValue(c.to))}</li>`)
+            .map((c) => `<li><b>${esc(c.field)}</b>: ${esc(fmtValue(c.from))} → ${esc(fmtValue(c.to))}</li>`)
             .join('');
           return `
         <article class="log-row ${e.severity === 'alert' ? 'alert' : ''}">
@@ -3829,12 +3829,12 @@
             <strong>${esc(e.label || e.action)}</strong>
             <span class="log-when">${esc(when)}</span>
           </div>
-          <div class="log-row-body">${esc(e.actorName || 'n?o identificado')}${
+          <div class="log-row-body">${esc(e.actorName || 'não identificado')}${
             e.actorRole && e.actorRole !== 'guest' ? ` (${esc(e.actorRole)})` : ''
           }${target}</div>
           ${e.detail ? `<div class="log-row-detail">${esc(e.detail)}</div>` : ''}
           ${changes ? `<ul class="log-changes">${changes}</ul>` : ''}
-          <div class="log-row-meta">${esc(e.ip || '?')} ? ${esc(e.method || '')} ${esc(e.route || '')}</div>
+          <div class="log-row-meta">${esc(e.ip || '—')} · ${esc(e.method || '')} ${esc(e.route || '')}</div>
         </article>`;
         })
         .join('') || '<p class="profit-empty">Nenhum registro com esses filtros.</p>';
@@ -3860,7 +3860,7 @@
   $('#log-clear').addEventListener('click', async () => {
     const { ok, password } = await askConfirm({
       title: 'Apagar logs',
-      text: 'Os registros atuais v?o para a pasta backups/ do servidor e a lista come?a de novo. Confirme com sua senha.',
+      text: 'Os registros atuais vão para a pasta backups/ do servidor e a lista começa de novo. Confirme com sua senha.',
       password: true,
       okLabel: 'Apagar',
     });
@@ -3894,7 +3894,7 @@
       if (data.mustChangePassword) showPasswordGate();
       else showPanel();
     } catch {
-      // api() j? mandou para a tela certa (login, c?digo ou 2FA)
+      // api() já mandou para a tela certa (login, código ou 2FA)
     }
   })();
 })();
