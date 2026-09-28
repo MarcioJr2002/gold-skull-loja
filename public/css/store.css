@@ -36,7 +36,6 @@ body.store::before {
     radial-gradient(60% 60% at 20% 0%, rgba(255, 196, 34, 0.16), transparent 70%),
     radial-gradient(50% 50% at 85% 10%, rgba(120, 90, 255, 0.1), transparent 70%);
   pointer-events: none;
-  animation: auraDrift 18s ease-in-out infinite alternate;
 }
 body.store::after {
   content: '';
@@ -46,10 +45,6 @@ body.store::after {
   background-size: 64px 64px;
   mask-image: radial-gradient(100% 60% at 50% 0%, #000 0%, transparent 75%);
   -webkit-mask-image: radial-gradient(100% 60% at 50% 0%, #000 0%, transparent 75%);
-}
-@keyframes auraDrift {
-  from { transform: translate3d(-2%, 0, 0) scale(1); }
-  to { transform: translate3d(3%, 2%, 0) scale(1.08); }
 }
 body.store > * { position: relative; z-index: 1; }
 
@@ -71,14 +66,11 @@ body.store .toast {
 /* ---------- aparecer no scroll ---------- */
 .reveal {
   opacity: 0;
-  transform: translateY(48px) scale(0.96);
-  filter: blur(10px);
+  transform: translateY(32px) scale(0.98);
   transition:
-    opacity 0.9s var(--ease),
-    transform 0.9s var(--ease),
-    filter 0.9s var(--ease);
+    opacity 0.6s var(--ease),
+    transform 0.6s var(--ease);
   transition-delay: var(--d, 0ms);
-  will-change: opacity, transform, filter;
 }
 .reveal.reveal-left {
   transform: translateX(-40px) translateY(18px) scale(0.97);
@@ -143,8 +135,8 @@ body.store .age-box p { color: var(--text-2); font-size: 14px; line-height: 1.55
 /* ---------- cabeçalho ---------- */
 body.store .header {
   position: sticky; top: 0; z-index: 60;
-  background: rgba(9, 9, 13, 0.72);
-  backdrop-filter: blur(18px) saturate(140%);
+  background: rgba(9, 9, 13, 0.86);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid transparent;
   padding-top: max(18px, env(safe-area-inset-top));
   transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
@@ -260,11 +252,6 @@ body.store .brand-name {
   transform: translateX(-50%);
   background: radial-gradient(circle, rgba(255, 196, 34, 0.18), transparent 62%);
   filter: blur(30px); pointer-events: none;
-  animation: pulseGlow 7s ease-in-out infinite;
-}
-@keyframes pulseGlow {
-  0%, 100% { opacity: 0.75; transform: translateX(-50%) scale(1); }
-  50% { opacity: 1; transform: translateX(-50%) scale(1.12); }
 }
 .hero-logo-wrap { display: flex; justify-content: center; }
 .hero-logo {
@@ -471,9 +458,8 @@ body.store .brand-name {
 @media (min-width: 700px) { .grid { grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: 18px; } }
 
 .card {
-  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
   overflow: hidden; cursor: pointer; position: relative;
-  backdrop-filter: blur(8px);
   transition: transform 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
 }
 .card:hover {
