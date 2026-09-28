@@ -1,6 +1,6 @@
 /* ==========================================================================
-   VITRINE — tema escuro premium.
-   Só vale dentro de <body class="store">, então o painel continua claro.
+   VITRINE ? tema escuro premium.
+   S? vale dentro de <body class="store">, ent?o o painel continua claro.
    ========================================================================== */
 
 body.store {
@@ -28,7 +28,7 @@ body.store {
   overflow-x: hidden;
 }
 
-/* Brilho ambiente no topo: dá profundidade sem pesar */
+/* Brilho ambiente no topo: d? profundidade sem pesar */
 body.store::before {
   content: '';
   position: fixed; inset: -20% -10% auto -10%; height: 70vh; z-index: 0;
@@ -121,7 +121,7 @@ body.store .age-box h2 { font-family: var(--font-display); font-size: 21px; marg
 body.store .age-box p { color: var(--text-2); font-size: 14px; line-height: 1.55; margin-bottom: 22px; }
 .age-actions { display: flex; flex-direction: column; gap: 10px; }
 
-/* ---------- barra de promoção ---------- */
+/* ---------- barra de promo??o ---------- */
 .promo-bar {
   position: relative; z-index: 70;
   background: linear-gradient(90deg, var(--gold-3), var(--gold) 45%, #ffe9a8 70%, var(--gold));
@@ -140,7 +140,7 @@ body.store .age-box p { color: var(--text-2); font-size: 14px; line-height: 1.55
 }
 .promo-bar-cta:hover { background: #000; }
 
-/* ---------- cabeçalho ---------- */
+/* ---------- cabe?alho ---------- */
 body.store .header {
   position: sticky; top: 0; z-index: 60;
   background: rgba(9, 9, 13, 0.72);
@@ -225,7 +225,7 @@ body.store .brand-name {
   animation: pop 0.3s var(--ease);
 }
 
-/* ---------- região atual (chip no header) ---------- */
+/* ---------- regi?o atual (chip no header) ---------- */
 .region-chip {
   display: inline-flex; align-items: center; justify-content: space-between; gap: 10px;
   flex: 1 1 220px; min-width: 180px; max-width: 420px;
@@ -344,11 +344,11 @@ body.store .brand-name {
   border-radius: 22px; border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.02);
 }
-/* Banner claro oculto por enquanto — o convite do app ocupa esse espaço */
+/* Banner claro oculto por enquanto ? o convite do app ocupa esse espa?o */
 #banner-section { display: none !important; }
 #install-section { margin-top: clamp(18px, 3.5vw, 32px); }
 
-/* ---------- títulos de seção ---------- */
+/* ---------- t?tulos de se??o ---------- */
 .section {
   max-width: var(--maxw); margin: clamp(38px, 7vw, 76px) auto 0; padding: 0 16px;
 }
@@ -370,7 +370,7 @@ body.store .brand-name {
 .section-head p { color: var(--text-2); font-size: 13.5px; margin-top: 6px; }
 .result-count { color: var(--text-2); font-size: 13px; font-weight: 600; }
 
-/* ---------- promoções (cards editáveis no painel) ---------- */
+/* ---------- promo??es (cards edit?veis no painel) ---------- */
 .promos { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .promo-card {
   position: relative; overflow: hidden; isolation: isolate;
@@ -414,7 +414,7 @@ body.store .brand-name {
 .promo-cta:hover { transform: translateY(-2px); gap: 12px; box-shadow: 0 12px 32px rgba(255, 196, 34, 0.45); }
 .promo-cta svg { width: 15px; height: 15px; }
 
-/* ---------- ofertas (produtos com preço promocional) ---------- */
+/* ---------- ofertas (produtos com pre?o promocional) ---------- */
 .deals-rail {
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(180px, 240px);
   gap: 14px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x mandatory;
@@ -443,7 +443,7 @@ body.store .brand-name {
   box-shadow: 0 6px 18px rgba(255, 196, 34, 0.28);
 }
 
-/* ---------- faixa de informações ---------- */
+/* ---------- faixa de informa??es ---------- */
 .info-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .info-item {
   display: flex; gap: 12px; align-items: center;
@@ -525,7 +525,7 @@ body.store .brand-name {
 .empty { text-align: center; padding: 70px 20px; color: var(--text-2); }
 .empty span { font-size: 44px; display: block; margin-bottom: 12px; }
 
-/* ---------- rodapé ---------- */
+/* ---------- rodap? ---------- */
 .footer {
   border-top: 1px solid var(--line); margin-top: clamp(50px, 9vw, 90px);
   background: linear-gradient(to bottom, transparent, rgba(255, 196, 34, 0.04));
@@ -540,8 +540,8 @@ body.store .brand-name {
 .footer-links { display: flex; gap: 10px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
 .footer-legal { font-size: 11.5px !important; opacity: 0.65; max-width: 480px; margin: 0 auto; line-height: 1.65; }
 
-/* ---------- botão flutuante do WhatsApp ---------- */
-/* specificity alta: body.store > * { position:relative } não pode “roubar” o fixed */
+/* ---------- bot?o flutuante do WhatsApp ---------- */
+/* specificity alta: body.store > * { position:relative } n?o pode ?roubar? o fixed */
 body.store .wa-float {
   position: fixed;
   left: auto;
@@ -580,7 +580,7 @@ body.store .wa-float:hover {
 body.store .wa-float svg { width: 30px; height: 30px; position: relative; z-index: 1; }
 
 /* ---------- janelas ---------- */
-/* body.store > * { position:relative } não pode roubar o fixed destes overlays */
+/* body.store > * { position:relative } n?o pode roubar o fixed destes overlays */
 body.store .drawer-backdrop {
   position: fixed; inset: 0; z-index: 80;
   background: rgba(3, 3, 5, 0.72); backdrop-filter: blur(6px);
@@ -802,7 +802,17 @@ body.store .cart-bar {
     bottom: calc(86px + env(safe-area-inset-bottom));
   }
 
-  .header-inner { gap: 8px; padding: 14px 12px 12px; }
+  .header-inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 14px 12px 12px;
+  }
+  .header-inner .brand { grid-column: 1; grid-row: 1; min-width: 0; }
+  .header-inner .search-wrap { grid-column: 2; grid-row: 1; min-width: 0; width: 100%; }
+  .header-inner .cart-btn { grid-column: 3; grid-row: 1; }
+  .header-inner .region-chip { grid-column: 1 / 3; grid-row: 2; width: 100%; }
+  .header-inner .account-btn { grid-column: 3; grid-row: 2; white-space: nowrap; }
   .region-chip {
     flex: 1 1 120px; min-width: 0; max-width: none; height: 40px; padding: 0 6px 0 10px; font-size: 12px;
   }
@@ -898,7 +908,7 @@ body.store .cart-bar {
   .hero-glow { left: 72%; top: 0; }
 }
 
-/* ---------- localização na entrada ---------- */
+/* ---------- localiza??o na entrada ---------- */
 body.store .location-gate {
   position: fixed; inset: 0; z-index: 190;
   background: rgba(5, 5, 8, 0.88); backdrop-filter: blur(16px);

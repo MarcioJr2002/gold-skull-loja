@@ -13,7 +13,7 @@ const nodemailer = require("nodemailer");
 const webpush = require("web-push");
 
 /* =========================================================================
-   CONFIGURAÇÃO
+   CONFIGURA??O
    ========================================================================= */
 
 const PROD = process.env.NODE_ENV === "production";
@@ -21,8 +21,8 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
 const FORCE_HTTPS = /^(1|true|yes|on)$/i.test(process.env.FORCE_HTTPS || "");
 const TRUST_PROXY = process.env.TRUST_PROXY || (PROD ? "1" : "loopback");
-// Se DISABLE_2FA=true (padrão), o painel NÃO obriga a configurar 2FA no primeiro acesso.
-// Contas que já ligaram o 2FA continuam precisando do código no login.
+// Se DISABLE_2FA=true (padr?o), o painel N?O obriga a configurar 2FA no primeiro acesso.
+// Contas que j? ligaram o 2FA continuam precisando do c?digo no login.
 // Para obrigar todo mundo a configurar: DISABLE_2FA=false
 const DISABLE_2FA = !/^(0|false|no|off)$/i.test(process.env.DISABLE_2FA || "true");
 
@@ -36,7 +36,7 @@ const PUSH_MAX_SUBS = 8;
 const NTFY_SERVER_DEFAULT = String(process.env.NTFY_SERVER || "https://ntfy.sh").trim().replace(/\/$/, "") || "https://ntfy.sh";
 const CALLMEBOT_URL = String(process.env.CALLMEBOT_URL || "https://api.callmebot.com/whatsapp.php").trim();
 
-/** Apple (web.push.apple.com) rejeita VAPID com @localhost → 403 BadJwtToken. Android/FCM costuma aceitar. */
+/** Apple (web.push.apple.com) rejeita VAPID com @localhost ? 403 BadJwtToken. Android/FCM costuma aceitar. */
 function isBadVapidSubject(subject) {
   const s = String(subject || "").trim();
   if (!s) return true;
@@ -75,7 +75,7 @@ function resolveVapidSubject() {
     }
   }
 
-  // Domínio com TLD real (Apple valida sintaxe; não precisa ser e-mail da conta Apple)
+  // Dom?nio com TLD real (Apple valida sintaxe; n?o precisa ser e-mail da conta Apple)
   return "mailto:push@goldskull.app";
 }
 
@@ -88,7 +88,7 @@ const ADMIN_ALLOW_IPS = String(process.env.ADMIN_ALLOW_IPS || "")
   .filter(Boolean);
 
 const SESSION_IDLE_MS = Number(process.env.SESSION_IDLE_MIN || 120) * 60 * 1000; // inatividade
-const SESSION_MAX_MS = Number(process.env.SESSION_MAX_HOURS || 12) * 60 * 60 * 1000; // duração total
+const SESSION_MAX_MS = Number(process.env.SESSION_MAX_HOURS || 12) * 60 * 60 * 1000; // dura??o total
 const MIN_PASSWORD = 8;
 const LOGIN_MAX_FAILS = 8;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
@@ -124,7 +124,7 @@ function copyDbIfMissing(fromDir, toDir) {
     console.log(`[dados] copiado banco de ${fromDir} para o volume ${toDir}`);
     return true;
   } catch (err) {
-    console.warn("[dados] não copiei o banco para o volume:", err && err.message ? err.message : err);
+    console.warn("[dados] n?o copiei o banco para o volume:", err && err.message ? err.message : err);
     return false;
   }
 }
@@ -212,7 +212,7 @@ function markAdminReady() {
   try {
     fs.writeFileSync(ADMIN_READY_PATH, `${new Date().toISOString()}\n`);
   } catch (err) {
-    console.warn("[admin] não foi possível gravar .admin-ready:", err && err.message ? err.message : err);
+    console.warn("[admin] n?o foi poss?vel gravar .admin-ready:", err && err.message ? err.message : err);
   }
 }
 
@@ -220,7 +220,7 @@ function clearAdminReady() {
   try {
     fs.unlinkSync(ADMIN_READY_PATH);
   } catch {
-    /* já não existe */
+    /* j? n?o existe */
   }
 }
 
@@ -271,20 +271,20 @@ function resolveSessionSecret() {
   } catch {
     /* segue para gerar */
   }
-  if (secret) console.warn("[AVISO] SESSION_SECRET muito curto — usando chave temporária.");
-  else if (PROD) console.warn("[AVISO] SESSION_SECRET ausente neste host — gerando chave temporária de teste.");
+  if (secret) console.warn("[AVISO] SESSION_SECRET muito curto ? usando chave tempor?ria.");
+  else if (PROD) console.warn("[AVISO] SESSION_SECRET ausente neste host ? gerando chave tempor?ria de teste.");
   const generated = crypto.randomBytes(48).toString("hex");
   try {
     fs.writeFileSync(secretFile, generated);
   } catch {
-    /* se não gravar, a sessão muda a cada restart */
+    /* se n?o gravar, a sess?o muda a cada restart */
   }
   return generated;
 }
 const SESSION_SECRET = resolveSessionSecret();
 
 /* =========================================================================
-   UTILITÁRIOS
+   UTILIT?RIOS
    ========================================================================= */
 
 function uid(prefix) {
@@ -295,7 +295,7 @@ function needsTwoFactorSetup(user) {
   return !DISABLE_2FA && !(user && user.totp && user.totp.confirmedAt);
 }
 
-/** Texto seguro: remove nulos/controle, corta no tamanho máximo. */
+/** Texto seguro: remove nulos/controle, corta no tamanho m?ximo. */
 function str(value, max = 200) {
   return String(value == null ? "" : value)
     // eslint-disable-next-line no-control-regex
@@ -422,15 +422,15 @@ async function sendOrderEmail(to, order, baseUrl) {
   const transport = getMailTransport();
   if (!transport) return false;
   const items = (order.items || [])
-    .map((it) => `• ${it.qty}x ${it.name}${it.option ? ` (${it.option})` : ""} — ${moneyBr(it.price * it.qty)}`)
+    .map((it) => `? ${it.qty}x ${it.name}${it.option ? ` (${it.option})` : ""} ? ${moneyBr(it.price * it.qty)}`)
     .join("\n");
   const link = baseUrl ? `${baseUrl}/admin` : "/admin";
   const text = [
     `Novo pedido na loja`,
     "",
-    `Cliente: ${order.customerName || "—"}`,
-    `WhatsApp: ${order.phone || "—"}`,
-    `Cidade: ${order.city || "—"}`,
+    `Cliente: ${order.customerName || "?"}`,
+    `WhatsApp: ${order.phone || "?"}`,
+    `Cidade: ${order.city || "?"}`,
     `Total: ${moneyBr(order.total)}`,
     "",
     items || "(sem itens)",
@@ -440,7 +440,7 @@ async function sendOrderEmail(to, order, baseUrl) {
   await transport.sendMail({
     from: SMTP_FROM,
     to,
-    subject: `Novo pedido · ${order.customerName || "Cliente"} · ${moneyBr(order.total)}`,
+    subject: `Novo pedido ? ${order.customerName || "Cliente"} ? ${moneyBr(order.total)}`,
     text,
   });
   return true;
@@ -478,7 +478,7 @@ function ensureNotifyChannels(db) {
     ch.whatsappApiKey = "";
     dirty = true;
   }
-  // Env sobrescreve (útil no Railway sem abrir o painel)
+  // Env sobrescreve (?til no Railway sem abrir o painel)
   if (process.env.NTFY_TOPIC) ch.ntfyTopic = String(process.env.NTFY_TOPIC).trim();
   if (process.env.NTFY_SERVER) ch.ntfyServer = String(process.env.NTFY_SERVER).trim().replace(/\/$/, "");
   if (/^(1|true|yes|on)$/i.test(process.env.NTFY_ENABLED || "")) ch.ntfyEnabled = true;
@@ -515,7 +515,7 @@ function orderItemsShort(order, { maxItems = 2, maxLen = 90 } = {}) {
   const extra = items.length - parts.length;
   let text = parts.join(", ");
   if (extra > 0) text += ` +${extra}`;
-  if (text.length > maxLen) text = `${text.slice(0, maxLen - 1).trim()}…`;
+  if (text.length > maxLen) text = `${text.slice(0, maxLen - 1).trim()}?`;
   return text;
 }
 
@@ -524,7 +524,7 @@ function orderPushBody(order) {
   const name = String((order && order.customerName) || "Cliente").trim() || "Cliente";
   const city = String((order && order.city) || "").trim();
   const total = moneyBr(order && order.total);
-  const head = [name, city || null, total].filter(Boolean).join(" · ");
+  const head = [name, city || null, total].filter(Boolean).join(" ? ");
   const items = orderItemsShort(order);
   if (!items) return head;
   return `${head}\n${items}`;
@@ -533,9 +533,9 @@ function orderPushBody(order) {
 function orderNotifyText(order, baseUrl) {
   const link = baseUrl ? `${baseUrl}/admin` : "/admin";
   const items = orderItemsShort(order, { maxItems: 4, maxLen: 180 });
-  const place = [order.city, order.address].filter(Boolean).join(" · ");
+  const place = [order.city, order.address].filter(Boolean).join(" ? ");
   return [
-    `🛒 Novo pedido · ${moneyBr(order.total)}`,
+    `?? Novo pedido ? ${moneyBr(order.total)}`,
     order.customerName || "Cliente",
     place || null,
     items ? `Itens: ${items}` : null,
@@ -600,7 +600,7 @@ async function sendOrderPush(sub, order, baseUrl) {
   );
 }
 
-/** Avisa a equipe: Web Push, e-mail, ntfy e/ou WhatsApp. Não bloqueia o checkout. */
+/** Avisa a equipe: Web Push, e-mail, ntfy e/ou WhatsApp. N?o bloqueia o checkout. */
 async function notifyStaffNewOrder(order, baseUrl) {
   const db = getDb();
   configureWebPush(db);
@@ -670,7 +670,7 @@ async function notifyStaffNewOrder(order, baseUrl) {
 
 const INVALID = Symbol("invalid");
 
-/** Número opcional. Retorna null (vazio) ou INVALID quando não é número. */
+/** N?mero opcional. Retorna null (vazio) ou INVALID quando n?o ? n?mero. */
 function optNum(value, { min = 0, max = 1e9, decimals = 2 } = {}) {
   if (value === "" || value == null) return null;
   const n = Number(value);
@@ -709,7 +709,7 @@ function uaHash(req) {
 }
 
 /* =========================================================================
-   BANCO (arquivo JSON com cache + escrita atômica)
+   BANCO (arquivo JSON com cache + escrita at?mica)
    ========================================================================= */
 
 let dbCache = null;
@@ -725,7 +725,7 @@ function fileStamp() {
 }
 
 function normalizeDb(db) {
-  if (!db || typeof db !== "object" || Array.isArray(db)) throw new Error("data/db.json inválido");
+  if (!db || typeof db !== "object" || Array.isArray(db)) throw new Error("data/db.json inv?lido");
   if (!db.settings || typeof db.settings !== "object") db.settings = {};
   if (!Array.isArray(db.categories)) db.categories = [];
   if (!Array.isArray(db.products)) db.products = [];
@@ -756,7 +756,7 @@ function saveDb(db) {
   if (Array.isArray(db.orders) && db.orders.length > ORDERS_MAX) db.orders.length = ORDERS_MAX;
   const tmp = `${DB_PATH}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
-  fs.renameSync(tmp, DB_PATH); // troca atômica: nunca deixa o db pela metade
+  fs.renameSync(tmp, DB_PATH); // troca at?mica: nunca deixa o db pela metade
   dbCache = db;
   dbStamp = fileStamp();
 }
@@ -828,20 +828,20 @@ function passwordProblem(password, username) {
   if (pw.length < MIN_PASSWORD) return `A senha precisa de pelo menos ${MIN_PASSWORD} caracteres.`;
   if (pw.length > 200) return "Senha muito longa.";
   const low = pw.toLowerCase();
-  if (WEAK_PASSWORDS.includes(low)) return "Essa senha é muito conhecida. Escolha outra.";
-  if (username && low === String(username).toLowerCase()) return "A senha não pode ser igual ao usuário.";
-  if (/^(.)\1+$/.test(pw)) return "A senha não pode ser só um caractere repetido.";
-  if (/^\d+$/.test(pw)) return "A senha não pode ser só números.";
+  if (WEAK_PASSWORDS.includes(low)) return "Essa senha ? muito conhecida. Escolha outra.";
+  if (username && low === String(username).toLowerCase()) return "A senha n?o pode ser igual ao usu?rio.";
+  if (/^(.)\1+$/.test(pw)) return "A senha n?o pode ser s? um caractere repetido.";
+  if (/^\d+$/.test(pw)) return "A senha n?o pode ser s? n?meros.";
   return null;
 }
 
 /* =========================================================================
-   2FA — TOTP (Google Authenticator / Authy) + códigos de recuperação
+   2FA ? TOTP (Google Authenticator / Authy) + c?digos de recupera??o
    ========================================================================= */
 
 const B32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 const TOTP_STEP_MS = 30000;
-const TOTP_WINDOW = 1; // aceita o código anterior e o próximo (relógio torto)
+const TOTP_WINDOW = 1; // aceita o c?digo anterior e o pr?ximo (rel?gio torto)
 const RECOVERY_CODES = 10;
 
 function base32Encode(buf) {
@@ -889,14 +889,14 @@ function totpAt(secretB32, step) {
   return String(binary % 1000000).padStart(6, "0");
 }
 
-/** Retorna o step usado (para bloquear reuso) ou null se o código não vale. */
+/** Retorna o step usado (para bloquear reuso) ou null se o c?digo n?o vale. */
 function verifyTotp(secretB32, code, lastStep) {
   const clean = String(code || "").replace(/\D/g, "");
   if (clean.length !== 6) return null;
   const now = Math.floor(Date.now() / TOTP_STEP_MS);
   for (let delta = -TOTP_WINDOW; delta <= TOTP_WINDOW; delta += 1) {
     const step = now + delta;
-    if (lastStep != null && step <= lastStep) continue; // já usado: não repete
+    if (lastStep != null && step <= lastStep) continue; // j? usado: n?o repete
     if (safeEqual(totpAt(secretB32, step), clean)) return step;
   }
   return null;
@@ -929,7 +929,7 @@ function makeRecoveryCodes() {
     let raw = "";
     while (raw.length < 10) {
       const byte = crypto.randomBytes(1)[0];
-      if (byte >= 256 - (256 % alphabet.length)) continue; // sem viés
+      if (byte >= 256 - (256 % alphabet.length)) continue; // sem vi?s
       raw += alphabet[byte % alphabet.length];
     }
     const formatted = formatRecoveryCode(raw);
@@ -943,7 +943,7 @@ function recoveryLeft(user) {
   return (user.recoveryCodes || []).filter((c) => !c.usedAt).length;
 }
 
-/** Consome um código de recuperação. Retorna true se valia. */
+/** Consome um c?digo de recupera??o. Retorna true se valia. */
 function useRecoveryCode(user, code) {
   const hash = hashRecoveryCode(code);
   const entry = (user.recoveryCodes || []).find((c) => !c.usedAt && safeEqual(c.hash, hash));
@@ -961,49 +961,49 @@ const AUDIT_ACTIONS = {
   "auth.login_failed": "Tentativa de login falhou",
   "auth.logout": "Saiu do painel",
   "auth.locked": "Conta bloqueada por tentativas",
-  "auth.session_expired": "Sessão expirada",
+  "auth.session_expired": "Sess?o expirada",
   "product.create": "Produto criado",
   "product.update": "Produto editado",
-  "product.delete": "Produto excluído",
+  "product.delete": "Produto exclu?do",
   "product.duplicate": "Produto duplicado",
-  "product.quick": "Ajuste rápido no produto",
+  "product.quick": "Ajuste r?pido no produto",
   "option.create": "Sabor adicionado",
   "option.update": "Sabor editado",
   "option.delete": "Sabor removido",
   "option.reorder": "Sabores reordenados",
   "option.image": "Foto de sabor enviada",
   "option.image_delete": "Foto de sabor removida",
-  "stock.move": "Movimentação de estoque",
-  "stock.undo": "Movimentação desfeita",
-  "settings.update": "Configurações da loja salvas",
+  "stock.move": "Movimenta??o de estoque",
+  "stock.undo": "Movimenta??o desfeita",
+  "settings.update": "Configura??es da loja salvas",
   "settings.banner": "Banner trocado",
-  "promo.image": "Foto de promoção enviada",
-  "promo.image_delete": "Foto de promoção removida",
-  "2fa.setup_started": "Começou a configurar o 2FA",
+  "promo.image": "Foto de promo??o enviada",
+  "promo.image_delete": "Foto de promo??o removida",
+  "2fa.setup_started": "Come?ou a configurar o 2FA",
   "2fa.enabled": "2FA ativado",
   "2fa.disabled": "2FA desativado",
-  "2fa.failed": "Código 2FA errado",
-  "2fa.recovery_used": "Entrou com código de recuperação",
-  "2fa.recovery_regenerated": "Códigos de recuperação gerados",
+  "2fa.failed": "C?digo 2FA errado",
+  "2fa.recovery_used": "Entrou com c?digo de recupera??o",
+  "2fa.recovery_regenerated": "C?digos de recupera??o gerados",
   "2fa.reset": "2FA zerado por administrador",
   "user.create": "Acesso criado",
-  "user.delete": "Acesso excluído",
+  "user.delete": "Acesso exclu?do",
   "user.password": "Senha alterada",
   "user.profile": "Perfil atualizado",
-  "push.subscribe": "Ativou notificação push",
-  "push.unsubscribe": "Desativou notificação push",
-  "push.prefs": "Preferência de push alterada",
-  "push.test": "Testou notificação push",
+  "push.subscribe": "Ativou notifica??o push",
+  "push.unsubscribe": "Desativou notifica??o push",
+  "push.prefs": "Prefer?ncia de push alterada",
+  "push.test": "Testou notifica??o push",
   "notify.channels": "Canais de aviso (ntfy/WhatsApp)",
   "audit.clear": "Logs apagados",
   "audit.export": "Logs exportados",
-  "security.unauthorized": "Acesso sem permissão",
-  "security.forbidden": "Ação bloqueada por permissão",
-  "security.csrf": "Requisição sem token válido (CSRF)",
-  "security.origin": "Requisição de origem estranha",
-  "security.rate_limit": "Limite de requisições atingido",
-  "security.session_mismatch": "Sessão usada em outro navegador",
-  "security.ip_blocked": "Acesso ao painel de IP não liberado",
+  "security.unauthorized": "Acesso sem permiss?o",
+  "security.forbidden": "A??o bloqueada por permiss?o",
+  "security.csrf": "Requisi??o sem token v?lido (CSRF)",
+  "security.origin": "Requisi??o de origem estranha",
+  "security.rate_limit": "Limite de requisi??es atingido",
+  "security.session_mismatch": "Sess?o usada em outro navegador",
+  "security.ip_blocked": "Acesso ao painel de IP n?o liberado",
   "security.upload_rejected": "Upload recusado",
   "order.placed": "Novo pedido do cliente",
   "order.approved": "Pedido aprovado (baixa estoque)",
@@ -1017,13 +1017,13 @@ function rotateAuditIfNeeded() {
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     fs.renameSync(AUDIT_PATH, path.join(BACKUPS, `audit-${stamp}.jsonl`));
   } catch {
-    /* arquivo ainda não existe */
+    /* arquivo ainda n?o existe */
   }
 }
 
 function actorFrom(req) {
   const u = req && req.session && req.session.user;
-  if (!u) return { id: null, name: "não identificado", role: "guest" };
+  if (!u) return { id: null, name: "n?o identificado", role: "guest" };
   return { id: u.id, name: u.name || u.username, role: u.role };
 }
 
@@ -1074,13 +1074,13 @@ function readAudit() {
     try {
       out.push(JSON.parse(line));
     } catch {
-      /* linha corrompida é ignorada */
+      /* linha corrompida ? ignorada */
     }
   }
   return out.reverse(); // mais novo primeiro
 }
 
-/** Diff legível para o log de edições. */
+/** Diff leg?vel para o log de edi??es. */
 function diffFields(before, after, fields) {
   const changes = [];
   for (const f of fields) {
@@ -1092,23 +1092,23 @@ function diffFields(before, after, fields) {
 }
 
 /* =========================================================================
-   MIGRAÇÃO / SANEAMENTO NA PARTIDA
+   MIGRA??O / SANEAMENTO NA PARTIDA
    ========================================================================= */
 
 function printFirstAccess(password, reason) {
   console.log(
     "\n==================== PRIMEIRO ACESSO ====================\n" +
-      `  Usuário: admin\n  Senha:   ${password}\n` +
+      `  Usu?rio: admin\n  Senha:   ${password}\n` +
       `  Banco:   ${DB_PATH}\n` +
       (reason ? `  Motivo:  ${reason}\n` : "") +
       "\n  O painel vai pedir a troca dessa senha no primeiro login.\n" +
-      "  Depois da troca ela fica salva no volume e não muda no deploy.\n" +
-      "  Anote agora: ela não será mostrada de novo depois da troca.\n" +
+      "  Depois da troca ela fica salva no volume e n?o muda no deploy.\n" +
+      "  Anote agora: ela n?o ser? mostrada de novo depois da troca.\n" +
       "=========================================================\n"
   );
 }
 
-/** Instalação nova: cria o banco a partir do seed com uma senha aleatória (nunca uma senha padrão). */
+/** Instala??o nova: cria o banco a partir do seed com uma senha aleat?ria (nunca uma senha padr?o). */
 function ensureDb() {
   const exists = fs.existsSync(DB_PATH);
   const ready = hasAdminReady();
@@ -1122,8 +1122,8 @@ function ensureDb() {
   if (ready || established) {
     if (!exists) {
       console.error(
-        "[dados] senha do painel já foi definida neste volume, mas db.json não está no caminho " +
-          `${DB_PATH}. Não crio um admin novo. Restaure o volume ou ajuste DATA_DIR.`
+        "[dados] senha do painel j? foi definida neste volume, mas db.json n?o est? no caminho " +
+          `${DB_PATH}. N?o crio um admin novo. Restaure o volume ou ajuste DATA_DIR.`
       );
     } else if (!ready) {
       markAdminReady();
@@ -1155,7 +1155,7 @@ function ensureDb() {
 }
 const dbJustCreated = ensureDb();
 
-const DEFAULT_CITIES = ["Itajaí", "Joinville", "Atacado"];
+const DEFAULT_CITIES = ["Itaja?", "Joinville", "Atacado"];
 
 function foldKey(s) {
   return str(s, 80)
@@ -1168,15 +1168,15 @@ function canonicalizeCity(name) {
   const t = foldKey(name);
   if (!t) return "";
   if (t.includes("joinville")) return "Joinville";
-  if (t.includes("itajai")) return "Itajaí";
+  if (t.includes("itajai")) return "Itaja?";
   if (/(brasil|atacado|outras|remoto|transportadora|correios)/.test(t)) return "Atacado";
   return str(name, 60);
 }
 
 function defaultShippingFor(id) {
-  if (id === "Joinville") return { name: "Joinville", price: 15, description: "Motoboy — entrega rápida na região" };
+  if (id === "Joinville") return { name: "Joinville", price: 15, description: "Motoboy ? entrega r?pida na regi?o" };
   if (id === "Atacado") return { name: "Atacado", price: 0, description: "Brasil" };
-  return { name: "Itajaí", price: 15, description: "Motoboy — entrega rápida na região" };
+  return { name: "Itaja?", price: 15, description: "Motoboy ? entrega r?pida na regi?o" };
 }
 
 function normalizeShippingCashboxes(list) {
@@ -1316,7 +1316,7 @@ function applyAdminPasswordReset() {
   const db = readDbFromDisk();
   const admin = (db.users || []).find((u) => String(u.username).toLowerCase() === "admin");
   if (!admin) {
-    console.warn("[admin] RESET_ADMIN_PASSWORD ignorado: usuário admin não encontrado.");
+    console.warn("[admin] RESET_ADMIN_PASSWORD ignorado: usu?rio admin n?o encontrado.");
     return;
   }
 
@@ -1326,7 +1326,7 @@ function applyAdminPasswordReset() {
   saveDb(db);
   fs.writeFileSync(markerPath, marker);
   clearAdminReady();
-  console.log("[admin] senha do usuário admin redefinida por RESET_ADMIN_PASSWORD. Troque no próximo login.");
+  console.log("[admin] senha do usu?rio admin redefinida por RESET_ADMIN_PASSWORD. Troque no pr?ximo login.");
 }
 
 /** Se o painel nunca terminou a troca de senha neste banco, reemite uma senha e imprime no log. */
@@ -1334,7 +1334,7 @@ function ensureAdminBootstrap(createdNow) {
   if (String(process.env.RESET_ADMIN_PASSWORD || "").trim()) return;
   if (createdNow) return;
   if (hasAdminReady()) {
-    debugLogin("A", "server.js:ensureAdminBootstrap", "bootstrap já concluído", {
+    debugLogin("A", "server.js:ensureAdminBootstrap", "bootstrap j? conclu?do", {
       dbPath: DB_PATH,
       railway: isRailwayHost(),
     });
@@ -1345,7 +1345,7 @@ function ensureAdminBootstrap(createdNow) {
   let admin = users.find((u) => String(u.username).toLowerCase() === "admin");
   if (admin && admin.mustChangePassword === false) {
     markAdminReady();
-    debugLogin("A", "server.js:ensureAdminBootstrap", "admin já tinha senha definitiva", {
+    debugLogin("A", "server.js:ensureAdminBootstrap", "admin j? tinha senha definitiva", {
       dbPath: DB_PATH,
     });
     return;
@@ -1373,7 +1373,7 @@ function ensureAdminBootstrap(createdNow) {
     createdAdmin: !users.some((u) => String(u.username).toLowerCase() === "admin"),
     userCount: (db.users || []).length,
   });
-  printFirstAccess(password, "senha reemitida para este banco — use esta, não a de um log antigo");
+  printFirstAccess(password, "senha reemitida para este banco ? use esta, n?o a de um log antigo");
 }
 
 function importCatalogIfEmpty(db) {
@@ -1422,13 +1422,15 @@ function importCatalogIfEmpty(db) {
     optionGroup: str(p.optionGroup, 80),
     options: (Array.isArray(p.options) ? p.options : []).map((o, i) => ({
       id: str(o && o.id, 40) || uid("opt"),
-      title: str(o && o.title, 80) || `Opção ${i + 1}`,
+      title: str(o && o.title, 80) || `Op??o ${i + 1}`,
       image: str(o && o.image, 300),
       available: !(o && o.available === false),
+      stock: o && o.stock != null ? Number(o.stock) : null,
+      stockActive: !!(o && o.stockActive),
     })),
     cities: inferProductCities(p, shippingCities(db.settings)),
   }));
-  console.log(`[catálogo] importados ${db.products.length} produtos de public/data/store.json`);
+  console.log(`[cat?logo] importados ${db.products.length} produtos de public/data/store.json`);
   return true;
 }
 
@@ -1436,7 +1438,7 @@ function migrate() {
   const db = readDbFromDisk();
   let changed = false;
 
-  // 1) ids de sabores únicos e formato estável
+  // 1) ids de sabores ?nicos e formato est?vel
   for (const p of db.products) {
     if (!Array.isArray(p.options)) {
       p.options = [];
@@ -1445,7 +1447,7 @@ function migrate() {
     }
     const seen = new Set();
     p.options = p.options.map((o, i) => {
-      const title = str(o && o.title, 80) || `Opção ${i + 1}`;
+      const title = str(o && o.title, 80) || `Op??o ${i + 1}`;
       let id = str(o && o.id, 40);
       if (!id || seen.has(id)) {
         id = uid("opt");
@@ -1457,20 +1459,22 @@ function migrate() {
         title,
         image: str(o && o.image, 300),
         available: !(o && o.available === false),
+        stock: o && o.stock != null && Number.isFinite(Number(o.stock)) ? Math.max(0, Math.floor(Number(o.stock))) : null,
+        stockActive: !!(o && o.stockActive),
       };
       if (JSON.stringify(next) !== JSON.stringify(o)) changed = true;
       return next;
     });
   }
 
-  // 2) usuários: marca troca obrigatória quando a senha é a padrão/fraca
+  // 2) usu?rios: marca troca obrigat?ria quando a senha ? a padr?o/fraca
   for (const u of db.users) {
     if (u.mustChangePassword === undefined) {
       const weak = WEAK_PASSWORDS.some((pw) => verifyPasswordSync(pw, u));
       u.mustChangePassword = weak;
       changed = true;
       if (weak) {
-        console.warn(`[AVISO] O usuário "${u.username}" usa uma senha padrão/fraca — o painel vai exigir a troca no próximo login.`);
+        console.warn(`[AVISO] O usu?rio "${u.username}" usa uma senha padr?o/fraca ? o painel vai exigir a troca no pr?ximo login.`);
       }
     }
     if (!u.kdf) {
@@ -1484,13 +1488,13 @@ function migrate() {
     changed = true;
   }
 
-  // 2b) o cliente não usa Instagram: some com o campo
+  // 2b) o cliente n?o usa Instagram: some com o campo
   if (db.settings.instagram !== undefined) {
     delete db.settings.instagram;
     changed = true;
   }
 
-  // 2c) área de promoções
+  // 2c) ?rea de promo??es
   if (!Array.isArray(db.settings.promos)) {
     db.settings.promos = [];
     changed = true;
@@ -1516,10 +1520,10 @@ function migrate() {
     changed = true;
   }
 
-  // 2f) catálogo vazio: importa a vitrine estática (útil no primeiro deploy)
+  // 2f) cat?logo vazio: importa a vitrine est?tica (?til no primeiro deploy)
   if (importCatalogIfEmpty(db)) changed = true;
 
-  // 2g) caixas Itajaí / Joinville / Atacado + categoria de tipo (Pods, Refis...)
+  // 2g) caixas Itaja? / Joinville / Atacado + categoria de tipo (Pods, Refis...)
   const nextShip = normalizeShippingCashboxes(db.settings && db.settings.shipping);
   if (JSON.stringify((db.settings && db.settings.shipping) || []) !== JSON.stringify(nextShip)) {
     db.settings.shipping = nextShip;
@@ -1528,7 +1532,7 @@ function migrate() {
   if (recategorizeCatalog(db)) changed = true;
   const cityNames = shippingCities(db.settings);
 
-  // 2h) todos os produtos passam a controlar estoque por padrão
+  // 2h) todos os produtos passam a controlar estoque por padr?o
   let stockOn = 0;
   for (const p of db.products || []) {
     let touch = false;
@@ -1551,7 +1555,7 @@ function migrate() {
       changed = true;
     }
   }
-  if (stockOn) console.log(`[migração] estoque ativado em ${stockOn} produto(s)`);
+  if (stockOn) console.log(`[migra??o] estoque ativado em ${stockOn} produto(s)`);
 
   for (const e of db.ledger || []) {
     const product = db.products.find((p) => p.id === e.productId);
@@ -1604,7 +1608,7 @@ function migrate() {
       /* segue mesmo sem backup */
     }
     saveDb(db);
-    console.log("[migração] data/db.json normalizado (backup salvo em backups/).");
+    console.log("[migra??o] data/db.json normalizado (backup salvo em backups/).");
   } else {
     dbCache = db;
     dbStamp = fileStamp();
@@ -1619,9 +1623,9 @@ function logDbBoot(created) {
     const db = getDb();
     if (dbHasEstablishedUser() && !hasAdminReady()) markAdminReady();
     console.log(
-      `[dados] banco: ${DB_PATH} · ready: ${hasAdminReady() ? "sim" : "não"} · ` +
-        `usuários: ${(db.users || []).length} · produtos: ${(db.products || []).length}` +
-        (created ? " · criado agora" : "")
+      `[dados] banco: ${DB_PATH} ? ready: ${hasAdminReady() ? "sim" : "n?o"} ? ` +
+        `usu?rios: ${(db.users || []).length} ? produtos: ${(db.products || []).length}` +
+        (created ? " ? criado agora" : "")
     );
     debugLogin("A", "server.js:logDbBoot", "estado do banco na partida", {
       dbPath: DB_PATH,
@@ -1634,7 +1638,7 @@ function logDbBoot(created) {
       dataDirEnv: String(process.env.DATA_DIR || ""),
     });
   } catch (err) {
-    console.error("[dados] não foi possível ler o banco:", err && err.message ? err.message : err);
+    console.error("[dados] n?o foi poss?vel ler o banco:", err && err.message ? err.message : err);
   }
 }
 logDbBoot(dbJustCreated);
@@ -1660,14 +1664,14 @@ const baseLimit = {
   standardHeaders: "draft-7",
   legacyHeaders: false,
   keyGenerator: (req) => clientIp(req),
-  validate: false, // a configuração de proxy é nossa (TRUST_PROXY)
+  validate: false, // a configura??o de proxy ? nossa (TRUST_PROXY)
 };
 
 const publicLimiter = rateLimit({
   ...baseLimit,
   windowMs: 5 * 60 * 1000,
   limit: Number(process.env.LIMIT_PUBLIC || 400),
-  handler: limitHandler("catálogo público"),
+  handler: limitHandler("cat?logo p?blico"),
 });
 
 const apiLimiter = rateLimit({
@@ -1681,7 +1685,7 @@ const writeLimiter = rateLimit({
   ...baseLimit,
   windowMs: 10 * 60 * 1000,
   limit: Number(process.env.LIMIT_WRITE || 400),
-  handler: limitHandler("gravação"),
+  handler: limitHandler("grava??o"),
 });
 
 const uploadLimiter = rateLimit({
@@ -1699,7 +1703,7 @@ const loginLimiter = rateLimit({
   handler: limitHandler("login"),
 });
 
-// Bloqueio por conta (impede força bruta distribuída em um único usuário)
+// Bloqueio por conta (impede for?a bruta distribu?da em um ?nico usu?rio)
 const loginFails = new Map();
 function lockState(username) {
   const rec = loginFails.get(username);
@@ -1737,7 +1741,7 @@ const MIME_EXT = {
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS),
-  // O nome original do arquivo é ignorado de propósito (evita .svg/.html/traversal)
+  // O nome original do arquivo ? ignorado de prop?sito (evita .svg/.html/traversal)
   filename: (_req, file, cb) => cb(null, `${uid("img")}${MIME_EXT[file.mimetype] || ".bin"}`),
 });
 
@@ -1770,7 +1774,7 @@ function dropUpload(req) {
   req.file = null;
 }
 
-/** Confere os bytes reais do arquivo. Não confia no Content-Type do cliente. */
+/** Confere os bytes reais do arquivo. N?o confia no Content-Type do cliente. */
 function checkUpload(req) {
   if (!req.file) return null;
   let buf = Buffer.alloc(0);
@@ -1781,22 +1785,22 @@ function checkUpload(req) {
     fs.closeSync(fd);
   } catch {
     dropUpload(req);
-    return "Não foi possível ler o arquivo enviado.";
+    return "N?o foi poss?vel ler o arquivo enviado.";
   }
   const kind = sniffImage(buf);
   if (!kind || kind !== path.extname(req.file.filename)) {
     logAction(req, "security.upload_rejected", {
-      detail: `tipo declarado ${req.file.mimetype}, conteúdo ${kind || "desconhecido"}`,
+      detail: `tipo declarado ${req.file.mimetype}, conte?do ${kind || "desconhecido"}`,
     });
     dropUpload(req);
-    return "Esse arquivo não é uma imagem válida. Use JPG, PNG, WEBP ou GIF.";
+    return "Esse arquivo n?o ? uma imagem v?lida. Use JPG, PNG, WEBP ou GIF.";
   }
   return null;
 }
 
 const uploadedUrl = (req) => `/uploads/${req.file.filename}`;
 
-/** Apaga foto antiga só se ninguém mais usa e se está dentro de data/uploads. */
+/** Apaga foto antiga s? se ningu?m mais usa e se est? dentro de data/uploads. */
 function removeUnusedUpload(db, url) {
   const clean = str(url, 300);
   if (!clean.startsWith("/uploads/")) return;
@@ -1813,7 +1817,7 @@ function removeUnusedUpload(db, url) {
     try {
       fs.unlinkSync(full);
     } catch {
-      /* já não existe */
+      /* j? n?o existe */
     }
   }
 }
@@ -1870,7 +1874,7 @@ app.use((_req, res, next) => {
   next();
 });
 
-// Nada de API em cache de proxy/navegador: as respostas do painel são privadas
+// Nada de API em cache de proxy/navegador: as respostas do painel s?o privadas
 app.use("/api", (_req, res, next) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   res.setHeader("Pragma", "no-cache");
@@ -1881,7 +1885,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb", parameterLimit: 60 }));
 
 const sessionStore = new session.MemoryStore();
-// MemoryStore padrão nunca limpa sessões expiradas: limpamos aqui.
+// MemoryStore padr?o nunca limpa sess?es expiradas: limpamos aqui.
 setInterval(() => {
   sessionStore.all((err, sessions) => {
     if (err || !sessions) return;
@@ -1924,13 +1928,13 @@ app.use((req, res, next) => {
   const isPrivateApi = req.path.startsWith("/api/") && !req.path.startsWith("/api/public/");
   if ((isPanel || isPrivateApi) && !ipAllowed(req)) {
     logAction(req, "security.ip_blocked", { detail: req.originalUrl });
-    return res.status(403).type("text/plain").send("Acesso não permitido.");
+    return res.status(403).type("text/plain").send("Acesso n?o permitido.");
   }
   if (isPanel) res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
   next();
 });
 
-/* ---------- sessão: expiração e vínculo com o navegador ---------- */
+/* ---------- sess?o: expira??o e v?nculo com o navegador ---------- */
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 app.use("/api", (req, res, next) => {
@@ -1942,7 +1946,7 @@ app.use("/api", (req, res, next) => {
   if (expired || otherBrowser) {
     const actor = actorFrom(req);
     logAction(req, otherBrowser ? "security.session_mismatch" : "auth.session_expired", { actor });
-    return s.destroy(() => res.status(401).json({ error: "Sessão encerrada. Entre de novo." }));
+    return s.destroy(() => res.status(401).json({ error: "Sess?o encerrada. Entre de novo." }));
   }
   s.lastSeen = now;
   next();
@@ -1970,29 +1974,29 @@ function sameOrigin(req) {
   return false;
 }
 
-// Limites primeiro: até requisição inválida entra na conta do IP
+// Limites primeiro: at? requisi??o inv?lida entra na conta do IP
 app.use("/api/public", publicLimiter);
 app.use("/api", apiLimiter);
 app.use("/api", (req, res, next) => (SAFE_METHODS.has(req.method) ? next() : writeLimiter(req, res, next)));
 
 app.use("/api", (req, res, next) => {
   if (SAFE_METHODS.has(req.method)) return next();
-  // Pedido da vitrine: público + rate-limit. CSRF falhava com painel aberto na mesma sessão.
+  // Pedido da vitrine: p?blico + rate-limit. CSRF falhava com painel aberto na mesma sess?o.
   if (req.path === "/api/public/order/notify" || req.originalUrl.split("?")[0] === "/api/public/order/notify") {
     return next();
   }
   if (!sameOrigin(req)) {
     logAction(req, "security.origin", { detail: `origin=${str(req.get("origin"), 120) || "-"} referer=${str(req.get("referer"), 120) || "-"}` });
-    return res.status(403).json({ error: "Origem da requisição não autorizada." });
+    return res.status(403).json({ error: "Origem da requisi??o n?o autorizada." });
   }
   if (!req.session.csrf || !safeEqual(req.get("x-csrf-token"), req.session.csrf)) {
     logAction(req, "security.csrf", { detail: `${req.method} ${req.originalUrl}` });
-    return res.status(403).json({ error: "Token de segurança inválido. Recarregue a página.", csrf: true });
+    return res.status(403).json({ error: "Token de seguran?a inv?lido. Recarregue a p?gina.", csrf: true });
   }
   next();
 });
 
-/* ---------- autorização ---------- */
+/* ---------- autoriza??o ---------- */
 function requireAuth(req, res, next) {
   if (!req.session.user) {
     const quietPaths = ["/api/orders/notifications", "/api/csrf"];
@@ -2000,7 +2004,7 @@ function requireAuth(req, res, next) {
     if (!quietPaths.includes(pathOnly)) {
       logAction(req, "security.unauthorized", { detail: `${req.method} ${req.originalUrl}` });
     }
-    return res.status(401).json({ error: "Faça login para continuar." });
+    return res.status(401).json({ error: "Fa?a login para continuar." });
   }
   const selfPasswordRoute =
     req.method === "PUT" &&
@@ -2012,7 +2016,7 @@ function requireAuth(req, res, next) {
     req.path === "/api/2fa/setup" || req.path === "/api/2fa/activate" || req.path === "/api/2fa/status";
   // allow disabling mandatory 2FA in environments where it's not desirable
   if (!DISABLE_2FA && req.session.user.needs2faSetup && !setupRoute) {
-    return res.status(428).json({ error: "Configure a verificação em duas etapas para continuar.", needs2faSetup: true });
+    return res.status(428).json({ error: "Configure a verifica??o em duas etapas para continuar.", needs2faSetup: true });
   }
   next();
 }
@@ -2049,7 +2053,7 @@ app.get("/robots.txt", (_req, res) => {
 });
 
 /* =========================================================================
-   ROTAS PÚBLICAS
+   ROTAS P?BLICAS
    ========================================================================= */
 
 function publicSettings(s) {
@@ -2127,7 +2131,7 @@ app.get("/api/public/store", (_req, res) => {
         id: o.id,
         title: o.title,
         image: o.image || "",
-        available: o.available !== false,
+        available: o.available !== false && !(o.stockActive && Number(o.stock) <= 0),
       })),
     }));
   res.json({ settings: publicSettings(db.settings), categories: db.categories, products });
@@ -2172,12 +2176,12 @@ function findCouponByCode(db, code) {
 }
 
 function evaluateCoupon(coupon, { subtotal, shipPrice }) {
-  if (!coupon || coupon.active === false) return { error: "Cupom inválido." };
+  if (!coupon || coupon.active === false) return { error: "Cupom inv?lido." };
   if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) return { error: "Cupom expirado." };
   if (coupon.maxUses != null && Number(coupon.usedCount) >= Number(coupon.maxUses)) return { error: "Cupom esgotado." };
   const min = Number(coupon.minOrder) || 0;
   if (min > 0 && subtotal < min) {
-    return { error: `Pedido mínimo de R$ ${min.toFixed(2).replace(".", ",")} para este cupom.` };
+    return { error: `Pedido m?nimo de R$ ${min.toFixed(2).replace(".", ",")} para este cupom.` };
   }
   if (coupon.type === "percent") {
     const pct = Math.min(100, Math.max(0, Number(coupon.value) || 0));
@@ -2186,7 +2190,7 @@ function evaluateCoupon(coupon, { subtotal, shipPrice }) {
   }
   if (coupon.type === "free_shipping") {
     const discount = Math.max(0, Number(shipPrice) || 0);
-    return { discount, freeShipping: true, gift: null, label: "Frete grátis" };
+    return { discount, freeShipping: true, gift: null, label: "Frete gr?tis" };
   }
   if (coupon.type === "gift") {
     return {
@@ -2196,7 +2200,7 @@ function evaluateCoupon(coupon, { subtotal, shipPrice }) {
       label: coupon.giftLabel || "Brinde",
     };
   }
-  return { error: "Tipo de cupom inválido." };
+  return { error: "Tipo de cupom inv?lido." };
 }
 
 app.post("/api/public/coupon/validate", publicLimiter, (req, res) => {
@@ -2204,9 +2208,9 @@ app.post("/api/public/coupon/validate", publicLimiter, (req, res) => {
   const code = normalizeCouponCode(req.body && req.body.code);
   const subtotal = Math.max(0, Number(req.body && req.body.subtotal) || 0);
   const shipPrice = Math.max(0, Number(req.body && req.body.shipPrice) || 0);
-  if (!code) return res.status(400).json({ error: "Digite o código do cupom." });
+  if (!code) return res.status(400).json({ error: "Digite o c?digo do cupom." });
   const coupon = findCouponByCode(db, code);
-  if (!coupon) return res.status(404).json({ error: "Cupom não encontrado." });
+  if (!coupon) return res.status(404).json({ error: "Cupom n?o encontrado." });
   const result = evaluateCoupon(coupon, { subtotal, shipPrice });
   if (result.error) return res.status(400).json({ error: result.error });
   res.json({ ok: true, code: coupon.code, type: coupon.type, ...result });
@@ -2215,9 +2219,9 @@ app.post("/api/public/coupon/validate", publicLimiter, (req, res) => {
 app.post("/api/public/coupon/redeem", publicLimiter, (req, res) => {
   const db = getDb();
   const code = normalizeCouponCode(req.body && req.body.code);
-  if (!code) return res.status(400).json({ error: "Cupom inválido." });
+  if (!code) return res.status(400).json({ error: "Cupom inv?lido." });
   const coupon = findCouponByCode(db, code);
-  if (!coupon) return res.status(404).json({ error: "Cupom não encontrado." });
+  if (!coupon) return res.status(404).json({ error: "Cupom n?o encontrado." });
   const subtotal = Math.max(0, Number(req.body && req.body.subtotal) || 0);
   const shipPrice = Math.max(0, Number(req.body && req.body.shipPrice) || 0);
   const result = evaluateCoupon(coupon, { subtotal, shipPrice });
@@ -2286,15 +2290,15 @@ app.post("/api/public/customer/register", loginLimiter, async (req, res, next) =
     const address = str(req.body && req.body.address, 200);
     const referralCode = str(req.body && req.body.referralCode, 20).toUpperCase();
 
-    if (phone.length < 10) return res.status(400).json({ error: "WhatsApp inválido. Use DDD + número." });
+    if (phone.length < 10) return res.status(400).json({ error: "WhatsApp inv?lido. Use DDD + n?mero." });
     if (pin.length < CUSTOMER_PIN_MIN || pin.length > CUSTOMER_PIN_MAX || !/^\d+$/.test(pin)) {
-      return res.status(400).json({ error: `Crie um PIN de ${CUSTOMER_PIN_MIN} a ${CUSTOMER_PIN_MAX} dígitos.` });
+      return res.status(400).json({ error: `Crie um PIN de ${CUSTOMER_PIN_MIN} a ${CUSTOMER_PIN_MAX} d?gitos.` });
     }
     if (!name) return res.status(400).json({ error: "Escreva seu nome." });
 
     const db = getDb();
     if (db.customers.some((c) => c.phone === phone)) {
-      return res.status(409).json({ error: "Esse WhatsApp já tem conta. Faça login." });
+      return res.status(409).json({ error: "Esse WhatsApp j? tem conta. Fa?a login." });
     }
 
     const refSettings = db.settings.referral || {};
@@ -2348,7 +2352,7 @@ app.post("/api/public/customer/login", loginLimiter, async (req, res, next) => {
   try {
     const phone = normalizePhone(req.body && req.body.phone);
     const pin = String(req.body && req.body.pin || "");
-    if (phone.length < 10 || !pin) return res.status(400).json({ error: "WhatsApp e PIN são obrigatórios." });
+    if (phone.length < 10 || !pin) return res.status(400).json({ error: "WhatsApp e PIN s?o obrigat?rios." });
 
     const db = getDb();
     const customer = db.customers.find((c) => c.phone === phone);
@@ -2378,7 +2382,7 @@ app.put("/api/public/customer/profile", publicLimiter, requireCustomer, (req, re
   const customer = db.customers.find((c) => c.id === req.session.customer.id);
   if (!customer) {
     delete req.session.customer;
-    return res.status(401).json({ error: "Conta não encontrada." });
+    return res.status(401).json({ error: "Conta n?o encontrada." });
   }
   if (req.body.name != null) customer.name = str(req.body.name, 80);
   if (req.body.address != null) customer.address = str(req.body.address, 200);
@@ -2391,7 +2395,7 @@ app.post("/api/public/customer/checkout", publicLimiter, requireCustomer, (req, 
   const customer = db.customers.find((c) => c.id === req.session.customer.id);
   if (!customer) {
     delete req.session.customer;
-    return res.status(401).json({ error: "Conta não encontrada." });
+    return res.status(401).json({ error: "Conta n?o encontrada." });
   }
 
   const subtotal = Math.max(0, Number(req.body && req.body.subtotal) || 0);
@@ -2407,7 +2411,7 @@ app.post("/api/public/customer/checkout", publicLimiter, requireCustomer, (req, 
 
   if (couponCode) {
     coupon = findCouponByCode(db, couponCode);
-    if (!coupon) return res.status(404).json({ error: "Cupom não encontrado." });
+    if (!coupon) return res.status(404).json({ error: "Cupom n?o encontrado." });
     const evalResult = evaluateCoupon(coupon, { subtotal, shipPrice });
     if (evalResult.error) return res.status(400).json({ error: evalResult.error });
     couponDiscount = evalResult.discount || 0;
@@ -2461,7 +2465,7 @@ function sanitizeOrderItems(raw) {
     .filter((it) => it.name);
 }
 
-/** Foto do sabor (se houver) ou do produto — para conferência no painel. */
+/** Foto do sabor (se houver) ou do produto ? para confer?ncia no painel. */
 function resolveOrderItemImage(db, item) {
   if (item && item.image) return str(item.image, 300);
   const product = resolveOrderProduct(db, item || {});
@@ -2511,7 +2515,7 @@ function orderFromAuditEntry(e) {
   };
 }
 
-/** Importa pedidos antigos que só existiam no audit (sininho). */
+/** Importa pedidos antigos que s? existiam no audit (sininho). */
 function migrateOrdersFromAudit(db) {
   if (!Array.isArray(db.orders)) db.orders = [];
   const known = new Set(db.orders.map((o) => o.auditId).filter(Boolean));
@@ -2540,7 +2544,13 @@ function resolveOrderProduct(db, item) {
   return (db.products || []).find((p) => String(p.name || "").trim().toLowerCase() === name) || null;
 }
 
-/** Status do fluxo: Recebido → Aceito → Em rota → Finalizado; Recusado / Devolvido. */
+function resolveOrderOption(product, item) {
+  const title = String(item && item.option || "").trim().toLowerCase();
+  if (!product || !title) return null;
+  return (product.options || []).find((o) => String(o.title || "").trim().toLowerCase() === title) || null;
+}
+
+/** Status do fluxo: Recebido ? Aceito ? Em rota ? Finalizado; Recusado / Devolvido. */
 const ORDER_FLOW = ["pending", "approved", "shipped", "completed", "cancelled", "returned"];
 
 function ensureOrderFields(order) {
@@ -2566,12 +2576,14 @@ function reverseOrderStockMoves(db, order) {
     if (idx < 0) continue;
     const entry = db.ledger[idx];
     const product = findProduct(db, entry.productId);
-    if (product) {
-      const current = product.stock == null ? 0 : Number(product.stock) || 0;
-      if (entry.type === "in") product.stock = Math.max(0, current - (entry.qty || 0));
-      else if (product.stockActive || product.stock != null) {
-        product.stock = current + (entry.qty || 0);
-        product.stockActive = true;
+    const option = product && entry.optionId ? findOption(product, entry.optionId) : null;
+    const stockTarget = option || product;
+    if (stockTarget) {
+      const current = stockTarget.stock == null ? 0 : Number(stockTarget.stock) || 0;
+      if (entry.type === "in") stockTarget.stock = Math.max(0, current - (entry.qty || 0));
+      else if (stockTarget.stockActive || stockTarget.stock != null) {
+        stockTarget.stock = current + (entry.qty || 0);
+        stockTarget.stockActive = true;
       }
       restored += 1;
     }
@@ -2584,8 +2596,8 @@ function reverseOrderStockMoves(db, order) {
 
 /**
  * Avisa o painel de um novo pedido. O cliente chama isso pelo site logo antes
- * de abrir o WhatsApp — funciona tanto para quem tem conta quanto para convidado.
- * Não bloqueia o checkout: se isso falhar o pedido ainda vai pro WhatsApp normalmente.
+ * de abrir o WhatsApp ? funciona tanto para quem tem conta quanto para convidado.
+ * N?o bloqueia o checkout: se isso falhar o pedido ainda vai pro WhatsApp normalmente.
  */
 app.post("/api/public/order/notify", publicLimiter, (req, res) => {
   const b = req.body || {};
@@ -2660,7 +2672,7 @@ app.post("/api/public/order/notify", publicLimiter, (req, res) => {
   res.json({ ok: true, orderId: order.id });
 });
 
-/** Pedidos recentes para o sininho do painel (qualquer usuário logado, não só admin). */
+/** Pedidos recentes para o sininho do painel (qualquer usu?rio logado, n?o s? admin). */
 app.get("/api/orders/notifications", requireAuth, (_req, res) => {
   const db = getDb();
   migrateOrdersFromAudit(db);
@@ -2756,20 +2768,31 @@ app.get("/api/orders", requireAuth, (req, res) => {
 function approveOrderCore(req, db, order) {
   ensureOrderFields(order);
   if (order.status !== "pending") {
-    return { error: "Só pedidos recebidos podem ser aceitos.", status: 400 };
+    return { error: "S? pedidos recebidos podem ser aceitos.", status: 400 };
   }
 
   const resolved = (order.items || []).map((it) => ({ item: it, product: resolveOrderProduct(db, it) }));
   const missing = resolved.filter((r) => !r.product);
   if (missing.length) {
     return {
-      error: `Não achei o produto no estoque: ${missing.map((r) => r.item.name).join(", ")}. Edite o catálogo ou baixe manualmente na aba Estoque.`,
+      error: `N?o achei o produto no estoque: ${missing.map((r) => r.item.name).join(", ")}. Edite o cat?logo ou baixe manualmente na aba Estoque.`,
       status: 400,
     };
   }
   for (const r of resolved) {
+    r.option = resolveOrderOption(r.product, r.item);
+    const stockTarget = r.option && r.option.stockActive ? r.option : r.product;
+    const current = stockTarget.stock == null ? 0 : Number(stockTarget.stock) || 0;
+    if (stockTarget.stockActive && current < r.item.qty) {
+      return {
+        error: `Estoque insuficiente de "${r.product.name}${r.option ? ` ? ${r.option.title}` : ""}" (${current} un., pedido ${r.item.qty}).`,
+        status: 400,
+      };
+    }
+  }
+  for (const r of resolved) {
     const current = r.product.stock == null ? 0 : Number(r.product.stock) || 0;
-    if (r.product.stockActive && current < r.item.qty) {
+    if ((!r.option || !r.option.stockActive) && r.product.stockActive && current < r.item.qty) {
       return {
         error: `Estoque insuficiente de "${r.product.name}" (${current} un., pedido ${r.item.qty}).`,
         status: 400,
@@ -2782,11 +2805,13 @@ function approveOrderCore(req, db, order) {
   const who = req.session.user.name || req.session.user.username;
   for (const r of resolved) {
     const product = r.product;
+    const option = r.option;
     const qty = r.item.qty;
-    const current = product.stock == null ? 0 : Number(product.stock) || 0;
-    if (product.stockActive || product.stock != null) {
-      product.stock = Math.max(0, current - qty);
-      product.stockActive = true;
+    const stockTarget = option && option.stockActive ? option : product;
+    const current = stockTarget.stock == null ? 0 : Number(stockTarget.stock) || 0;
+    if (stockTarget.stockActive || stockTarget.stock != null) {
+      stockTarget.stock = Math.max(0, current - qty);
+      stockTarget.stockActive = true;
     }
     const cities = inferProductCities(product, cityNames);
     const entry = {
@@ -2804,6 +2829,7 @@ function approveOrderCore(req, db, order) {
       userName: who,
       orderId: order.id,
       option: r.item.option || "",
+      optionId: option ? option.id : "",
     };
     db.ledger.unshift(entry);
     moves.push(entry.id);
@@ -2828,7 +2854,7 @@ function approveOrderCore(req, db, order) {
 app.post("/api/orders/:id/approve", requireAuth, (req, res) => {
   const db = getDb();
   const order = findOrder(db, str(req.params.id, 60));
-  if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
+  if (!order) return res.status(404).json({ error: "Pedido n?o encontrado." });
   const result = approveOrderCore(req, db, order);
   if (result.error) return res.status(result.status || 400).json({ error: result.error });
   saveDb(db);
@@ -2836,7 +2862,7 @@ app.post("/api/orders/:id/approve", requireAuth, (req, res) => {
     targetType: "order",
     targetId: order.id,
     targetName: order.customerName,
-    detail: `aceitou pedido · ${result.moves.length} baixa(s) no estoque · ${order.total}`,
+    detail: `aceitou pedido ? ${result.moves.length} baixa(s) no estoque ? ${order.total}`,
   });
   res.json({ order, ledger: db.ledger, products: db.products });
 });
@@ -2844,9 +2870,9 @@ app.post("/api/orders/:id/approve", requireAuth, (req, res) => {
 app.post("/api/orders/:id/cancel", requireAuth, (req, res) => {
   const db = getDb();
   const order = findOrder(db, str(req.params.id, 60));
-  if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
+  if (!order) return res.status(404).json({ error: "Pedido n?o encontrado." });
   ensureOrderFields(order);
-  if (order.status !== "pending") return res.status(400).json({ error: "Só pedidos recebidos podem ser recusados." });
+  if (order.status !== "pending") return res.status(400).json({ error: "S? pedidos recebidos podem ser recusados." });
   order.status = "cancelled";
   order.cancelledAt = new Date().toISOString();
   order.cancelledBy = req.session.user.name || req.session.user.username;
@@ -2860,11 +2886,11 @@ app.post("/api/orders/:id/cancel", requireAuth, (req, res) => {
   res.json({ order });
 });
 
-/** Avança etapa: approved→shipped→completed, ou marca devolvido (devolve estoque). */
+/** Avan?a etapa: approved?shipped?completed, ou marca devolvido (devolve estoque). */
 app.post("/api/orders/:id/status", requireAuth, (req, res) => {
   const db = getDb();
   const order = findOrder(db, str(req.params.id, 60));
-  if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
+  if (!order) return res.status(404).json({ error: "Pedido n?o encontrado." });
   ensureOrderFields(order);
   const next = str(req.body && req.body.status, 20);
   const who = req.session.user.name || req.session.user.username;
@@ -2876,10 +2902,10 @@ app.post("/api/orders/:id/status", requireAuth, (req, res) => {
     returned: ["approved", "shipped", "completed"],
   };
   if (!allowed[next]) {
-    return res.status(400).json({ error: "Status inválido. Use shipped, completed ou returned." });
+    return res.status(400).json({ error: "Status inv?lido. Use shipped, completed ou returned." });
   }
   if (!allowed[next].includes(order.status)) {
-    return res.status(400).json({ error: `Não dá para marcar como "${next}" a partir de "${order.status}".` });
+    return res.status(400).json({ error: `N?o d? para marcar como "${next}" a partir de "${order.status}".` });
   }
 
   if (next === "shipped") {
@@ -2908,27 +2934,27 @@ app.post("/api/orders/:id/status", requireAuth, (req, res) => {
     targetType: "order",
     targetId: order.id,
     targetName: order.customerName,
-    detail: `status → ${next}`,
+    detail: `status ? ${next}`,
   });
   res.json({ order, ledger: db.ledger, products: db.products });
 });
 
 /**
  * Desfaz o tratamento do pedido (mesma ideia do Lucro):
- * - Aceito/Em rota/Finalizado → volta a Recebido e devolve estoque/ledger
- * - Recusado → volta a Recebido
- * - Devolvido → volta a Aceito e dá baixa de novo no estoque
+ * - Aceito/Em rota/Finalizado ? volta a Recebido e devolve estoque/ledger
+ * - Recusado ? volta a Recebido
+ * - Devolvido ? volta a Aceito e d? baixa de novo no estoque
  */
 app.post("/api/orders/:id/undo", requireAuth, (req, res) => {
   const db = getDb();
   const order = findOrder(db, str(req.params.id, 60));
-  if (!order) return res.status(404).json({ error: "Pedido não encontrado." });
+  if (!order) return res.status(404).json({ error: "Pedido n?o encontrado." });
   ensureOrderFields(order);
   const who = req.session.user.name || req.session.user.username;
   const prev = order.status;
 
   if (order.status === "pending") {
-    return res.status(400).json({ error: "Pedido ainda está recebido — nada para desfazer." });
+    return res.status(400).json({ error: "Pedido ainda est? recebido ? nada para desfazer." });
   }
 
   if (order.status === "cancelled") {
@@ -2960,7 +2986,7 @@ app.post("/api/orders/:id/undo", requireAuth, (req, res) => {
     order.completedBy = "";
     order.stockRestored = false;
   } else {
-    return res.status(400).json({ error: "Não é possível desfazer este status." });
+    return res.status(400).json({ error: "N?o ? poss?vel desfazer este status." });
   }
 
   saveDb(db);
@@ -2968,7 +2994,7 @@ app.post("/api/orders/:id/undo", requireAuth, (req, res) => {
     targetType: "order",
     targetId: order.id,
     targetName: order.customerName,
-    detail: `desfez ${prev} → ${order.status} · por ${who}`,
+    detail: `desfez ${prev} ? ${order.status} ? por ${who}`,
   });
   res.json({ order, ledger: db.ledger, products: db.products });
 });
@@ -2994,7 +3020,7 @@ app.get("/api/customers", requireAdmin, (_req, res) => {
 });
 
 /* =========================================================================
-   AUTENTICAÇÃO
+   AUTENTICA??O
    ========================================================================= */
 
 app.get("/api/csrf", (req, res) => {
@@ -3017,7 +3043,7 @@ function sessionUserOf(user) {
   };
 }
 
-/** Cria a sessão definitiva (sempre com sessão nova, contra fixação de sessão). */
+/** Cria a sess?o definitiva (sempre com sess?o nova, contra fixa??o de sess?o). */
 function startSession(req, res, next, user, detail) {
   const sessionUser = sessionUserOf(user);
   req.session.regenerate((err) => {
@@ -3042,12 +3068,12 @@ function startSession(req, res, next, user, detail) {
   });
 }
 
-/* Etapa 1: usuário e senha */
+/* Etapa 1: usu?rio e senha */
 app.post("/api/login", loginLimiter, async (req, res, next) => {
   try {
     const username = str(req.body.username, 60).toLowerCase();
     const password = String(req.body.password || "");
-    const genericError = "Usuário ou senha incorretos.";
+    const genericError = "Usu?rio ou senha incorretos.";
 
     if (!username || !password) return res.status(400).json({ error: genericError });
 
@@ -3056,12 +3082,12 @@ app.post("/api/login", loginLimiter, async (req, res, next) => {
       const mins = Math.ceil((locked.until - Date.now()) / 60000);
       debugLogin("D", "server.js:login", "conta bloqueada", { mins, usernameLen: username.length });
       logAction(req, "auth.locked", { actor: { id: null, name: username, role: "guest" }, detail: `bloqueado por ${mins} min` });
-      return res.status(429).json({ error: `Conta bloqueada por ${mins} minuto(s) após várias tentativas.` });
+      return res.status(429).json({ error: `Conta bloqueada por ${mins} minuto(s) ap?s v?rias tentativas.` });
     }
 
     const db = getDb();
     const user = db.users.find((u) => String(u.username).toLowerCase() === username);
-    debugLogin("B", "server.js:login", "lookup do usuário", {
+    debugLogin("B", "server.js:login", "lookup do usu?rio", {
       userFound: Boolean(user),
       userCount: (db.users || []).length,
       usernames: (db.users || []).map((u) => String(u.username || "")),
@@ -3091,20 +3117,20 @@ app.post("/api/login", loginLimiter, async (req, res, next) => {
       const rec = registerFail(username);
       logAction(req, "auth.login_failed", {
         actor: { id: user ? user.id : null, name: username, role: "guest" },
-        detail: `tentativa ${rec.count}${rec.until ? " — conta bloqueada" : ""}`,
+        detail: `tentativa ${rec.count}${rec.until ? " ? conta bloqueada" : ""}`,
       });
       return res.status(401).json({ error: genericError });
     }
 
     loginFails.delete(username);
 
-    // Atualiza o hash para os parâmetros atuais quando o cadastro é antigo
+    // Atualiza o hash para os par?metros atuais quando o cadastro ? antigo
     if (!user.kdf || user.kdf.N !== KDF.N) {
       Object.assign(user, await hashPassword(password));
       saveDb(db);
     }
 
-    // Conta com 2FA ativo: sempre pede o código (mesmo se DISABLE_2FA=true)
+    // Conta com 2FA ativo: sempre pede o c?digo (mesmo se DISABLE_2FA=true)
     if (user.totp && user.totp.confirmedAt) {
       req.session.regenerate((err) => {
         if (err) return next(err);
@@ -3119,7 +3145,7 @@ app.post("/api/login", loginLimiter, async (req, res, next) => {
       return;
     }
 
-    // Sem 2FA: entra direto (ou força configuração se DISABLE_2FA=false)
+    // Sem 2FA: entra direto (ou for?a configura??o se DISABLE_2FA=false)
     const detail = user.mustChangePassword
       ? "senha precisa ser trocada"
       : !DISABLE_2FA
@@ -3131,31 +3157,31 @@ app.post("/api/login", loginLimiter, async (req, res, next) => {
   }
 });
 
-/* Etapa 2: código do aplicativo (ou código de recuperação) */
+/* Etapa 2: c?digo do aplicativo (ou c?digo de recupera??o) */
 app.post("/api/login/totp", loginLimiter, async (req, res, next) => {
   try {
     const pending = req.session.pending;
     if (!pending || Date.now() - pending.at > 5 * 60 * 1000) {
       delete req.session.pending;
-      return res.status(440).json({ error: "O tempo para digitar o código acabou. Entre de novo.", restart: true });
+      return res.status(440).json({ error: "O tempo para digitar o c?digo acabou. Entre de novo.", restart: true });
     }
     if (pending.tries >= 6) {
       delete req.session.pending;
-      logAction(req, "2fa.failed", { detail: "excesso de tentativas — voltou para o login" });
-      return res.status(429).json({ error: "Muitas tentativas. Faça o login de novo.", restart: true });
+      logAction(req, "2fa.failed", { detail: "excesso de tentativas ? voltou para o login" });
+      return res.status(429).json({ error: "Muitas tentativas. Fa?a o login de novo.", restart: true });
     }
 
     const db = getDb();
     const user = db.users.find((u) => u.id === pending.userId);
     if (!user || !user.totp || !user.totp.confirmedAt) {
       delete req.session.pending;
-      return res.status(440).json({ error: "Sessão inválida. Entre de novo.", restart: true });
+      return res.status(440).json({ error: "Sess?o inv?lida. Entre de novo.", restart: true });
     }
 
     const raw = String(req.body.code || "").trim();
     const asTotp = raw.replace(/\D/g, "");
 
-    // Código de 6 dígitos = app; qualquer outro formato = tentativa de recuperação
+    // C?digo de 6 d?gitos = app; qualquer outro formato = tentativa de recupera??o
     if (asTotp.length === 6) {
       const step = verifyTotp(user.totp.secret, asTotp, user.totp.lastStep);
       if (step == null) {
@@ -3165,12 +3191,12 @@ app.post("/api/login/totp", loginLimiter, async (req, res, next) => {
           actor: { id: user.id, name: user.name || user.username, role: user.role },
           detail: `tentativa ${pending.tries}`,
         });
-        return res.status(401).json({ error: "Código inválido. Confira no aplicativo e tente de novo." });
+        return res.status(401).json({ error: "C?digo inv?lido. Confira no aplicativo e tente de novo." });
       }
       user.totp.lastStep = step;
       saveDb(db);
       loginFails.delete(String(user.username).toLowerCase());
-      return startSession(req, res, next, user, "código do aplicativo");
+      return startSession(req, res, next, user, "c?digo do aplicativo");
     }
 
     if (useRecoveryCode(user, raw)) {
@@ -3178,18 +3204,18 @@ app.post("/api/login/totp", loginLimiter, async (req, res, next) => {
       const left = recoveryLeft(user);
       logAction(req, "2fa.recovery_used", {
         actor: { id: user.id, name: user.name || user.username, role: user.role },
-        detail: `restam ${left} código(s)`,
+        detail: `restam ${left} c?digo(s)`,
         severity: "alert",
       });
-      return startSession(req, res, next, user, `código de recuperação (restam ${left})`);
+      return startSession(req, res, next, user, `c?digo de recupera??o (restam ${left})`);
     }
 
     pending.tries += 1;
     logAction(req, "2fa.failed", {
       actor: { id: user.id, name: user.name || user.username, role: user.role },
-      detail: `código de recuperação inválido (tentativa ${pending.tries})`,
+      detail: `c?digo de recupera??o inv?lido (tentativa ${pending.tries})`,
     });
-    res.status(401).json({ error: "Código inválido. Confira no aplicativo e tente de novo." });
+    res.status(401).json({ error: "C?digo inv?lido. Confira no aplicativo e tente de novo." });
   } catch (err) {
     next(err);
   }
@@ -3205,8 +3231,8 @@ app.post("/api/logout", (req, res) => {
 
 app.get("/api/me", (req, res) => {
   if (!req.session.user) {
-    if (req.session.pending) return res.status(401).json({ error: "Falta o código de verificação.", stage: "totp", csrf: csrfToken(req) });
-    return res.status(401).json({ error: "Não logado." });
+    if (req.session.pending) return res.status(401).json({ error: "Falta o c?digo de verifica??o.", stage: "totp", csrf: csrfToken(req) });
+    return res.status(401).json({ error: "N?o logado." });
   }
   const me = (getDb().users || []).find((u) => u.id === req.session.user.id);
   const user = {
@@ -3224,7 +3250,7 @@ app.get("/api/me", (req, res) => {
 });
 
 /* =========================================================================
-   2FA — configuração e recuperação
+   2FA ? configura??o e recupera??o
    ========================================================================= */
 
 function currentUser(req) {
@@ -3234,7 +3260,7 @@ function currentUser(req) {
 
 app.get("/api/2fa/status", requireAuth, (req, res) => {
   const { user } = currentUser(req);
-  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
   res.json({
     enabled: !!(user.totp && user.totp.confirmedAt),
     confirmedAt: user.totp ? user.totp.confirmedAt || null : null,
@@ -3243,13 +3269,13 @@ app.get("/api/2fa/status", requireAuth, (req, res) => {
   });
 });
 
-/** Gera um segredo provisório e o QR Code. Só vira definitivo depois do /activate. */
+/** Gera um segredo provis?rio e o QR Code. S? vira definitivo depois do /activate. */
 app.post("/api/2fa/setup", requireAuth, async (req, res, next) => {
   try {
     const { db, user } = currentUser(req);
-    if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+    if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
     if (user.totp && user.totp.confirmedAt) {
-      return res.status(409).json({ error: "A verificação em duas etapas já está ativa nesta conta." });
+      return res.status(409).json({ error: "A verifica??o em duas etapas j? est? ativa nesta conta." });
     }
     const secret = newTotpSecret();
     user.totpPending = { secret, createdAt: new Date().toISOString() };
@@ -3263,18 +3289,18 @@ app.post("/api/2fa/setup", requireAuth, async (req, res, next) => {
   }
 });
 
-/** Confirma o código do app, liga o 2FA e devolve os códigos de recuperação (única vez). */
+/** Confirma o c?digo do app, liga o 2FA e devolve os c?digos de recupera??o (?nica vez). */
 app.post("/api/2fa/activate", requireAuth, (req, res) => {
   const { db, user } = currentUser(req);
-  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
-  if (user.totp && user.totp.confirmedAt) return res.status(409).json({ error: "A verificação em duas etapas já está ativa." });
+  if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
+  if (user.totp && user.totp.confirmedAt) return res.status(409).json({ error: "A verifica??o em duas etapas j? est? ativa." });
   if (!user.totpPending || !user.totpPending.secret) {
     return res.status(400).json({ error: "Gere o QR Code antes de confirmar." });
   }
   const step = verifyTotp(user.totpPending.secret, req.body.code, null);
   if (step == null) {
-    logAction(req, "2fa.failed", { detail: "código errado na ativação" });
-    return res.status(400).json({ error: "Código inválido. Confira a hora do celular e tente de novo." });
+    logAction(req, "2fa.failed", { detail: "c?digo errado na ativa??o" });
+    return res.status(400).json({ error: "C?digo inv?lido. Confira a hora do celular e tente de novo." });
   }
   const { plain, stored } = makeRecoveryCodes();
   user.totp = { secret: user.totpPending.secret, confirmedAt: new Date().toISOString(), lastStep: step };
@@ -3286,14 +3312,14 @@ app.post("/api/2fa/activate", requireAuth, (req, res) => {
   res.json({ ok: true, recoveryCodes: plain, user: req.session.user });
 });
 
-/** Gera novos códigos de recuperação (pede a senha atual). */
+/** Gera novos c?digos de recupera??o (pede a senha atual). */
 app.post("/api/2fa/recovery-codes", requireAuth, async (req, res, next) => {
   try {
     const { db, user } = currentUser(req);
-    if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
-    if (!(user.totp && user.totp.confirmedAt)) return res.status(400).json({ error: "Ative a verificação em duas etapas primeiro." });
+    if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
+    if (!(user.totp && user.totp.confirmedAt)) return res.status(400).json({ error: "Ative a verifica??o em duas etapas primeiro." });
     if (!(await verifyPassword(String(req.body.password || ""), user))) {
-      logAction(req, "auth.login_failed", { detail: "senha errada ao gerar códigos de recuperação", severity: "alert" });
+      logAction(req, "auth.login_failed", { detail: "senha errada ao gerar c?digos de recupera??o", severity: "alert" });
       return res.status(403).json({ error: "Senha atual incorreta." });
     }
     const { plain, stored } = makeRecoveryCodes();
@@ -3306,13 +3332,13 @@ app.post("/api/2fa/recovery-codes", requireAuth, async (req, res, next) => {
   }
 });
 
-/** O próprio usuário desliga o 2FA (pede a senha atual). */
+/** O pr?prio usu?rio desliga o 2FA (pede a senha atual). */
 app.post("/api/2fa/disable", requireAuth, async (req, res, next) => {
   try {
     const { db, user } = currentUser(req);
-    if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+    if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
     if (!(user.totp && user.totp.confirmedAt)) {
-      return res.status(400).json({ error: "A verificação em duas etapas já está desligada." });
+      return res.status(400).json({ error: "A verifica??o em duas etapas j? est? desligada." });
     }
     if (!(await verifyPassword(String(req.body.password || ""), user))) {
       logAction(req, "auth.login_failed", { detail: "senha errada ao desligar 2FA", severity: "alert" });
@@ -3331,15 +3357,15 @@ app.post("/api/2fa/disable", requireAuth, async (req, res, next) => {
   }
 });
 
-/** Administrador zera o 2FA de outra pessoa (ela configura de novo no próximo login). */
+/** Administrador zera o 2FA de outra pessoa (ela configura de novo no pr?ximo login). */
 app.delete("/api/2fa/:userId", requireAdmin, async (req, res, next) => {
   try {
     const db = getDb();
     const me = db.users.find((u) => u.id === req.session.user.id);
     const target = db.users.find((u) => u.id === str(req.params.userId, 60));
-    if (!target) return res.status(404).json({ error: "Usuário não encontrado." });
+    if (!target) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
     if (!me || !(await verifyPassword(String(req.body.password || ""), me))) {
-      logAction(req, "auth.login_failed", { detail: "senha errada ao zerar 2FA de outro usuário", severity: "alert" });
+      logAction(req, "auth.login_failed", { detail: "senha errada ao zerar 2FA de outro usu?rio", severity: "alert" });
       return res.status(403).json({ error: "Senha atual incorreta." });
     }
     delete target.totp;
@@ -3403,6 +3429,8 @@ function parseOptionPayload(body, existing) {
       title,
       image: match ? match.image || "" : "",
       available: match ? match.available !== false : true,
+      stock: match && match.stock != null ? Math.max(0, Math.floor(Number(match.stock) || 0)) : null,
+      stockActive: !!(match && match.stockActive),
     });
   }
   return { optionGroup, options };
@@ -3429,22 +3457,22 @@ function readProductBody(body, existing) {
 
   if (body.price != null || !existing) {
     const price = optNum(body.price, { min: 0, max: 1e7 });
-    if (price === INVALID) errors.push("Preço inválido.");
+    if (price === INVALID) errors.push("Pre?o inv?lido.");
     else out.price = price == null ? 0 : price;
   }
   if (body.promoPrice !== undefined) {
     const promo = optNum(body.promoPrice, { min: 0, max: 1e7 });
-    if (promo === INVALID) errors.push("Preço promocional inválido.");
+    if (promo === INVALID) errors.push("Pre?o promocional inv?lido.");
     else out.promoPrice = promo;
   }
   if (body.cost !== undefined) {
     const cost = optNum(body.cost, { min: 0, max: 1e7 });
-    if (cost === INVALID) errors.push("Custo inválido.");
+    if (cost === INVALID) errors.push("Custo inv?lido.");
     else out.cost = cost;
   }
   if (body.stock !== undefined) {
     const stock = optInt(body.stock, { min: 0, max: 1e6 });
-    if (stock === INVALID) errors.push("Estoque inválido (use um número inteiro).");
+    if (stock === INVALID) errors.push("Estoque inv?lido (use um n?mero inteiro).");
     else out.stock = stock;
   }
   if (body.stockActive !== undefined) out.stockActive = bool(body.stockActive);
@@ -3494,7 +3522,7 @@ app.post("/api/products", requireAuth, uploadLimiter, upload.single("image"), (r
     targetType: "product",
     targetId: product.id,
     targetName: product.name,
-    detail: `${product.category} · ${product.price} · ${product.options.length} sabor(es)`,
+    detail: `${product.category} ? ${product.price} ? ${product.options.length} sabor(es)`,
   });
   res.json({ product });
 });
@@ -3507,7 +3535,7 @@ app.put("/api/products/:id", requireAuth, uploadLimiter, upload.single("image"),
   const product = findProduct(db, str(req.params.id, 60));
   if (!product) {
     dropUpload(req);
-    return res.status(404).json({ error: "Produto não encontrado." });
+    return res.status(404).json({ error: "Produto n?o encontrado." });
   }
 
   const body = req.body || {};
@@ -3528,7 +3556,7 @@ app.put("/api/products/:id", requireAuth, uploadLimiter, upload.single("image"),
     const parsed = parseOptionPayload(body, before);
     product.optionGroup = parsed.optionGroup;
     if (body.options !== undefined) {
-      // Fotos de sabores que saíram da lista podem ser apagadas
+      // Fotos de sabores que sa?ram da lista podem ser apagadas
       const keep = new Set(parsed.options.map((o) => o.image).filter(Boolean));
       product.options = parsed.options;
       for (const o of before.options || []) if (o.image && !keep.has(o.image)) removeUnusedUpload(db, o.image);
@@ -3545,7 +3573,7 @@ app.put("/api/products/:id", requireAuth, uploadLimiter, upload.single("image"),
     targetType: "product",
     targetId: product.id,
     targetName: product.name,
-    detail: changes.map((c) => c.field).join(", ") || "sem mudanças",
+    detail: changes.map((c) => c.field).join(", ") || "sem mudan?as",
     changes,
   });
   res.json({ product });
@@ -3555,7 +3583,7 @@ app.delete("/api/products/:id", requireAuth, (req, res) => {
   const db = getDb();
   const id = str(req.params.id, 60);
   const product = findProduct(db, id);
-  if (!product) return res.status(404).json({ error: "Produto não encontrado." });
+  if (!product) return res.status(404).json({ error: "Produto n?o encontrado." });
   db.products = db.products.filter((p) => p.id !== id);
   saveDb(db);
   removeUnusedUpload(db, product.image);
@@ -3564,7 +3592,7 @@ app.delete("/api/products/:id", requireAuth, (req, res) => {
     targetType: "product",
     targetId: id,
     targetName: product.name,
-    detail: `${product.category || "sem categoria"} · ${product.price}`,
+    detail: `${product.category || "sem categoria"} ? ${product.price}`,
   });
   res.json({ ok: true });
 });
@@ -3572,11 +3600,11 @@ app.delete("/api/products/:id", requireAuth, (req, res) => {
 app.post("/api/products/:id/duplicate", requireAuth, (req, res) => {
   const db = getDb();
   const source = findProduct(db, str(req.params.id, 60));
-  if (!source) return res.status(404).json({ error: "Produto não encontrado." });
+  if (!source) return res.status(404).json({ error: "Produto n?o encontrado." });
   const copy = {
     ...JSON.parse(JSON.stringify(source)),
     id: uid("p"),
-    name: `${source.name} (cópia)`.slice(0, PRODUCT_LIMITS.name),
+    name: `${source.name} (c?pia)`.slice(0, PRODUCT_LIMITS.name),
     createdAt: new Date().toISOString(),
     active: false,
   };
@@ -3595,7 +3623,7 @@ app.post("/api/products/:id/duplicate", requireAuth, (req, res) => {
 app.patch("/api/products/:id/quick", requireAuth, (req, res) => {
   const db = getDb();
   const product = findProduct(db, str(req.params.id, 60));
-  if (!product) return res.status(404).json({ error: "Produto não encontrado." });
+  if (!product) return res.status(404).json({ error: "Produto n?o encontrado." });
   const b = req.body || {};
   const before = { ...product };
 
@@ -3604,12 +3632,12 @@ app.patch("/api/products/:id/quick", requireAuth, (req, res) => {
   if (b.stockActive !== undefined) product.stockActive = bool(b.stockActive);
   if (b.stock !== undefined) {
     const stock = optInt(b.stock, { min: 0, max: 1e6 });
-    if (stock === INVALID) return res.status(400).json({ error: "Estoque inválido." });
+    if (stock === INVALID) return res.status(400).json({ error: "Estoque inv?lido." });
     product.stock = stock;
   }
   if (b.cost !== undefined) {
     const cost = optNum(b.cost, { min: 0, max: 1e7 });
-    if (cost === INVALID) return res.status(400).json({ error: "Custo inválido." });
+    if (cost === INVALID) return res.status(400).json({ error: "Custo inv?lido." });
     product.cost = cost;
   }
 
@@ -3619,14 +3647,14 @@ app.patch("/api/products/:id/quick", requireAuth, (req, res) => {
     targetType: "product",
     targetId: product.id,
     targetName: product.name,
-    detail: changes.map((c) => `${c.field}: ${c.from} → ${c.to}`).join(" · "),
+    detail: changes.map((c) => `${c.field}: ${c.from} ? ${c.to}`).join(" ? "),
     changes,
   });
   res.json({ product });
 });
 
 /* =========================================================================
-   SABORES (opções do produto) — cada um com foto própria
+   SABORES (op??es do produto) ? cada um com foto pr?pria
    ========================================================================= */
 
 function findOption(product, optId) {
@@ -3639,14 +3667,14 @@ function optionsPayload(product) {
 
 app.get("/api/products/:id/options", requireAuth, (req, res) => {
   const product = findProduct(getDb(), str(req.params.id, 60));
-  if (!product) return res.status(404).json({ error: "Produto não encontrado." });
+  if (!product) return res.status(404).json({ error: "Produto n?o encontrado." });
   res.json(optionsPayload(product));
 });
 
 app.post("/api/products/:id/options", requireAuth, (req, res) => {
   const db = getDb();
   const product = findProduct(db, str(req.params.id, 60));
-  if (!product) return res.status(404).json({ error: "Produto não encontrado." });
+  if (!product) return res.status(404).json({ error: "Produto n?o encontrado." });
 
   const titles = Array.isArray(req.body.titles) ? req.body.titles : [req.body.title];
   const clean = [];
@@ -3657,11 +3685,11 @@ app.post("/api/products/:id/options", requireAuth, (req, res) => {
     if ((product.options || []).some((o) => o.title.toLowerCase() === title.toLowerCase())) continue;
     clean.push(title);
   }
-  if (!clean.length) return res.status(400).json({ error: "Informe o nome do sabor (e sem repetir os que já existem)." });
+  if (!clean.length) return res.status(400).json({ error: "Informe o nome do sabor (e sem repetir os que j? existem)." });
   if ((product.options || []).length + clean.length > 200) return res.status(400).json({ error: "Limite de 200 sabores por produto." });
 
   if (!Array.isArray(product.options)) product.options = [];
-  const created = clean.map((title) => ({ id: uid("opt"), title, image: "", available: true }));
+  const created = clean.map((title) => ({ id: uid("opt"), title, image: "", available: true, stock: null, stockActive: false }));
   product.options.push(...created);
   if (!product.optionGroup && req.body.optionGroup) product.optionGroup = str(req.body.optionGroup, PRODUCT_LIMITS.optionGroup);
   saveDb(db);
@@ -3677,27 +3705,33 @@ app.post("/api/products/:id/options", requireAuth, (req, res) => {
 app.patch("/api/products/:id/options/:optId", requireAuth, (req, res) => {
   const db = getDb();
   const product = findProduct(db, str(req.params.id, 60));
-  if (!product) return res.status(404).json({ error: "Produto não encontrado." });
+  if (!product) return res.status(404).json({ error: "Produto n?o encontrado." });
   const option = findOption(product, str(req.params.optId, 60));
-  if (!option) return res.status(404).json({ error: "Sabor não encontrado." });
+  if (!option) return res.status(404).json({ error: "Sabor n?o encontrado." });
 
   const before = { ...option };
   if (req.body.title !== undefined) {
     const title = str(req.body.title, PRODUCT_LIMITS.optionTitle);
     if (!title) return res.status(400).json({ error: "O sabor precisa de um nome." });
     const dup = product.options.some((o) => o.id !== option.id && o.title.toLowerCase() === title.toLowerCase());
-    if (dup) return res.status(400).json({ error: "Já existe um sabor com esse nome." });
+    if (dup) return res.status(400).json({ error: "J? existe um sabor com esse nome." });
     option.title = title;
   }
   if (req.body.available !== undefined) option.available = bool(req.body.available, true);
+  if (req.body.stockActive !== undefined) option.stockActive = bool(req.body.stockActive);
+  if (req.body.stock !== undefined) {
+    const stock = optInt(req.body.stock, { min: 0, max: 1e6 });
+    if (stock === INVALID) return res.status(400).json({ error: "Estoque do sabor inv?lido." });
+    option.stock = stock;
+  }
 
   saveDb(db);
-  const changes = diffFields(before, option, ["title", "available"]);
+  const changes = diffFields(before, option, ["title", "available", "stockActive", "stock"]);
   logAction(req, "option.update", {
     targetType: "option",
     targetId: option.id,
-    targetName: `${product.name} › ${option.title}`,
-    detail: changes.map((c) => `${c.field}: ${c.from} → ${c.to}`).join(" · "),
+    targetName: `${product.name} ? ${option.title}`,
+    detail: changes.map((c) => `${c.field}: ${c.from} ? ${c.to}`).join(" ? "),
     changes,
   });
   res.json({ ...optionsPayload(product), option });
@@ -3706,9 +3740,9 @@ app.patch("/api/products/:id/options/:optId", requireAuth, (req, res) => {
 app.delete("/api/products/:id/options/:optId", requireAuth, (req, res) => {
   const db = getDb();
   const product = findProduct(db, str(req.params.id, 60));
-  if (!product) return res.status(404).json({ error: "Produto não encontrado." });
+  if (!product) return res.status(404).json({ error: "Produto n?o encontrado." });
   const option = findOption(product, str(req.params.optId, 60));
-  if (!option) return res.status(404).json({ error: "Sabor não encontrado." });
+  if (!option) return res.status(404).json({ error: "Sabor n?o encontrado." });
 
   product.options = product.options.filter((o) => o.id !== option.id);
   saveDb(db);
@@ -3716,7 +3750,7 @@ app.delete("/api/products/:id/options/:optId", requireAuth, (req, res) => {
   logAction(req, "option.delete", {
     targetType: "option",
     targetId: option.id,
-    targetName: `${product.name} › ${option.title}`,
+    targetName: `${product.name} ? ${option.title}`,
   });
   res.json(optionsPayload(product));
 });
@@ -3724,7 +3758,7 @@ app.delete("/api/products/:id/options/:optId", requireAuth, (req, res) => {
 app.put("/api/products/:id/options/order", requireAuth, (req, res) => {
   const db = getDb();
   const product = findProduct(db, str(req.params.id, 60));
-  if (!product) return res.status(404).json({ error: "Produto não encontrado." });
+  if (!product) return res.status(404).json({ error: "Produto n?o encontrado." });
   const ids = Array.isArray(req.body.ids) ? req.body.ids.map((x) => str(x, 60)) : [];
   const current = product.options || [];
   const ordered = [];
@@ -3759,7 +3793,7 @@ app.post(
     const option = product ? findOption(product, str(req.params.optId, 60)) : null;
     if (!product || !option) {
       dropUpload(req);
-      return res.status(404).json({ error: "Sabor não encontrado." });
+      return res.status(404).json({ error: "Sabor n?o encontrado." });
     }
 
     const oldImage = option.image;
@@ -3769,7 +3803,7 @@ app.post(
     logAction(req, "option.image", {
       targetType: "option",
       targetId: option.id,
-      targetName: `${product.name} › ${option.title}`,
+      targetName: `${product.name} ? ${option.title}`,
       detail: option.image,
     });
     res.json({ ...optionsPayload(product), option });
@@ -3780,7 +3814,7 @@ app.delete("/api/products/:id/options/:optId/image", requireAuth, (req, res) => 
   const db = getDb();
   const product = findProduct(db, str(req.params.id, 60));
   const option = product ? findOption(product, str(req.params.optId, 60)) : null;
-  if (!product || !option) return res.status(404).json({ error: "Sabor não encontrado." });
+  if (!product || !option) return res.status(404).json({ error: "Sabor n?o encontrado." });
   const old = option.image;
   option.image = "";
   saveDb(db);
@@ -3788,13 +3822,13 @@ app.delete("/api/products/:id/options/:optId/image", requireAuth, (req, res) => 
   logAction(req, "option.image_delete", {
     targetType: "option",
     targetId: option.id,
-    targetName: `${product.name} › ${option.title}`,
+    targetName: `${product.name} ? ${option.title}`,
   });
   res.json({ ...optionsPayload(product), option });
 });
 
 /* =========================================================================
-   ESTOQUE / MOVIMENTAÇÕES
+   ESTOQUE / MOVIMENTA??ES
    ========================================================================= */
 
 function sellPrice(p) {
@@ -3810,12 +3844,12 @@ app.post("/api/stock/move", requireAuth, (req, res) => {
   const db = getDb();
   const b = req.body || {};
   const type = str(b.type, 10);
-  if (!["in", "sale", "adjust"].includes(type)) return res.status(400).json({ error: "Tipo inválido." });
+  if (!["in", "sale", "adjust"].includes(type)) return res.status(400).json({ error: "Tipo inv?lido." });
   const qty = optInt(b.qty, { min: 1, max: 100000 });
   if (qty === INVALID || !qty) return res.status(400).json({ error: "Informe a quantidade." });
 
   const product = findProduct(db, str(b.productId, 60));
-  if (!product) return res.status(404).json({ error: "Produto não encontrado." });
+  if (!product) return res.status(404).json({ error: "Produto n?o encontrado." });
 
   const current = product.stock == null ? 0 : Number(product.stock) || 0;
   if (type === "in") {
@@ -3856,7 +3890,7 @@ app.post("/api/stock/move", requireAuth, (req, res) => {
     targetType: "product",
     targetId: product.id,
     targetName: product.name,
-    detail: `${type} ${qty} un. · estoque agora ${product.stock}`,
+    detail: `${type} ${qty} un. ? estoque agora ${product.stock}`,
   });
   res.json({ product, entry, ledger: db.ledger });
 });
@@ -3865,7 +3899,7 @@ app.delete("/api/ledger/:id", requireAuth, (req, res) => {
   const db = getDb();
   const id = str(req.params.id, 60);
   const idx = db.ledger.findIndex((x) => x.id === id);
-  if (idx < 0) return res.status(404).json({ error: "Registro não encontrado." });
+  if (idx < 0) return res.status(404).json({ error: "Registro n?o encontrado." });
   const entry = db.ledger[idx];
   const product = findProduct(db, entry.productId);
   if (product) {
@@ -3888,7 +3922,7 @@ app.delete("/api/ledger/:id", requireAuth, (req, res) => {
 });
 
 /* =========================================================================
-   USUÁRIOS
+   USU?RIOS
    ========================================================================= */
 
 const publicUser = (u) => {
@@ -3923,16 +3957,16 @@ app.post("/api/users", requireAdmin, async (req, res, next) => {
     const role = req.body.role === "admin" ? "admin" : "editor";
     const emailRaw = req.body.email;
     const email = emailRaw == null || emailRaw === "" ? "" : normalizeEmail(emailRaw);
-    if (email === null) return res.status(400).json({ error: "E-mail inválido." });
+    if (email === null) return res.status(400).json({ error: "E-mail inv?lido." });
     const notifyPushOrders = !(req.body.notifyPushOrders === false || req.body.notifyPushOrders === "false");
 
     if (!/^[a-z0-9._-]{3,40}$/.test(username)) {
-      return res.status(400).json({ error: "Usuário: 3 a 40 caracteres, use letras, números, ponto, hífen ou _." });
+      return res.status(400).json({ error: "Usu?rio: 3 a 40 caracteres, use letras, n?meros, ponto, h?fen ou _." });
     }
     const problem = passwordProblem(password, username);
     if (problem) return res.status(400).json({ error: problem });
     if (db.users.some((u) => String(u.username).toLowerCase() === username)) {
-      return res.status(400).json({ error: "Esse usuário já existe." });
+      return res.status(400).json({ error: "Esse usu?rio j? existe." });
     }
     if (db.users.length >= 50) return res.status(400).json({ error: "Limite de acessos atingido." });
 
@@ -3964,26 +3998,26 @@ app.put("/api/users/me/profile", requireAuth, async (req, res, next) => {
     const db = getDb();
     const me = req.session.user;
     const user = db.users.find((u) => u.id === me.id);
-    if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+    if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
     normalizeUserNotify(user);
 
     const name = str(req.body.name, 60);
     const usernameRaw = str(req.body.username, 40).toLowerCase().replace(/\s+/g, "");
-    if (!name) return res.status(400).json({ error: "Informe o nome de exibição." });
+    if (!name) return res.status(400).json({ error: "Informe o nome de exibi??o." });
     if (!/^[a-z0-9._-]{3,40}$/.test(usernameRaw)) {
-      return res.status(400).json({ error: "Usuário: 3 a 40 caracteres (letras, números, ponto, hífen ou _)." });
+      return res.status(400).json({ error: "Usu?rio: 3 a 40 caracteres (letras, n?meros, ponto, h?fen ou _)." });
     }
     if (db.users.some((u) => u.id !== user.id && String(u.username).toLowerCase() === usernameRaw)) {
-      return res.status(400).json({ error: "Esse usuário já existe." });
+      return res.status(400).json({ error: "Esse usu?rio j? existe." });
     }
 
     const before = { name: user.name, username: user.username };
     user.name = name;
     user.username = usernameRaw;
-    // E-mail permanece no backend para uso futuro; o front não envia por enquanto.
+    // E-mail permanece no backend para uso futuro; o front n?o envia por enquanto.
     if (Object.prototype.hasOwnProperty.call(req.body, "email")) {
       const email = normalizeEmail(req.body.email);
-      if (email === null) return res.status(400).json({ error: "E-mail inválido." });
+      if (email === null) return res.status(400).json({ error: "E-mail inv?lido." });
       user.email = email || "";
     }
     if (typeof req.body.notifyPushOrders === "boolean") {
@@ -4019,7 +4053,7 @@ app.get("/api/push/vapid-public-key", requireAuth, (_req, res) => {
 
 app.get("/api/push/status", requireAuth, (req, res) => {
   const { user } = currentUser(req);
-  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
   normalizeUserNotify(user);
   res.json({
     pushEnabled: user.pushSubscriptions.length > 0,
@@ -4033,11 +4067,11 @@ app.get("/api/push/status", requireAuth, (req, res) => {
 
 app.post("/api/push/subscribe", requireAuth, (req, res) => {
   const { db, user } = currentUser(req);
-  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
   normalizeUserNotify(user);
   const sub = req.body && req.body.subscription;
   if (!sub || !sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
-    return res.status(400).json({ error: "Inscrição de push inválida." });
+    return res.status(400).json({ error: "Inscri??o de push inv?lida." });
   }
   configureWebPush(db);
   const endpoint = str(sub.endpoint, 2048);
@@ -4066,7 +4100,7 @@ app.post("/api/push/subscribe", requireAuth, (req, res) => {
 
 app.post("/api/push/unsubscribe", requireAuth, (req, res) => {
   const { db, user } = currentUser(req);
-  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
   normalizeUserNotify(user);
   const endpoint = str(req.body && req.body.endpoint, 2048);
   const before = user.pushSubscriptions.length;
@@ -4084,7 +4118,7 @@ app.post("/api/push/unsubscribe", requireAuth, (req, res) => {
 
 app.post("/api/push/test", requireAuth, async (req, res) => {
   const { db, user } = currentUser(req);
-  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
   normalizeUserNotify(user);
   const vapid = configureWebPush(db);
   let subs = (user.pushSubscriptions || []).filter(
@@ -4097,14 +4131,14 @@ app.post("/api/push/test", requireAuth, async (req, res) => {
   if (!subs.length) {
     return res.status(400).json({
       error: onlyEndpoint
-        ? "Este aparelho ainda não está ativado. Toque em «Ativar neste aparelho»."
-        : "Nenhum aparelho ativado. Toque em «Ativar neste aparelho» primeiro.",
+        ? "Este aparelho ainda n?o est? ativado. Toque em ?Ativar neste aparelho?."
+        : "Nenhum aparelho ativado. Toque em ?Ativar neste aparelho? primeiro.",
     });
   }
   const baseUrl = publicBaseUrl(req) || `${req.protocol}://${req.get("host") || ""}`.replace(/\/$/, "");
   const sample = {
     customerName: "Cliente teste",
-    city: "Itajaí",
+    city: "Itaja?",
     address: "Centro",
     total: 99.9,
     payment: "Pix",
@@ -4137,7 +4171,7 @@ app.post("/api/push/test", requireAuth, async (req, res) => {
       results.push({ host, ok: true });
     } catch (err) {
       const info = describePushError(err);
-      console.warn(`[push/test] ${host} → ${info.code} ${info.reason}`);
+      console.warn(`[push/test] ${host} ? ${info.code} ${info.reason}`);
       results.push({ host, ok: false, ...info });
       if (info.code === 404 || info.code === 410) {
         dirty = true;
@@ -4153,12 +4187,12 @@ app.post("/api/push/test", requireAuth, async (req, res) => {
   if (!ok) {
     const appleFail = results.find((r) => !r.ok && /apple\.com/i.test(r.host || ""));
     const first = results.find((r) => !r.ok) || {};
-    let error = "Não foi possível enviar o teste. Reative o push neste aparelho.";
+    let error = "N?o foi poss?vel enviar o teste. Reative o push neste aparelho.";
     if (appleFail && (appleFail.code === 403 || /BadJwt/i.test(String(appleFail.reason || "")))) {
       error =
         "A Apple recusou o aviso (VAPID). Atualize o painel, remova e ative de novo neste iPhone.";
     } else if (first.code) {
-      error = `Falha no push (${first.host || "servidor"} · ${first.code}${first.reason ? " · " + first.reason : ""}).`;
+      error = `Falha no push (${first.host || "servidor"} ? ${first.code}${first.reason ? " ? " + first.reason : ""}).`;
     }
     return res.status(502).json({
       error,
@@ -4214,8 +4248,8 @@ app.post("/api/notify-channels/test", requireAuth, async (req, res) => {
     id: "teste",
     customerName: "Cliente teste",
     total: 99.9,
-    phone: ch.whatsappPhone || "—",
-    city: "Itajaí",
+    phone: ch.whatsappPhone || "?",
+    city: "Itaja?",
     address: "Centro",
     payment: "Pix",
     items: [
@@ -4225,8 +4259,8 @@ app.post("/api/notify-channels/test", requireAuth, async (req, res) => {
   };
   try {
     if (channel === "ntfy") {
-      if (!ch.ntfyTopic) return res.status(400).json({ error: "Tópico ntfy ainda não existe." });
-      // teste não exige enabled — assim o admin valida antes de ligar
+      if (!ch.ntfyTopic) return res.status(400).json({ error: "T?pico ntfy ainda n?o existe." });
+      // teste n?o exige enabled ? assim o admin valida antes de ligar
       const prev = ch.ntfyEnabled;
       ch.ntfyEnabled = true;
       await sendNtfyAlert(
@@ -4241,7 +4275,7 @@ app.post("/api/notify-channels/test", requireAuth, async (req, res) => {
     if (channel === "whatsapp") {
       if (!ch.whatsappPhone || !ch.whatsappApiKey) {
         return res.status(400).json({
-          error: "Configure o WhatsApp (número + API key do CallMeBot) em Avisos no iPhone.",
+          error: "Configure o WhatsApp (n?mero + API key do CallMeBot) em Avisos no iPhone.",
         });
       }
       const prev = ch.whatsappEnabled;
@@ -4250,7 +4284,7 @@ app.post("/api/notify-channels/test", requireAuth, async (req, res) => {
       ch.whatsappEnabled = prev;
       return res.json({ ok: true, channel: "whatsapp" });
     }
-    return res.status(400).json({ error: "Canal inválido (use ntfy ou whatsapp)." });
+    return res.status(400).json({ error: "Canal inv?lido (use ntfy ou whatsapp)." });
   } catch (err) {
     return res.status(502).json({ error: err.message || "Falha no teste do canal." });
   }
@@ -4258,7 +4292,7 @@ app.post("/api/notify-channels/test", requireAuth, async (req, res) => {
 
 app.put("/api/push/prefs", requireAuth, (req, res) => {
   const { db, user } = currentUser(req);
-  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
   normalizeUserNotify(user);
   if (typeof req.body.notifyPushOrders === "boolean") {
     user.notifyPushOrders = req.body.notifyPushOrders;
@@ -4281,16 +4315,16 @@ app.put("/api/users/:id/password", requireAuth, async (req, res, next) => {
     const isSelf = me.id === targetId;
     if (!isSelf && me.role !== "admin") {
       logAction(req, "security.forbidden", { detail: "tentou trocar a senha de outra pessoa" });
-      return res.status(403).json({ error: "Você só pode alterar a própria senha." });
+      return res.status(403).json({ error: "Voc? s? pode alterar a pr?pria senha." });
     }
     const user = db.users.find((u) => u.id === targetId);
-    if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+    if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
 
     const password = String(req.body.password || "");
     const problem = passwordProblem(password, user.username);
     if (problem) return res.status(400).json({ error: problem });
 
-    // Trocar a própria senha exige confirmar a senha atual
+    // Trocar a pr?pria senha exige confirmar a senha atual
     if (isSelf) {
       const current = String(req.body.currentPassword || "");
       if (!current || !(await verifyPassword(current, user))) {
@@ -4309,7 +4343,7 @@ app.put("/api/users/:id/password", requireAuth, async (req, res, next) => {
       targetType: "user",
       targetId: user.id,
       targetName: `${user.name} (@${user.username})`,
-      detail: isSelf ? "trocou a própria senha" : "senha redefinida por administrador",
+      detail: isSelf ? "trocou a pr?pria senha" : "senha redefinida por administrador",
     });
 
     if (isSelf) {
@@ -4325,9 +4359,9 @@ app.put("/api/users/:id/password", requireAuth, async (req, res, next) => {
 app.delete("/api/users/:id", requireAdmin, (req, res) => {
   const db = getDb();
   const id = str(req.params.id, 60);
-  if (id === req.session.user.id) return res.status(400).json({ error: "Você não pode excluir o próprio acesso." });
+  if (id === req.session.user.id) return res.status(400).json({ error: "Voc? n?o pode excluir o pr?prio acesso." });
   const user = db.users.find((u) => u.id === id);
-  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+  if (!user) return res.status(404).json({ error: "Usu?rio n?o encontrado." });
   if (user.role === "admin" && db.users.filter((u) => u.role === "admin").length <= 1) {
     return res.status(400).json({ error: "A loja precisa de pelo menos um administrador." });
   }
@@ -4338,7 +4372,7 @@ app.delete("/api/users/:id", requireAdmin, (req, res) => {
 });
 
 /* =========================================================================
-   CONFIGURAÇÕES DA LOJA
+   CONFIGURA??ES DA LOJA
    ========================================================================= */
 
 const SETTINGS_LIMITS = {
@@ -4352,7 +4386,7 @@ const SETTINGS_LIMITS = {
 
 const PROMO_ACTIONS = ["catalogo", "categoria", "produto", "whatsapp"];
 
-/** Uma promoção: card com chamada para ação na vitrine. */
+/** Uma promo??o: card com chamada para a??o na vitrine. */
 function readPromo(raw, existing) {
   const id = str(raw && raw.id, 60) || uid("promo");
   const prev = (existing || []).find((p) => p.id === id);
@@ -4365,7 +4399,7 @@ function readPromo(raw, existing) {
     ctaLabel: str(raw && raw.ctaLabel, 30) || "Ver ofertas",
     action,
     value: str(raw && raw.value, 80),
-    // A imagem só muda pelo endpoint de upload
+    // A imagem s? muda pelo endpoint de upload
     image: prev ? prev.image || "" : "",
     active: bool(raw && raw.active, true),
   };
@@ -4389,7 +4423,7 @@ app.put("/api/settings", requireAdmin, (req, res) => {
       const name = str(x && x.name, 60);
       if (!name) continue;
       const price = optNum(x && x.price, { min: 0, max: 1e6 });
-      if (price === INVALID) return res.status(400).json({ error: `Frete inválido em "${name}".` });
+      if (price === INVALID) return res.status(400).json({ error: `Frete inv?lido em "${name}".` });
       shipping.push({ name, price: price == null ? 0 : price, description: str(x && x.description, 160) });
     }
     s.shipping = normalizeShippingCashboxes(shipping);
@@ -4443,7 +4477,7 @@ app.put("/api/settings", requireAdmin, (req, res) => {
   if (JSON.stringify(beforeCats) !== JSON.stringify(db.categories)) {
     changes.push({ field: "categories", from: beforeCats, to: db.categories });
   }
-  logAction(req, "settings.update", { detail: changes.map((c) => c.field).join(", ") || "sem mudanças", changes });
+  logAction(req, "settings.update", { detail: changes.map((c) => c.field).join(", ") || "sem mudan?as", changes });
   res.json({ settings: db.settings, categories: db.categories });
 });
 
@@ -4468,7 +4502,7 @@ app.post("/api/settings/promos/:id/image", requireAdmin, uploadLimiter, upload.s
   const promo = (db.settings.promos || []).find((p) => p.id === str(req.params.id, 60));
   if (!promo) {
     dropUpload(req);
-    return res.status(404).json({ error: "Promoção não encontrada. Salve as promoções antes de enviar a foto." });
+    return res.status(404).json({ error: "Promo??o n?o encontrada. Salve as promo??es antes de enviar a foto." });
   }
   const old = promo.image;
   promo.image = uploadedUrl(req);
@@ -4481,7 +4515,7 @@ app.post("/api/settings/promos/:id/image", requireAdmin, uploadLimiter, upload.s
 app.delete("/api/settings/promos/:id/image", requireAdmin, (req, res) => {
   const db = getDb();
   const promo = (db.settings.promos || []).find((p) => p.id === str(req.params.id, 60));
-  if (!promo) return res.status(404).json({ error: "Promoção não encontrada." });
+  if (!promo) return res.status(404).json({ error: "Promo??o n?o encontrada." });
   const old = promo.image;
   promo.image = "";
   saveDb(db);
@@ -4543,7 +4577,7 @@ app.get("/api/audit", requireAdmin, (req, res) => {
 app.get("/api/audit/export.csv", requireAdmin, (req, res) => {
   const rows = filterAudit(readAudit(), req.query);
   const cols = ["at", "action", "label", "severity", "actorName", "actorRole", "ip", "method", "route", "targetType", "targetName", "detail", "ua"];
-  // Aspas duplas + prefixo em =+-@ evitam injeção de fórmula no Excel
+  // Aspas duplas + prefixo em =+-@ evitam inje??o de f?rmula no Excel
   const cell = (v) => {
     let s = v == null ? "" : String(v);
     if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
@@ -4581,7 +4615,7 @@ app.delete("/api/audit", requireAdmin, async (req, res, next) => {
 });
 
 /* =========================================================================
-   ESTÁTICOS E FALLBACK
+   EST?TICOS E FALLBACK
    ========================================================================= */
 
 app.use(
@@ -4591,7 +4625,7 @@ app.use(
     setHeaders: (res, filePath) => {
       res.setHeader("X-Content-Type-Options", "nosniff");
       if (/\.html$/i.test(filePath)) res.setHeader("Cache-Control", "no-cache");
-      // O service worker precisa ser sempre buscado do servidor, senão a atualização trava
+      // O service worker precisa ser sempre buscado do servidor, sen?o a atualiza??o trava
       else if (/sw\.js$/i.test(filePath)) res.setHeader("Cache-Control", "no-cache");
       else if (/\.webmanifest$/i.test(filePath)) res.setHeader("Cache-Control", "no-cache");
       else if (/[\\/]img[\\/]/i.test(filePath)) res.setHeader("Cache-Control", "public, max-age=604800");
@@ -4602,7 +4636,7 @@ app.use(
 
 app.get("*", (req, res, next) => {
   if (req.path.startsWith("/api/")) return next();
-  if (req.path.startsWith("/uploads/")) return res.status(404).type("text/plain").send("Arquivo não encontrado.");
+  if (req.path.startsWith("/uploads/")) return res.status(404).type("text/plain").send("Arquivo n?o encontrado.");
   if (req.path === "/admin" || req.path.startsWith("/admin/")) {
     res.setHeader("Cache-Control", "no-store");
     return res.sendFile(path.join(ROOT, "public", "admin", "index.html"));
@@ -4610,22 +4644,22 @@ app.get("*", (req, res, next) => {
   res.sendFile(path.join(ROOT, "public", "index.html"));
 });
 
-app.use("/api", (_req, res) => res.status(404).json({ error: "Recurso não encontrado." }));
+app.use("/api", (_req, res) => res.status(404).json({ error: "Recurso n?o encontrado." }));
 
 /* ---------- tratamento de erros (sem vazar detalhes) ---------- */
 app.use((err, req, res, _next) => {
   if (req && req.file) dropUpload(req);
 
   if (err && (err.type === "entity.parse.failed" || err instanceof SyntaxError)) {
-    return res.status(400).json({ error: "Dados inválidos." });
+    return res.status(400).json({ error: "Dados inv?lidos." });
   }
   if (err && err.type === "entity.too.large") {
-    return res.status(413).json({ error: "Conteúdo muito grande." });
+    return res.status(413).json({ error: "Conte?do muito grande." });
   }
   if (err instanceof multer.MulterError) {
     const messages = {
       LIMIT_FILE_SIZE: "A imagem passa de 8 MB. Envie uma menor.",
-      LIMIT_UNEXPECTED_FILE: "Formato não aceito. Use JPG, PNG, WEBP ou GIF.",
+      LIMIT_UNEXPECTED_FILE: "Formato n?o aceito. Use JPG, PNG, WEBP ou GIF.",
       LIMIT_FILE_COUNT: "Envie uma imagem por vez.",
     };
     logAction(req, "security.upload_rejected", { detail: err.code });
@@ -4641,14 +4675,14 @@ app.use((err, req, res, _next) => {
    PARTIDA
    ========================================================================= */
 
-process.on("unhandledRejection", (reason) => console.error("[promise não tratada]", reason));
-process.on("uncaughtException", (err) => console.error("[exceção não tratada]", err));
+process.on("unhandledRejection", (reason) => console.error("[promise n?o tratada]", reason));
+process.on("uncaughtException", (err) => console.error("[exce??o n?o tratada]", err));
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`GOLD SKULL no ar: http://localhost:${PORT}`);
   console.log(`Painel: http://localhost:${PORT}/admin`);
   console.log(
-    `Segurança: ${PROD ? "produção" : "desenvolvimento"} · HTTPS obrigatório: ${FORCE_HTTPS ? "sim" : "não"} · ` +
+    `Seguran?a: ${PROD ? "produ??o" : "desenvolvimento"} ? HTTPS obrigat?rio: ${FORCE_HTTPS ? "sim" : "n?o"} ? ` +
       `IPs do painel: ${ADMIN_ALLOW_IPS.length ? ADMIN_ALLOW_IPS.join(", ") : "todos"}`
   );
   console.log(`Dados: ${DB_PATH}`);
@@ -4656,20 +4690,20 @@ const server = app.listen(PORT, HOST, () => {
     const vapid = configureWebPush(getDb());
     console.log(`[push] VAPID subject: ${vapid.subject}`);
   } catch (err) {
-    console.warn("[push] não foi possível preparar VAPID:", err.message || err);
+    console.warn("[push] n?o foi poss?vel preparar VAPID:", err.message || err);
   }
 });
 
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
     console.error(
-      `\n[ERRO] A porta ${PORT} já está sendo usada — a loja provavelmente já está aberta em outra janela.\n` +
+      `\n[ERRO] A porta ${PORT} j? est? sendo usada ? a loja provavelmente j? est? aberta em outra janela.\n` +
         "        Feche a outra janela do terminal (ou use outra porta: PORT=3001 npm start).\n"
     );
   } else if (err.code === "EACCES") {
-    console.error(`\n[ERRO] Sem permissão para usar a porta ${PORT}. Use uma porta acima de 1024.\n`);
+    console.error(`\n[ERRO] Sem permiss?o para usar a porta ${PORT}. Use uma porta acima de 1024.\n`);
   } else {
-    console.error("[ERRO] Não foi possível iniciar o servidor:", err.message);
+    console.error("[ERRO] N?o foi poss?vel iniciar o servidor:", err.message);
   }
   process.exit(1);
 });

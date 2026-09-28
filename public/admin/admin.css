@@ -1,4 +1,4 @@
-/* Admin — GOLD SKULL */
+/* Admin ? GOLD SKULL */
 .admin-body { background: var(--bg); min-height: 100vh; }
 
 /* login */
@@ -83,7 +83,7 @@
   border: 1px solid rgba(37, 211, 102, 0.4); border-radius: 999px; padding: 2px 8px;
 }
 
-/* promoções */
+/* promo??es */
 .promo-admin-list { display: flex; flex-direction: column; gap: 14px; }
 .promo-admin { border: 1px solid var(--line); border-radius: 16px; padding: 14px; background: var(--bg-2); }
 .promo-admin label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
@@ -251,7 +251,7 @@
 .admin-modal input:focus, .admin-modal textarea:focus, .admin-modal select:focus,
 .coupon-admin input:focus, .coupon-admin select:focus,
 .promo-admin input:focus, .promo-admin select:focus { border-color: var(--gold); }
-/* labels que são botão ou interruptor não viram coluna */
+/* labels que s?o bot?o ou interruptor n?o viram coluna */
 .settings-form label.switch { display: inline-flex; flex-direction: row; align-items: center; width: fit-content; color: var(--text); }
 .settings-form label.btn { display: inline-flex; flex-direction: row; align-items: center; width: fit-content; }
 .grid-2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
@@ -285,9 +285,9 @@
 }
 .alt-notify-details > summary::-webkit-details-marker { display: none; }
 .alt-notify-details > summary::before {
-  content: "▸ "; color: var(--gold-2);
+  content: "? "; color: var(--gold-2);
 }
-.alt-notify-details[open] > summary::before { content: "▾ "; }
+.alt-notify-details[open] > summary::before { content: "? "; }
 .alt-notify-details[open] > summary { color: var(--text); margin-bottom: 4px; }
 
 .coupon-admin-list { display: flex; flex-direction: column; gap: 14px; }
@@ -568,11 +568,31 @@
 }
 .notif-item:hover { border-color: var(--gold); }
 .notif-item.unread { border-color: var(--gold); background: var(--gold-dim); }
+.notif-item:not(.unread) { border-color: var(--line); background: var(--bg-3); }
 .notif-item-head { display: flex; justify-content: space-between; gap: 8px; font-weight: 800; font-size: 13px; }
 .notif-item-total { color: var(--gold-2); white-space: nowrap; }
 .notif-item-detail { font-size: 12px; color: var(--text-2); margin-top: 4px; word-break: break-word; }
-.notif-item-when { font-size: 11px; color: var(--text-2); font-weight: 600; margin-top: 4px; }
+.notif-item-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.notif-item-when { font-size: 11px; color: var(--text-2); font-weight: 600; }
+.notif-dismiss {
+  width: 25px; height: 25px; border: 0; border-radius: 7px; background: transparent;
+  color: var(--text-2); font-size: 19px; line-height: 1; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.notif-dismiss:hover { color: var(--danger); background: rgba(220, 60, 60, 0.12); }
 .notif-empty { text-align: center; color: var(--text-2); font-size: 12.5px; padding: 20px 8px; }
+
+@media (max-width: 640px) {
+  .notif-panel {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 68px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 84px);
+  }
+}
 
 .orders-admin-list { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
 .order-admin-card {
@@ -760,7 +780,7 @@
   .product-cards.mobile-only { display: flex !important; }
   .fab-add.mobile-only { display: block !important; }
 }
-/* ============ sabores (opções do produto) ============ */
+/* ============ sabores (op??es do produto) ============ */
 .modal-section {
   font-family: var(--font-display); font-size: 14px; color: var(--gold-2);
   margin: 6px 0 -4px; padding-top: 10px; border-top: 1px solid var(--line);
@@ -802,6 +822,25 @@
 .flavor-order .icon-btn { width: 28px; height: 28px; font-size: 12px; }
 .flavor-order .icon-btn:disabled { opacity: 0.35; }
 .flavor-row-actions .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+.flavor-stock-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding-top: 2px; border-top: 1px dashed var(--line);
+}
+.flavor-stock-toggle {
+  display: inline-flex; align-items: center; gap: 5px; color: var(--text-2);
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
+}
+.flavor-stock-toggle input { accent-color: var(--gold); }
+.flavor-stock-input {
+  display: inline-flex; align-items: center; gap: 6px; color: var(--text-2);
+  font-size: 11.5px; font-weight: 700;
+}
+.flavor-stock-input input {
+  width: 72px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg-2); color: var(--text); font-size: 13px; font-weight: 700;
+}
+.flavor-stock-input input:focus { outline: none; border-color: var(--gold); }
+.flavor-stock-input input:disabled { opacity: 0.55; }
 
 /* ============ logs ============ */
 .log-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
@@ -833,7 +872,7 @@
 .log-changes b { color: var(--text); }
 .log-row-meta { font-size: 10.5px; color: var(--text-2); margin-top: 6px; font-family: ui-monospace, monospace; }
 
-/* ============ confirmação ============ */
+/* ============ confirma??o ============ */
 .confirm-box { max-width: 420px; }
 .confirm-box .admin-modal-body p { font-size: 14px; line-height: 1.5; }
 .confirm-box .admin-modal-body label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--text-2); margin-top: 14px; }
@@ -854,7 +893,7 @@
 .panel.hidden ~ .admin-dock,
 .panel.hidden ~ .more-sheet { display: none !important; }
 
-/* catálogo organizado por cidade */
+/* cat?logo organizado por cidade */
 .catalog-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
